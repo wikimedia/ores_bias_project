@@ -1,20 +1,31 @@
 from pyspark.sql.functions import udf
 from pyspark.sql.types import *
 import pyspark.sql.functions as f
+import mwcomments
 
-def my_match_comment(comment, wiki, timestamp):
-        try:
-            result = list(broad_wtm.value.match(comment,wiki,timestamp))
-            return result
-        except Exception as e:
-            return [str(e),wiki,str(broad_wtm.value.wikiToolMap[wiki]._toolMap['undo'].match())]
+def broadcast_match_comment(sc):
+        wtm = mwcomments.WikiToolMap.load_WikiToolMap()
+        broad_wtm = sc.broadcast(wtm)
 
-match_comment = udf(my_match_comment,returnType=ArrayType(StringType()))                
+        def my_match_comment(comment, wiki, timestamp):
+                if comment is None:
+                        return []
 
-def add_revert_types(wmhist):
-    wmhist = wmhist.withColumn("comment_match",match_comment(f.col("event_comment"),f.col("wiki_db"),f.col("event_timestamp")))
-    wmhist = wmhist.withColumn("is_undo", f.array_contains(col='comment_match',value='undo'))
-    wmhist = wmhist.withColumn("is_rollback", f.array_contains(col='comment_match',value='rollback'))
+                try:
+                    result = list(broad_wtm.value.match(comment,wiki,timestamp))
+                    return result
+                except Exception as e:
+                    return [str(e),wiki,str(broad_wtm.value.wikiToolMap[wiki]._toolMap['undo'])]
+
+        global match_comment
+        match_comment = udf(my_match_comment,returnType=ArrayType(StringType()))
+        return match_comment
+
+
+def add_revert_types(wmhist, comment_column='event_comment'):
+    wmhist = wmhist.withColumn("revert_tools_match",match_comment(f.col(comment_column),f.col("wiki_db"),f.col("event_timestamp")))
+    wmhist = wmhist.withColumn("is_undo", f.array_contains(col='revert_tools_match',value='undo'))
+    wmhist = wmhist.withColumn("is_rollback", f.array_contains(col='revert_tools_match',value='rollback'))
 
     wmhist = wmhist.withColumn(
         'revert_tool',
@@ -77,7 +88,6 @@ def add_user_roles(wmhist):
     return wmhist
 
 def build_wmhist_step1(wmhist):
-    wmhist = add_revert_types(wmhist)
     wmhist = add_is_newcomer(wmhist)
     wmhist = add_user_roles(wmhist)
     return wmhist
@@ -97,17 +107,16 @@ def process_reverts(wmhist):
     reverteds = reverteds.withColumnRenamed("event_user_text","reverted_user_text")
 
     reverts = wmhist.filter((wmhist.page_namespace==0)&(wmhist.revision_is_identity_revert == True))
+
     reverts = reverts.select(['wiki_db',
-                              'week',
                               'event_user_text',
                               'event_timestamp',
                               'role_type',
                               'revision_id',
                               'revision_is_identity_reverted',
                               'revision_first_identity_reverting_revision_id',
-                              'revert_tool',
-                              'is_undo',
-                              'is_rollback'])
+                              f.col('event_comment').alias('revert_comment')
+                              ])
 
     reverts = reverts.withColumnRenamed("event_user_text","revert_user_text")
     reverts = reverts.withColumnRenamed("event_timestamp","revert_timestamp")
@@ -128,8 +137,7 @@ def process_reverts(wmhist):
     reverted_reverts = reverted_reverts.withColumnRenamed("revert_revision_id","rr_revision_id")
     reverted_reverts = reverted_reverts.withColumnRenamed("revert_first_identity_reverting_revision_id","rr_reverting_revision_id")
     reverted_reverts = reverted_reverts.withColumnRenamed("wiki_db",'rr_wiki_db')
-    reverted_reverts = reverted_reverts.withColumnRenamed("week",'rr_week')
-    reverted_reverts = reverted_reverts.select(['rr_wiki_db','rr_timestamp','rr_revision_id','rr_reverting_revision_id','rr_week'])
+    reverted_reverts = reverted_reverts.select(['rr_wiki_db','rr_timestamp','rr_revision_id','rr_reverting_revision_id'])
     reverts = reverts.join(reverted_reverts,
                            on=[reverts.reverted_revision_id == reverted_reverts.rr_revision_id,
                                reverts.wiki_db == reverted_reverts.rr_wiki_db],
@@ -146,9 +154,5 @@ def process_reverts(wmhist):
     reverts = reverts.withColumn("time_to_revert",(f.unix_timestamp(f.col("revert_timestamp")) - f.unix_timestamp(f.col("reverted_timestamp"))) / 1000)
     # let's use median ttr as the metric
 
-    # exclude reverts with ttr > 30 days = 60 seconds * 60 minutes / second * 24hours / day * 30 days
-    reverts = reverts.filter(f.col("time_to_revert") <= 30*24*60*60)
-
-    reverts = reverts.withColumn("med_ttr", f.expr('percentile_approx(time_to_revert, 0.5,1)').over(Window.partitionBy(['wiki_db','week'])))
 
     return reverts
