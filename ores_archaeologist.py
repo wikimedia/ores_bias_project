@@ -49,7 +49,7 @@ commits = repo.iter_commits(paths=["submodules/editquality"])
 date_commits_path = "ores_bias_data/date_commits.pickle"
 wiki_date_commits_path = "ores_bias_data/wiki_date_commits.pickle"
 
-lfs_transition_date = fromisoformat("2018-08-09")
+lfs_transition_date = fromisoformat("2018-08-10")
 
 if os.path.exists(wiki_date_commits_path) and os.path.exists(date_commits_path):
     print('unpickling commit history ')
@@ -152,7 +152,7 @@ def load_model(date, wiki_db, model_type='damaging'):
     if date > lfs_transition_date: 
         models_path = os.path.join(repo_path, "submodules/editquality/models")
     else:
-        models_path = os.path.join(editquality_repo_path,"/models")
+        models_path = os.path.join(editquality_repo_path,"models")
  
     model_path = find_model_file(wiki_db=wiki_db, models_path = models_path)
     model =  revscoring.Model.load(open(model_path))
