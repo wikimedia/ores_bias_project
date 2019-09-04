@@ -159,7 +159,7 @@ class Ores_Archaeologist(object):
                 load_model_environment(commit=commit)
 
         model_file = find_model_file(wiki_db, model_type)
-        run = subprocess.run(["revscoring", "score", model_file,"--host={0}".format(uri), '--rev-ids={0}'.format(infile)], shell=False)
+        run = subprocess.run(["revscoring", "score", model_file,"--host={0}".format(uri), '--rev-ids={0}'.format(infile)], shell=False, stdout=subprocess.PIPE)
         print(run.args)
         print(run.returncode)
 
