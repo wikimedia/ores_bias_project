@@ -210,7 +210,7 @@ class Ores_Archaeologist(object):
 
         score_jsons = score_jsons.decode()
 
-        all_revisions['prob_damaging'] = None
+        all_revisions.loc[:,'prob_damaging'] = None
         
         for line in score_jsons.split('\n'):
             if line == '':
@@ -259,33 +259,41 @@ class Ores_Archaeologist_Api(Ores_Archaeologist):
         res.to_csv(buf, index=False,quotechar='\"',escapechar="\\")
         return buf.getvalue()
 
-    def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=False, wrap=False):
+    def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=False, wrap=False, output=None):
         res = super().score_wiki_commit_revisions(commit, wiki_db, all_revisions, preprocess, load_environment)
+        csv = self._wrap(res)
+        if output is not None:
+            with open(output,'w') as of:
+                of.write(csv)
         if wrap:
-            return self._wrap(res)
+            return csv
         else:
             return res
 
     def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True, 
-wrap=False):
+                               wrap=False,output=None):
         res = super().score_commit_revisions(commit, cutoff_revisions, preprocess, load_environment)
+        csv = self._wrap(res)
+        if output is not None:
+            with open(output,'w') as of:
+                of.write(csv)
         if wrap:
-            return self._wrap(res)
+            return csv
         else:
             return res
 
-    def score_history(self, cutoff_revisions, preprocess=True, wrap=False):
+
+    def score_history(self, cutoff_revisions, preprocess=True, wrap=False, output=None):
         res = super().score_history(cutoff_revisions, preprocess)
+        csv = self._wrap(res)
+        if output is not None:
+            with open(output,'w') as of:
+                of.write(csv)
         if wrap:
-            return self._wrap(res)
+            return csv
         else:
             return res
 
 if __name__ == "__main__":
     fire.Fire(Ores_Archaeologist_Api)
     os.rmdir(tmpdir)
-    
-
-s = "cswiki,2017-05-09 11:37:12.0,559641,Šútovo,,,true,true,14977422,false,established,false,otherTool,2017-04-25T23:54:00.000Z,2017-05-23T23:54:00.000Z,2017-05-09T23:54:00.000Z,true,0.15467425601682855,6.4652"
-
-s = "cswiki,2017-05-05 15:01:59.0,362001,Perlový_potok,,,false,false,14961619,false,established,false,otherTool,2017-04-25T23:54:00.000Z,2017-05-23T23:54:00.000Z,2017-05-09T23:54:00.000Z,true,0.15467425601682855,6.4652"
