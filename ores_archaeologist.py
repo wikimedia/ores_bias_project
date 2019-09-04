@@ -12,7 +12,9 @@ import sys
 from sortedcontainers import SortedDict
 import io
 import mwapi
-
+import dateutil
+# python 3.5 doesn't have datetime.fromisoformat
+fromisoformat = dateutil.parser.isoparse
 api = mwapi.Session("https://en.wikipedia.org",'ores bias project by groceryheist <nathante@uw.edu>')
 
 sys.path.append("../../mw_revert_tool_detector")
@@ -131,7 +133,7 @@ def get_threshhold(model, query):
 
 class Ores_Archaeologist(object):
     def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True):
-        model_file = load_model(date = datetime.datetime.fromisoformat(date),
+        model_file = load_model(date = fromisoformat(date),
                            wiki_db = wiki_db,
                            model_type = "damaging"
         )
@@ -151,7 +153,7 @@ class Ores_Archaeologist(object):
 
         if load_environment:
             if date is not None:
-                date = datetime.datetime.fromisoformat(date)
+                date = fromisoformat(date)
                 load_model_environment(date)
             else:
                 load_model_environment(commit=commit)
@@ -238,7 +240,7 @@ class Ores_Archaeologist(object):
         # cutoff_revisions.period_end = pd.to_datetime(cutoff_revisions.period_end)
 
         # temporarily only look after 2018-08-09
-        cutoff_revisions = cutoff_revisions[cutoff_revisions.event_timestamp >= datetime.datetime.fromisoformat("2018-08-09")]
+        cutoff_revisions = cutoff_revisions[cutoff_revisions.event_timestamp >= fromisoformat("2018-08-09")]
 
         # we need to find the right model for each 
         # asssign commits to cutoff_revisions
