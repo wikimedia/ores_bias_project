@@ -188,7 +188,11 @@ class Ores_Archaeologist(object):
             else:
                 load_model_environment(commit=commit)
 
-        model_file = find_model_file(wiki_db, model_type)
+        if date >= lfs_transition_date:
+            models_path = os.path.join(repo_path, 'submodules/ediquality/models')
+        else:
+            models_path = os.path.join(editquality_repo_path,"models")
+        model_file = find_model_file(wiki_db, models_path, model_type)
         run = subprocess.run(["revscoring", "score", model_file,"--host={0}".format(uri), '--rev-ids={0}'.format(infile)], shell=False, stdout=subprocess.PIPE)
         print(run.args)
         print(run.returncode)
@@ -271,6 +275,10 @@ class Ores_Archaeologist(object):
 
         # we need to find the right model for each 
         # asssign commits to cutoff_revisions
+        wikis_with_models = set(wiki_date_commits.keys())
+
+        cutoff_revisions = cutoff_revisions.loc[cutoff_revisions.wiki_db.isin(wikis_with_models),:]
+
         commits = cutoff_revisions.apply(lambda row: lookup_commit_from_wiki_date(row.wiki_db, row.event_timestamp), axis=1)
         cutoff_revisions['commit'] = commits
 
