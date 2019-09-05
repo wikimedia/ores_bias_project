@@ -141,6 +141,9 @@ def load_model_environment(date = None, commit = None):
         except AttributeError as e:
             print(e)
 
+    # install editquality
+    subprocess.run("cd {0} && python3 setup.py && pip3 download -r requirements.txt -d deps && pip3 install -r requirements.txt --find-links=deps".format(editquality_path), shell=True)
+
     # install mediawiki-services-ores-deploy
     subprocess.run("cd {0} pip3 download -r frozen-requirements.txt -d deps && pip3 install -r frozen-requirements.txt --find-links=deps".format(repo_path), shell=True)
 
