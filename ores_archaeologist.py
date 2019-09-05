@@ -142,7 +142,7 @@ def load_model_environment(date = None, commit = None):
             print(e)
 
     # install mediawiki-services-ores-deploy
-    subprocess.run("cd {0} && make".format(repo_path), shell=True)
+    subprocess.run("cd {0} pip3 download -r frozen-requirements.txt -d deps && pip3 install -r frozen-requirements.txt --find-links=deps".format(repo_path), shell=True)
 
     subprocess.run("cd ../../..", shell=True)
     global editquality
