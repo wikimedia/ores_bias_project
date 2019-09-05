@@ -37,6 +37,8 @@ editquality_repo_path = '../editquality_groceryheist'
 date_commits = SortedDict()
 wiki_date_commits = {}
 
+submodule_commits = set()
+editquality_commits = set()
     
 repo = git.Repo(repo_path)
 repo.git.checkout("-f", 'master')
@@ -46,6 +48,8 @@ editquality_repo.git.checkout("-f", 'master')
 
 commits = repo.iter_commits(paths=["submodules/editquality"])
 
+editquality_commits_path = "ores_bias_data/editquality_commits.pickle"
+submodule_commits_path = "ores_bias_data/submodule_commits.pickle"
 date_commits_path = "ores_bias_data/date_commits.pickle"
 wiki_date_commits_path = "ores_bias_data/wiki_date_commits.pickle"
 
@@ -55,6 +59,8 @@ if os.path.exists(wiki_date_commits_path) and os.path.exists(date_commits_path):
     print('unpickling commit history ')
     wiki_date_commits = pickle.load(open(wiki_date_commits_path,'rb'))
     date_commits = pickle.load(open(date_commits_path,'rb'))
+    submodule_commits = pickle.load(open(submodule_commits_path,'rb'))
+    editquality_commits = pickle.load(open(editquality_commits_path,'rb'))
 else:
     for commit in commits:
         commit_datetime = pd.to_datetime(datetime.datetime.fromtimestamp(commit.committed_datetime.timestamp()))
@@ -66,6 +72,7 @@ else:
                 if hasattr(editquality_submodule,'update'): 
                     editquality_submodule.update(init=True)
                     found_commit = commit
+                    submodule_commits.add(found_commit.hexsha)
             except Exception as e:
                 print(commit_datetime)
                 print(e)
@@ -74,6 +81,7 @@ else:
         else:
             models_path = os.path.join(editquality_repo_path,'models')
             found_commit = next(editquality_repo.iter_commits(until=commit_datetime, max_count=1))
+            editquality_commits.add(found_commit.hexsha)
 
         date_commits[commit_datetime] = found_commit.hexsha
         model_re = re.compile(r'(.*)\.damaging\..*\.model')
@@ -87,6 +95,8 @@ else:
 
     pickle.dump(wiki_date_commits, open(wiki_date_commits_path,'wb'))
     pickle.dump(date_commits, open(date_commits_path,'wb'))
+    pickle.dump(submodule_commits, open(submodule_commits_path,'wb'))
+    pickle.dump(editquality_commits, open(editquality_commits_path,'wb'))
 
 def lookup_commit_from_wiki_date(wiki_db, date):
     return lookup_commit_from_date(date, wiki_date_commits[wiki_db])
@@ -116,7 +126,7 @@ def load_model_environment(date = None, commit = None):
 
     print("date:{0}, commit:{1}".format(date, commit))
 
-    if date >= lfs_transition_date:
+    if commit in submodule_commits:
         try: 
             repo.git.checkout('-f', commit)
             subprocess.run("cd {0} && git submodule sync --recursive && cd ..".format(repo_path), shell = True)
@@ -149,6 +159,7 @@ def load_model_environment(date = None, commit = None):
 
 def load_model(date, wiki_db, model_type='damaging'):
     load_model_environment(date = date)
+
     if date > lfs_transition_date: 
         models_path = os.path.join(repo_path, "submodules/editquality/models")
     else:
@@ -181,17 +192,24 @@ class Ores_Archaeologist(object):
     
     def score_revisions(self, wiki_db, uri, date=None, commit=None, load_environment = True, model_type = 'damaging', infile = "<stdin>"):
 
+        post_lfs = False
         if load_environment:
             if date is not None:
                 date = fromisoformat(date)
+                if date >= lfs_transition_date:
+                    post_lfs = True
                 load_model_environment(date)
             else:
                 load_model_environment(commit=commit)
 
-        if date >= lfs_transition_date:
+        if commit is not None and commit in submodule_commits:
+            post_lfs = True
+
+        if post_lfs:
             models_path = os.path.join(repo_path, 'submodules/ediquality/models')
         else:
-            models_path = os.path.join(editquality_repo_path,"models")
+            models_path = os.path.join(editquality_repo_path, "models")
+
         model_file = find_model_file(wiki_db, models_path, model_type)
         run = subprocess.run(["revscoring", "score", model_file,"--host={0}".format(uri), '--rev-ids={0}'.format(infile)], shell=False, stdout=subprocess.PIPE)
         print(run.args)
