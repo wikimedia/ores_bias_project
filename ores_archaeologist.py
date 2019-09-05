@@ -254,7 +254,7 @@ class Ores_Archaeologist(object):
                 if probability is not None:
                     probability = probability['true']
 
-            all_revisions.loc[all_revisions.revision_id==int(revid),'prob_damaging'] = probability
+                all_revisions.loc[all_revisions.revision_id==int(revid),'prob_damaging'] = probability
 
         return all_revisions
         
