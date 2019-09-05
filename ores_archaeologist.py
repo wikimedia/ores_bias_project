@@ -240,22 +240,29 @@ class Ores_Archaeologist(object):
 
         score_jsons = score_jsons.decode()
 
-        all_revisions.loc[:,'prob_damaging'] = None
-        
+        scores = []
         for line in score_jsons.split('\n'):
             if line == '':
                 continue
             fields = line.split('\t')
             revid = fields[0]
-            if len(fields) < 2:
-                result = json.loads(fields[1])
-                probability = result.get('probability', None)
 
+            if len(fields) < 2:
+                probability = None
+
+            else:
+                result = json.loads(fields[1])
+
+                probability = result.get('probability', None)
+            
                 if probability is not None:
                     probability = probability['true']
 
-                all_revisions.loc[all_revisions.revision_id==int(revid),'prob_damaging'] = probability
+            scores.append({"revision_id":int(revid), "prob_damaging":probability})
 
+
+        scores = pd.DataFrame.from_records(scores)
+        all_revisions = pd.merge(all_revisions, scores, on=['revision_id'], how='left')
         return all_revisions
         
     def preprocess_cutoff_history(self, cutoff_revisions):
