@@ -37,8 +37,7 @@ editquality_repo_path = '../editquality_groceryheist'
 date_commits = SortedDict()
 wiki_date_commits = {}
 
-submodule_commits = set()
-editquality_commits = set()
+editquality_commits = {}
     
 repo = git.Repo(repo_path)
 repo.git.checkout("-f", 'master')
@@ -49,17 +48,14 @@ editquality_repo.git.checkout("-f", 'master')
 commits = repo.iter_commits(paths=["submodules/editquality"])
 
 editquality_commits_path = "ores_bias_data/editquality_commits.pickle"
-submodule_commits_path = "ores_bias_data/submodule_commits.pickle"
 date_commits_path = "ores_bias_data/date_commits.pickle"
 wiki_date_commits_path = "ores_bias_data/wiki_date_commits.pickle"
-
 lfs_transition_date = fromisoformat("2018-08-10")
 
 if os.path.exists(wiki_date_commits_path) and os.path.exists(date_commits_path):
     print('unpickling commit history ')
     wiki_date_commits = pickle.load(open(wiki_date_commits_path,'rb'))
     date_commits = pickle.load(open(date_commits_path,'rb'))
-    submodule_commits = pickle.load(open(submodule_commits_path,'rb'))
     editquality_commits = pickle.load(open(editquality_commits_path,'rb'))
 else:
     for commit in commits:
@@ -71,8 +67,6 @@ else:
                 editquality_submodule = repo.submodule("submodules/editquality")
                 if hasattr(editquality_submodule,'update'): 
                     editquality_submodule.update(init=True)
-                    found_commit = commit
-                    submodule_commits.add(found_commit.hexsha)
             except Exception as e:
                 print(commit_datetime)
                 print(e)
@@ -80,30 +74,29 @@ else:
         # find the most recent commit in the editquality repo
         else:
             models_path = os.path.join(editquality_repo_path,'models')
-            found_commit = next(editquality_repo.iter_commits(until=commit_datetime, max_count=1))
-            editquality_commits.add(found_commit.hexsha)
+            editquality_commit = next(editquality_repo.iter_commits(until=commit_datetime, max_count=1))
+            editquality_commits[commit.hexsha] = editquality_commit.hexsha
 
-        date_commits[commit_datetime] = found_commit.hexsha
+        date_commits[commit_datetime] = commit.hexsha
         model_re = re.compile(r'(.*)\.damaging\..*\.model')
         files = os.listdir(models_path)
         for f in files:
             wiki_db = model_re.findall(f)
             if len(wiki_db) > 0:
                 d = wiki_date_commits.get(wiki_db[0], SortedDict())
-                d[commit_datetime] = found_commit.hexsha
+                d[commit_datetime] = commit.hexsha
                 wiki_date_commits[wiki_db[0]] = d
 
     pickle.dump(wiki_date_commits, open(wiki_date_commits_path,'wb'))
     pickle.dump(date_commits, open(date_commits_path,'wb'))
-    pickle.dump(submodule_commits, open(submodule_commits_path,'wb'))
     pickle.dump(editquality_commits, open(editquality_commits_path,'wb'))
 
 def lookup_commit_from_wiki_date(wiki_db, date):
     return lookup_commit_from_date(date, wiki_date_commits[wiki_db])
 
 def lookup_commit_from_date(date, sorted_dict = date_commits):
-    
     idx = sorted_dict.bisect_right(date)
+
     if idx > 0:
         idx = idx - 1
     commited_datetime = date_commits.keys()[idx]
@@ -111,45 +104,47 @@ def lookup_commit_from_date(date, sorted_dict = date_commits):
 
     return commit
 
-
-def find_model_file(wiki_db, models_path, model_type='damaging'):
-
+def find_model_file(wiki_db, commit, model_type='damaging'):
+    
+    if commit in editquality_commits:
+        models_path = os.path.join(editquality_repo_path, 'models')
+    else:
+        models_path = os.path.join(repo_path, 'submodules/editquality/models')
+    
     model_re = r'{0}\.{1}\..*\.model'.format(wiki_db, model_type)
     files = os.listdir(models_path)
     model_files = [f for f in files if re.match(model_re,f)]
     if len(model_files) > 0:
         return os.path.join(models_path, model_files[0])
 
+# we actually always want to load up the environment from the deploy module.
 def load_model_environment(date = None, commit = None):
     if commit is None:
         commit = lookup_commit_from_date(date)
 
     print("date:{0}, commit:{1}".format(date, commit))
 
-    if commit in submodule_commits:
+    repo.git.checkout('-f', commit)
+    subprocess.run("cd {0} && git submodule sync --recursive && cd ..".format(repo_path), shell = True)
+    if commit in editquality_commits:
+        editquality_repo.git.checkout('-f', editquality_commits[commit])
+        editquality_path = editquality_repo_path
+    else:
+        editquality_path = os.path.join(repo_path,"submodules/editquality")
         try: 
-            repo.git.checkout('-f', commit)
-            subprocess.run("cd {0} && git submodule sync --recursive && cd ..".format(repo_path), shell = True)
             editquality_submodule = repo.submodule("submodules/editquality")
             if hasattr(editquality_submodule,'update'): 
                 editquality_submodule.update(init=True, recursive=True,force=True,progress=True)
-            editquality_path = os.path.join(repo_path,"submodules/editquality")
         except git.exc.GitCommandError as e:
             print(e)
 
         except AttributeError as e:
             print(e)
 
-    else:
-        try:
-            editquality_repo.git.checkout("-f", commit)
-            editquality_path = editquality_repo_path
-        except git.exc.GitCommandError as e:
-            print(date)
-            print(e)
+
 
     subprocess.run("cd {0} && python3 setup.py install && pip3 download -r requirements.txt -d deps && pip3 install -r requirements.txt --find-links=deps".format(editquality_path), shell=True)
-    subprocess.run("cd ../../..",shell=True)
+    subprocess.run("cd ../../..", shell=True)
     global editquality
     global revscoring
     import editquality
@@ -158,15 +153,10 @@ def load_model_environment(date = None, commit = None):
     reload(revscoring)
 
 def load_model(date, wiki_db, model_type='damaging'):
-    load_model_environment(date = date)
-
-    if date > lfs_transition_date: 
-        models_path = os.path.join(repo_path, "submodules/editquality/models")
-    else:
-        models_path = os.path.join(editquality_repo_path,"models")
- 
-    model_path = find_model_file(wiki_db=wiki_db, models_path = models_path)
-    model =  revscoring.Model.load(open(model_path))
+    commit = lookup_commit_from_wiki_date(wiki_db, date)
+    load_model_environment(date=date, commit=commit)
+    model_path = find_model_file(wiki_db=wiki_db, commit=commit)
+    model = revscoring.Model.load(open(model_path))
     return model
 
 def get_threshhold(model, query):
@@ -174,11 +164,11 @@ def get_threshhold(model, query):
 
 class Ores_Archaeologist(object):
     def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True):
-        model_file = load_model(date = fromisoformat(date),
+        model = load_model(date = fromisoformat(date),
                            wiki_db = wiki_db,
                            model_type = "damaging"
         )
-        threshhold = get_threshhold(model_file, threshhold_string)
+        threshhold = get_threshhold(model, threshhold_string)
         outline = '\t'.join(str(v) for v in [wiki_db, date, threshhold_string, threshhold])
         if outfile is None:
             print(outline)
@@ -192,29 +182,17 @@ class Ores_Archaeologist(object):
     
     def score_revisions(self, wiki_db, uri, date=None, commit=None, load_environment = True, model_type = 'damaging', infile = "<stdin>"):
 
-        post_lfs = False
         if load_environment:
-            if date is not None:
-                date = fromisoformat(date)
-                if date >= lfs_transition_date:
-                    post_lfs = True
-                load_model_environment(date)
-            else:
-                load_model_environment(commit=commit)
+            load_model_environment(date=date, commit=commit)
 
-        if commit is not None and commit in submodule_commits:
-            post_lfs = True
+        if commit is None:
+            commit = lookup_commit_from_wiki_date(wiki_db, date)
 
-        if post_lfs:
-            models_path = os.path.join(repo_path, 'submodules/ediquality/models')
-        else:
-            models_path = os.path.join(editquality_repo_path, "models")
+        model_file = find_model_file(wiki_db, commit, model_type)
 
-        model_file = find_model_file(wiki_db, models_path, model_type)
         run = subprocess.run(["revscoring", "score", model_file,"--host={0}".format(uri), '--rev-ids={0}'.format(infile)], shell=False, stdout=subprocess.PIPE)
         print(run.args)
         print(run.returncode)
-
         return run.stdout
 
 
@@ -249,7 +227,7 @@ class Ores_Archaeologist(object):
             all_revisions = self.preprocess_cutoff_history(all_revisions)
 
         uri = siteList[wiki_db]
-        wiki_db_revisions = all_revisions.loc[ (all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit)]
+        wiki_db_revisions = all_revisions.loc[(all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit)]
         revids = list(wiki_db_revisions.revision_id)
         # write revids to a temporary file
         tmpfilename = "{0}_{1}_revids.tmp".format(commit[0:10], wiki_db)
@@ -270,12 +248,11 @@ class Ores_Archaeologist(object):
             fields = line.split('\t')
             revid = fields[0]
             if len(fields) < 2:
-                import pdb; pdb.set_trace()
+                result = json.loads(fields[1])
+                probability = result.get('probability', None)
 
-            result = json.loads(fields[1])
-            probability = result.get('probability', None)
-            if probability is not None:
-                probability = probability['true']
+                if probability is not None:
+                    probability = probability['true']
 
             all_revisions.loc[all_revisions.revision_id==int(revid),'prob_damaging'] = probability
 
@@ -298,6 +275,8 @@ class Ores_Archaeologist(object):
         cutoff_revisions = cutoff_revisions.loc[cutoff_revisions.wiki_db.isin(wikis_with_models),:]
 
         commits = cutoff_revisions.apply(lambda row: lookup_commit_from_wiki_date(row.wiki_db, row.event_timestamp), axis=1)
+
+
         cutoff_revisions['commit'] = commits
 
         cutoff_revisions = cutoff_revisions.sort_values(by=['commit','wiki_db'],axis=0)
