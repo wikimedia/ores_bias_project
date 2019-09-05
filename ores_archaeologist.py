@@ -141,9 +141,9 @@ def load_model_environment(date = None, commit = None):
         except AttributeError as e:
             print(e)
 
+    # install mediawiki-services-ores-deploy
+    subprocess.run("cd {0} && python3 setup.py install && pip3 download -r requirements.txt -d deps && pip3 install -r requirements.txt --find-links=deps".format(repo_path), shell=True)
 
-
-    subprocess.run("cd {0} && python3 setup.py install && pip3 download -r requirements.txt -d deps && pip3 install -r requirements.txt --find-links=deps".format(editquality_path), shell=True)
     subprocess.run("cd ../../..", shell=True)
     global editquality
     global revscoring
@@ -180,6 +180,8 @@ class Ores_Archaeologist(object):
                 of = open(outfile, flag)
                 of.write(outline)
     
+    # some versions of revscoring don't handle errors properly so I need to hot-patch it.'
+    # basically this will be the same functionality as in revscoring.score_processor but will handle errors instead of raising them.
     def score_revisions(self, wiki_db, uri, date=None, commit=None, load_environment = True, model_type = 'damaging', infile = "<stdin>"):
 
         if load_environment:
@@ -320,7 +322,6 @@ class Ores_Archaeologist_Api(Ores_Archaeologist):
             return csv
         else:
             return res
-
 
     def score_history(self, cutoff_revisions, preprocess=True, wrap=False, output=None):
         res = super().score_history(cutoff_revisions, preprocess)
