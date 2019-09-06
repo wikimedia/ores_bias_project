@@ -155,7 +155,7 @@ class Ores_Archaeologist(object):
 class Ores_Archaeologist_Api():
 
 
-    def _wrap(self, super_func, output, rettype='pandas', **kwargs):
+    def _wrap(self, super_func, output, *args, **kwargs):
         res = super_func(*args, **kwargs)
         
         buf = io.StringIO()
