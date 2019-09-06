@@ -86,7 +86,7 @@ else:
         try:
             wheels_commit = next(wheels_repo.iter_commits(until=commit_datetime, max_count=1))
             wheels_commits[commit.hexsha] = wheels_commit.hexsha
-            wheels_time_diff = commit_datetime - wheels_commit.timestamp()
+            wheels_time_diff = commit_datetime - wheels_commit.commited_datetime
             print(wheels_time_diff)
             wheels_repo.git.checkout('-f', 'master')
         except StopIteration as e:
