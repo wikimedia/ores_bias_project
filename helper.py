@@ -201,7 +201,7 @@ def load_model_environment(date = None, commit = None):
 
     packages = {**repo_package_versions, **wheels_package_versions}
     requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items()]
-    real_requirements = ['revscoring','editquality']
+    real_requirements = ['revscoring','editquality','docopt','mwapi','requests']
     requirements = [req for req in requirements if req in real_requirements]
     with open("temp_requirements.txt",'w') as reqfile:
         reqfile.writelines(requirements)
