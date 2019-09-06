@@ -179,12 +179,10 @@ def load_model_environment(date = None, commit = None):
             print(e)
 
     print("loading wheels")
-    
     wheels_path = wheels_repo.working_dir
     if commit in wheels_commits:
-        print("updating wheels to {0}".format(wheels_commits[commit])
+        print("updating wheels to {0}".format(wheels_commits[commit]))
         wheels_repo.git.checkout("-f", wheels_commits[commit])
-
 
     # else:
     #     wheels_path = os.path.join(repo.working_dir,"submodules/wheels")
@@ -195,7 +193,7 @@ def load_model_environment(date = None, commit = None):
 
         # except git.exc.GitCommandError as e:
         #     print(e)
-        
+
     # the order of dependency priorities: wheels > repo > editquality_repo
     wheels_package_versions = dict(get_wheels_package_versions(wheels_path))
     
