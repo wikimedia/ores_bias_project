@@ -97,10 +97,14 @@ else:
                 d[commit_datetime] = commit.hexsha
                 wiki_date_commits[wiki_db[0]] = d
 
+    pickle.dump(wheels_commit, open(wheels_commits_path,'wb'))
     pickle.dump(wiki_date_commits, open(wiki_date_commits_path,'wb'))
     pickle.dump(date_commits, open(date_commits_path,'wb'))
     pickle.dump(editquality_commits, open(editquality_commits_path,'wb'))
 
+repo.git.checkout("-f", master)
+editquality_repo.git.checkout('-f', master)
+wheels_repo.git.checkout("-f", master)
 
 def lookup_commit_from_wiki_date(wiki_db, date):
     return lookup_commit_from_date(date, wiki_date_commits[wiki_db])
@@ -166,7 +170,7 @@ def load_model_environment(date = None, commit = None):
         editquality_repo.git.checkout('-f', editquality_commits[commit])
         editquality_path = editquality_repo_path
     else:
-        editquality_path = os.path.join(repo_path,"submodules/editquality")
+        editquality_path = os.path.join(repo.working_dir,"submodules/editquality")
         try: 
             editquality_submodule = repo.submodule("submodules/editquality")            
             if hasattr(editquality_submodule,'sync'): 
