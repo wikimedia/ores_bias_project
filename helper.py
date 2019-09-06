@@ -61,6 +61,7 @@ if os.path.exists(wiki_date_commits_path) and os.path.exists(date_commits_path):
     wiki_date_commits = pickle.load(open(wiki_date_commits_path,'rb'))
     date_commits = pickle.load(open(date_commits_path,'rb'))
     editquality_commits = pickle.load(open(editquality_commits_path,'rb'))
+    wheels_commits = pickle.load(open(wheels_commits_path,'rb'))
 else:
     for commit in commits:
         commit_datetime = datetime.datetime.fromtimestamp(commit.committed_datetime.timestamp())
