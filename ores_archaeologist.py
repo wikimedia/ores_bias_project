@@ -190,6 +190,11 @@ class Ores_Archaeologist_Api():
         cls = Ores_Archaeologist()
         return cls.score_revisions(*args, **kwargs)
 
+    def get_threshhold(self, *args, **kwargs):
+        cls = Ores_Archaeologist()
+        return cls.get_threshhold(*args, **kwargs)
+
+
 if __name__ == "__main__":
     fire.Fire(Ores_Archaeologist_Api)
     os.rmdir(tmpdir)
