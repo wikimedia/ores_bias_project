@@ -161,6 +161,8 @@ def load_model_environment(date = None, commit = None):
 
     print("loading editquality")
     if commit in editquality_commits:
+
+        print('checkout {0} from {1}'.format(editquality_commits[commit], editquality_repo.working_dir))
         editquality_repo.git.checkout('-f', editquality_commits[commit])
         editquality_path = editquality_repo_path
     else:
