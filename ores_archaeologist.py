@@ -154,8 +154,6 @@ class Ores_Archaeologist(object):
 
 class Ores_Archaeologist_Api():
 
-    def __init__():
-        cls = Ores_Archaeologist
 
     def _wrap(self, super_func, output, rettype='pandas', **kwargs):
         res = super_func(*args, **kwargs)
@@ -171,16 +169,26 @@ class Ores_Archaeologist_Api():
 
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=False, wrap=False, output=None):
 
-        return self._wrap(self.cls.score_wiki_commit_revisions, None, commit, wiki_db, all_revisions, preprocess, load_environment)
+        cls = Ores_Archaeologist()
+
+        return self._wrap(cls.score_wiki_commit_revisions, None, commit, wiki_db, all_revisions, preprocess, load_environment)
 
     def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True, 
                                wrap=False,output=None):
 
-        return self._wrap(self.cls.score_commit_revisions, output, commit, cutoff_revisions, preprocess, load_environment)
+        cls = Ores_Archaeologist()
+
+        return self._wrap(cls.score_commit_revisions, output, commit, cutoff_revisions, preprocess, load_environment)
 
     def score_history(self, cutoff_revisions, preprocess=True, wrap=False, output=None):
+        cls = Ores_Archaeologist()
 
-        return self._wrap(slef.cls.score_history, output, cutoff_revisions, preprocess)
+        return self._wrap(cls.score_history, output, cutoff_revisions, preprocess)
+
+
+    def score_revisions(self, *args, **kwargs):
+        cls = Ores_Archaeologist()
+        return cls.score_revisions(*args, **kwargs)
 
 if __name__ == "__main__":
     fire.Fire(Ores_Archaeologist_Api)
