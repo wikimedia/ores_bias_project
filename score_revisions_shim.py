@@ -1,5 +1,3 @@
-# pause work on the shim for now
-
 """
 ``revscoring score -h``
 ::
@@ -56,7 +54,6 @@ class MyScoreProcessor(ScoreProcessor):
     @classmethod
     def _process_score(cls, e_r_caches):
         try:
-            import pdb; pdb.set_trace()
             pair = super()._process_score(e_r_caches)
             rev_id = pair[0]
             error = pair[1]
@@ -71,7 +68,7 @@ class MyScoreProcessor(ScoreProcessor):
 #     print(cls)
 #     print(e_r_caches)
 #     try:
-#         import pdb; pdb.set_trace()
+1#         import pdb; pdb.set_trace()
 
 #         rev_id, error_score = cls._process_score(e_r_caches)
 
@@ -135,7 +132,7 @@ def main(argv=None):
 
     debug = args['--debug']
 
-    score_processor = ScoreProcessor(
+    score_processor = MyScoreProcessor(
         scoring_model, extractor, batch_size=batch_size,
         cpu_workers=cpu_workers, io_workers=io_workers)
 
