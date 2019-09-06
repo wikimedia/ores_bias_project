@@ -190,15 +190,16 @@ def load_model_environment(date = None, commit = None):
         print("updating wheels to {0}".format(wheels_commits[commit]))
         wheels_repo.git.checkout("-f", wheels_commits[commit])
 
-    # else:
-    #     wheels_path = os.path.join(repo.working_dir,"submodules/wheels")
-    #     try:
-    #         wheels_submodule = repo.submodule("submodules/wheels")
-    #         if hasattr(wheels_submodule, 'update'):
-    #             wheels_submodule.update(init=True, recursive=False, force=True)
+    else:
+        print("loading wheels submodule")
+        wheels_path = os.path.join(repo.working_dir,"submodules/wheels")
+        try:
+            wheels_submodule = repo.submodule("submodules/wheels")
+            if hasattr(wheels_submodule, 'update'):
+                wheels_submodule.update(init=True, recursive=False, force=True)
 
-        # except git.exc.GitCommandError as e:
-        #     print(e)
+        except git.exc.GitCommandError as e:
+            print(e)
 
     # the order of dependency priorities: wheels > repo > editquality_repo
     wheels_package_versions = dict(get_wheels_package_versions(wheels_path))
