@@ -80,10 +80,12 @@ else:
             models_path = os.path.join(editquality_repo_path,'models')
             editquality_commit = next(editquality_repo.iter_commits(until=commit_datetime, max_count=1))
             editquality_commits[commit.hexsha] = editquality_commit.hexsha
-
+            # reset to master
+            editquality_repo.git.checkout('f', 'master')
         try:
             wheels_commit = next(wheels_repo.iter_commits(until=commit_datetime, max_count=1))
             wheels_commits[commit.hexsha] = wheels_commit.hexsha
+            wheels_repo.git.checkout('f', 'master')
         except StopIteration as e:
             continue
 
@@ -148,7 +150,7 @@ def get_wheels_package_versions(path):
 # load the environment according to the deploy
 def load_model_environment(date = None, commit = None):
 
-    if isinstance(date,str):
+    if isinstance(date, str):
         date = fromisoformat(date)
 
     if commit is None:
@@ -196,7 +198,7 @@ def load_model_environment(date = None, commit = None):
         try:
             wheels_submodule = repo.submodule("submodules/wheels")
             if hasattr(wheels_submodule, 'update'):
-                wheels_submodule.update(init=True, recursive=False, force=True)
+                wheels_submodule.update(init=True, recursive=True2, force=True)
 
         except git.exc.GitCommandError as e:
             print(e)
