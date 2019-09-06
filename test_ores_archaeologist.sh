@@ -1,5 +1,4 @@
 #!/bin/bash
-cd ~/ores_bias/ores_bias_project
 source ./bin/activate
 #python3 ores_archaeologist.py get_threshhold --wiki_db=enwiki --date=2018-08-07 --threshhold_string="maximum recall @ precision >= 0.99" # 
 
