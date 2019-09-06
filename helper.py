@@ -97,7 +97,7 @@ else:
                 d[commit_datetime] = commit.hexsha
                 wiki_date_commits[wiki_db[0]] = d
 
-    pickle.dump(wheels_commit, open(wheels_commits_path,'wb'))
+    pickle.dump(wheels_commits, open(wheels_commits_path,'wb'))
     pickle.dump(wiki_date_commits, open(wiki_date_commits_path,'wb'))
     pickle.dump(date_commits, open(date_commits_path,'wb'))
     pickle.dump(editquality_commits, open(editquality_commits_path,'wb'))
