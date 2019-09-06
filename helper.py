@@ -102,9 +102,9 @@ else:
     pickle.dump(date_commits, open(date_commits_path,'wb'))
     pickle.dump(editquality_commits, open(editquality_commits_path,'wb'))
 
-repo.git.checkout("-f", master)
-editquality_repo.git.checkout('-f', master)
-wheels_repo.git.checkout("-f", master)
+repo.git.checkout("-f", "master")
+editquality_repo.git.checkout('-f', "master")
+wheels_repo.git.checkout("-f", "master")
 
 def lookup_commit_from_wiki_date(wiki_db, date):
     return lookup_commit_from_date(date, wiki_date_commits[wiki_db])
