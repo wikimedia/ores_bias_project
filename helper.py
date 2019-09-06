@@ -191,6 +191,7 @@ def load_model_environment(date = None, commit = None):
         wheels_repo.git.checkout("-f", wheels_commits[commit])
 
     else:
+        print("loading wheels submodule")
         wheels_path = os.path.join(repo.working_dir,"submodules/wheels")
         try:
             wheels_submodule = repo.submodule("submodules/wheels")
