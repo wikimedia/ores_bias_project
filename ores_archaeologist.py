@@ -33,16 +33,15 @@ class Ores_Archaeologist(object):
     # basically this will be the same functionality as in revscoring.score_processor but will handle errors instead of raising them.
     def score_revisions(self, wiki_db, uri, date=None, commit=None, load_environment=True, model_type='damaging', infile="<stdin>"):
 
-        if load_environment:
-            load_model_environment(date=date, commit=commit)
-
-        print(editquality_repo.git.status())
-
         if commit is None:
             commit = lookup_commit_from_wiki_date(wiki_db, date)
 
-        model_file = find_model_file(wiki_db, commit, model_type)
+        if load_environment:
+            load_model_environment(date=date, commit=commit, wiki_db=wiki_db)
 
+        print(editquality_repo.git.status())
+
+        model_file = find_model_file(wiki_db, commit, model_type)
 
         #        call = "source {0}/bin/activate && python3 get_model_threshhold.py --model_path={1} --query=\"{2}\" --outfile={3} --append=True --commit={4}".format(repo.working_dir, model_path, threshhold_string,threshhold_temp, commit)
 
@@ -86,7 +85,7 @@ class Ores_Archaeologist(object):
             all_revisions = self.preprocess_cutoff_history(all_revisions)
 
         if load_environment:
-            load_model_environment(commit=commit)
+            load_model_environment(commit=commit, wiki_db=wiki_db)
 
         uri = siteList[wiki_db]
 
