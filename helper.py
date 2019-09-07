@@ -132,6 +132,8 @@ else:
         date_commits[commit_datetime] = commit.hexsha
         model_re = re.compile(r'(.*)\.damaging\..*\.model')
         files = os.listdir(models_path)
+        if commit.hexsha == '1ae7dd42a4dee7f47a04e9306e2dea72c4fb58b2':
+            import pdb; pdb.set_trace();
         for f in files:
             wiki_db = model_re.findall(f)
             if len(wiki_db) > 0:
@@ -149,6 +151,10 @@ editquality_repo.git.checkout('-f', "master")
 wheels_repo.git.checkout("-f", "master")
 
 def lookup_commit_from_wiki_date(wiki_db, date):
+
+    if wiki_db == 'sqwiki':
+        import pdb; pdb.set_trace()
+
     return lookup_commit_from_date(date, wiki_date_commits[wiki_db])
 
 def lookup_commit_from_date(date, sorted_dict):
@@ -159,8 +165,8 @@ def lookup_commit_from_date(date, sorted_dict):
 
     if idx > 0:
         idx = idx - 1
-    commited_datetime = date_commits.keys()[idx]
-    commit = date_commits[commited_datetime]
+    commited_datetime = sorted_dict.keys()[idx]
+    commit = sorted_dict[commited_datetime]
 
     return commit
 
@@ -252,16 +258,22 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     
     if os.path.exists(os.path.join(repo_path,'frozen-requirements.txt')):
         repo_package_versions = {s[0]:s[1] for s in [l.strip().replace("-","_").split('==') for l in open(os.path.join(repo.working_dir,'frozen-requirements.txt'))]}
-    elif os.path.exists(os.path.join(repo_path,'requirements.txt')):
-        repo_package_versions = {s[0]:s[1] for s in [l.strip().replace("-","_").split('==') for l in open(os.path.join(repo.working_dir,'requirements.txt'))]}
+    else:
+        repo_package_versions = {}
 
+    #     reqtxt = []
+
+    # elif os.path.exists(os.path.join(repo_path,'requirements.txt')):
+    #     reqtxt = open(os.path.join(repo.working_dir,'requirements.txt')).readlines()
+    #     repo_package_versions = {}
 
     packages = {**repo_package_versions, **wheels_package_versions}
+
     if packages.get('pywikibase',None) == '0.0.4a':
         packages['pywikibase'] = '0.0.4'
 
     requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items()]
-
+    # requirements = requirements + reqtxt 
 
     ## special case pywikibase 0.0.4a
 
