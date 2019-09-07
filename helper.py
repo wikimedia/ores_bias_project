@@ -151,10 +151,6 @@ editquality_repo.git.checkout('-f', "master")
 wheels_repo.git.checkout("-f", "master")
 
 def lookup_commit_from_wiki_date(wiki_db, date):
-
-    if wiki_db == 'sqwiki':
-        import pdb; pdb.set_trace()
-
     return lookup_commit_from_date(date, wiki_date_commits[wiki_db])
 
 def lookup_commit_from_date(date, sorted_dict):
