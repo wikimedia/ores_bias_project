@@ -257,12 +257,13 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
 
 
     packages = {**repo_package_versions, **wheels_package_versions}
+    if packages.get('pywikibase',None) == '0.0.4a':
+        packages['pywikibase'] = '0.0.4'
+
     requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items()]
 
 
     ## special case pywikibase 0.0.4a
-    if requirements.get('pywikibase',None) == '0.0.4a':
-        requirements['pywikibase'] = '0.0.4'
 
     with open("temp_requirements.txt",'w') as reqfile:
         reqfile.writelines(requirements)
