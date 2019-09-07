@@ -1,5 +1,6 @@
 # functions in this file can be run under any environment.
 # this essentially means no pandas
+import time
 import subprocess
 import dateutil
 import mwapi
@@ -64,14 +65,17 @@ if os.path.exists(wiki_date_commits_path) and os.path.exists(date_commits_path):
     wheels_commits = pickle.load(open(wheels_commits_path,'rb'))
 else:
     for commit in commits:
+        editquality_repo.git.checkout('-f', 'master')
+        wheels_repo.git.checkout('-f', 'master')
         commit_datetime = datetime.datetime.fromtimestamp(commit.committed_datetime.timestamp())
         if commit_datetime > lfs_transition_date:
             models_path = os.path.join(repo_path,'submodules/editquality/models')
             repo.git.checkout('-f', commit)
+
             try:
                 editquality_submodule = repo.submodule("submodules/editquality")
                 if hasattr(editquality_submodule,'update'): 
-                    editquality_submodule.update(init=True)
+                    editquality_submodule.update(init=True, force=True, recursive=True)
             except Exception as e:
                 print(commit_datetime)
                 print(e)
@@ -81,16 +85,49 @@ else:
             models_path = os.path.join(editquality_repo_path,'models')
             editquality_commit = next(editquality_repo.iter_commits(until=commit_datetime, max_count=1))
             editquality_commits[commit.hexsha] = editquality_commit.hexsha
+            editquality_repo.git.checkout('-f', editquality_commit)
+            time.sleep(5)
             # reset to master
-            editquality_repo.git.checkout('-f', 'master')
+
+        found_prior_commit = False
+        found_next_commit = False
         try:
+
             wheels_commit = next(wheels_repo.iter_commits(until=commit_datetime, max_count=1))
-            wheels_commits[commit.hexsha] = wheels_commit.hexsha
-            wheels_time_diff = commit_datetime - wheels_commit.commited_datetime
-            print(wheels_time_diff)
-            wheels_repo.git.checkout('-f', 'master')
+
+            wheels_commit_time = datetime.datetime.fromtimestamp(wheels_commit.committed_datetime.timestamp())
+            wheels_time_diff = commit_datetime - wheels_commit_time
+            print("time from wheels commit {0} to deploy:{1}".format(wheels_commit.hexsha[0:10], wheels_time_diff))
+            found_prior_commit = True
+
         except StopIteration as e:
-            continue
+            pass
+
+        try:
+            wheels_commit2 = next(wheels_repo.iter_commits(since=commit_datetime, max_count=1))
+            wheels_commit_time2 = datetime.datetime.fromtimestamp(wheels_commit2.committed_datetime.timestamp())
+            wheels_time_diff2 = wheels_commit_time2 - commit_datetime
+
+            print("time from deploy to wheels commit {0}:{1}".format(wheels_commit2.hexsha[0:10], wheels_time_diff2))
+            found_next_commit = True
+        except StopIteration as e:
+            pass
+        
+
+        if found_prior_commit and found_next_commit:
+            if wheels_time_diff2 <= datetime.timedelta(days=1):
+                use_commit = wheels_commit2.hexsha
+            else:
+                use_commit = wheels_commit.hexsha
+
+
+        elif found_next_commit:
+            use_commit = wheels_commit2.hexsha
+        else:
+            print("found no wheels commit for commit {0} at {1}".format(commit, comit_datetime))
+            
+        wheels_commits[commit.hexsha] = use_commit
+        print("using commit {0}".format(use_commit))
 
         date_commits[commit_datetime] = commit.hexsha
         model_re = re.compile(r'(.*)\.damaging\..*\.model')
