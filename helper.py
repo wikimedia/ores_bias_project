@@ -241,6 +241,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
         try:
             wheels_submodule = repo.submodule("submodules/wheels")
             if hasattr(wheels_submodule, 'update'):
+                wheels_submodule.sync(init=True, recursive=True, force=True)
                 wheels_submodule.update(init=True, recursive=True, force=True)
 
         except git.exc.GitCommandError as e:
@@ -249,10 +250,19 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     # the order of dependency priorities: wheels > repo > editquality_repo
     wheels_package_versions = dict(get_wheels_package_versions(wheels_path))
     
-    repo_package_versions = {s[0]:s[1] for s in [l.strip().replace("-","_").split('==') for l in open(os.path.join(repo.working_dir,'frozen-requirements.txt'))]}
+    if os.path.exists(os.path.join(repo_path,'frozen-requirements.txt')):
+        repo_package_versions = {s[0]:s[1] for s in [l.strip().replace("-","_").split('==') for l in open(os.path.join(repo.working_dir,'frozen-requirements.txt'))]}
+    elif os.path.exists(os.path.join(repo_path,'requirements.txt')):
+        repo_package_versions = {s[0]:s[1] for s in [l.strip().replace("-","_").split('==') for l in open(os.path.join(repo.working_dir,'requirements.txt'))]}
+
 
     packages = {**repo_package_versions, **wheels_package_versions}
     requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items()]
+
+
+    ## special case pywikibase 0.0.4a
+    if requirements.get('pywikibase',None) == '0.0.4a':
+        requirements['pywikibase'] = '0.0.4'
 
     with open("temp_requirements.txt",'w') as reqfile:
         reqfile.writelines(requirements)
