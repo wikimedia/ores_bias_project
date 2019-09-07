@@ -13,7 +13,7 @@ class Ores_Archaeologist(object):
 
         if isinstance(date,str):
             date = fromisoformat(date)
-        commit = lookup_commit_from_wiki_date(wiki_db,date)
+        commit = lookup_commit_from_wiki_date(wiki_db, date)
         model_path = find_model_file(wiki_db, commit, model_type)
         load_model_environment(date=date, commit=commit)
 
@@ -36,17 +36,20 @@ class Ores_Archaeologist(object):
         if load_environment:
             load_model_environment(date=date, commit=commit)
 
+        print(editquality_repo.git.status())
+
         if commit is None:
             commit = lookup_commit_from_wiki_date(wiki_db, date)
 
         model_file = find_model_file(wiki_db, commit, model_type)
 
 
-#        call = "source {0}/bin/activate && python3 get_model_threshhold.py --model_path={1} --query=\"{2}\" --outfile={3} --append=True --commit={4}".format(repo.working_dir, model_path, threshhold_string,threshhold_temp, commit)
+        #        call = "source {0}/bin/activate && python3 get_model_threshhold.py --model_path={1} --query=\"{2}\" --outfile={3} --append=True --commit={4}".format(repo.working_dir, model_path, threshhold_string,threshhold_temp, commit)
 
         proc = subprocess.run("source {0}/bin/activate".format(repo.working_dir) + " && {0}/bin/python3".format(repo.working_dir) + " score_revisions_shim.py " + model_file + " --host={0} --rev-ids={1}".format(uri, infile), shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
 
         print(proc.args)
+        print("--commit={0}".format(commit))
         print(proc.returncode)
         output = proc.stdout.decode()
 
@@ -73,16 +76,21 @@ class Ores_Archaeologist(object):
         parts = []
 
         for wiki_db in set(all_revisions.wiki_db):
-            scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, all_revisions, preprocess=False)
+            scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, all_revisions, preprocess=False, load_environment=False)
             parts.append(scored_revisions)
 
         return pd.concat(parts)
 
-    def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=False):
+    def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True):
         if preprocess:
             all_revisions = self.preprocess_cutoff_history(all_revisions)
 
+        if load_environment:
+            load_model_environment(commit=commit)
+
         uri = siteList[wiki_db]
+
+
         wiki_db_revisions = all_revisions.loc[(all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit)]
         revids = list(wiki_db_revisions.revision_id)
         # write revids to a temporary file
@@ -126,6 +134,7 @@ class Ores_Archaeologist(object):
         
         if isinstance(cutoff_revisions,str):
             cutoff_revisions = pd.read_csv(cutoff_revisions, sep=',',parse_dates=['event_timestamp','date','period_start','period_end'],quotechar='\"',infer_datetime_format=True,error_bad_lines=False,escapechar='\\')
+
 
         # cutoff_revisions.date = pd.to_datetime(cutoff_revisions.date)
         # cutoff_revisions.event_timestamp = pd.to_datetime(cutoff_revisions.event_timestamp)
