@@ -114,7 +114,7 @@ wheels_repo.git.checkout("-f", "master")
 def lookup_commit_from_wiki_date(wiki_db, date):
     return lookup_commit_from_date(date, wiki_date_commits[wiki_db])
 
-def lookup_commit_from_date(date, sorted_dict = date_commits):
+def lookup_commit_from_date(date, sorted_dict):
     if isinstance(date, str):
         date = fromisoformat(date)
 
@@ -151,13 +151,16 @@ def get_wheels_package_versions(path):
                 yield (match[0],match[1])
 
 # load the environment according to the deploy
-def load_model_environment(date = None, commit = None):
+def load_model_environment(date = None, commit=None, wiki_db=None):
 
     if isinstance(date, str):
         date = fromisoformat(date)
 
+    if commit is None and (wiki_db is None or date is None):
+        raise ValueError("Commit or (Wiki_db and date) required to load environment")
+
     if commit is None:
-        commit = lookup_commit_from_date(date)
+        commit = lookup_commit_from_wiki_date(date, wiki_db)
 
     print("date:{0}, commit:{1}".format(date, commit))
 
