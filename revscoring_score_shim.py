@@ -53,3 +53,6 @@ class MyScoreProcessor(score.ScoreProcessor):
             return rev_id, error_score(error)
 
 score.ScoreProcessor = MyScoreProcessor
+
+if __name__ == "__main__":
+    score.main()
