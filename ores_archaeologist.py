@@ -42,8 +42,11 @@ class Ores_Archaeologist(object):
         print(editquality_repo.git.status())
 
         model_file = find_model_file(wiki_db, commit, model_type)
-
+            
         #        call = "source {0}/bin/activate && python3 get_model_threshhold.py --model_path={1} --query=\"{2}\" --outfile={3} --append=True --commit={4}".format(repo.working_dir, model_path, threshhold_string,threshhold_temp, commit)
+
+        # if model_file is None:
+        #     import pdb; pdb.set_trace()
 
         proc = subprocess.run("source {0}/bin/activate".format(repo.working_dir) + " && {0}/bin/python3".format(repo.working_dir) + " revscoring_score_shim.py " + model_file + " --host={0} --rev-ids={1}".format(uri, infile), shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
 
@@ -125,8 +128,10 @@ class Ores_Archaeologist(object):
             scores.append({"revision_id":int(revid), "prob_damaging":probability, "revscoring_error":error})
 
 
-        scores = pd.DataFrame.from_records(scores)
-        all_revisions = pd.merge(all_revisions, scores, on=['revision_id'], how='left')
+        if len(scores) > 0:
+            scores = pd.DataFrame.from_records(scores)
+            all_revisions = pd.merge(all_revisions, scores, on=['revision_id'], how='left')
+
         return all_revisions
         
     def preprocess_cutoff_history(self, cutoff_revisions):
