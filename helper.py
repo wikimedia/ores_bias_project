@@ -292,6 +292,9 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     if len(to_uninstall) > 0:
         call = "source {0}/bin/activate".format(repo.working_dir)
 
+    else:
+        call = ""
+
     call = call + " && python3 -m pip uninstall -y -r to_uninstall.txt"
 
     call = call + " && python3 -m pip download -r temp_requirements.txt -d deps && python3 -m pip install -r temp_requirements.txt --find-links=deps --no-deps"
