@@ -1,7 +1,6 @@
 # functions in this file depend on specific versions of revscoring and editquality. 
 import fire
 import sys
-from helper import *
 
 import revscoring
 
