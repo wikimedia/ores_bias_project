@@ -67,10 +67,10 @@ else:
     for commit in commits:
         editquality_repo.git.checkout('-f', 'master')
         wheels_repo.git.checkout('-f', 'master')
+        repo.git.checkout('-f', commit)
         commit_datetime = datetime.datetime.fromtimestamp(commit.committed_datetime.timestamp())
         if commit_datetime > lfs_transition_date:
             models_path = os.path.join(repo_path,'submodules/editquality/models')
-            repo.git.checkout('-f', commit)
 
             try:
                 editquality_submodule = repo.submodule("submodules/editquality")
