@@ -16,10 +16,7 @@ import json
 
 # python 3.5 doesn't have datetime.fromisoformat
 from dateutil import parser
-if hasattr(parser,'isoparse'):
-    fromisoformat = parser.isoparse
-else:
-    fromisoformat = parser.parse
+fromisoformat = parser.isoparse
 
 api = mwapi.Session("https://en.wikipedia.org",'ores bias project by groceryheist <nathante@uw.edu>')
 
@@ -135,6 +132,8 @@ else:
         date_commits[commit_datetime] = commit.hexsha
         model_re = re.compile(r'(.*)\.damaging\..*\.model')
         files = os.listdir(models_path)
+        if commit.hexsha == '1ae7dd42a4dee7f47a04e9306e2dea72c4fb58b2':
+            import pdb; pdb.set_trace();
         for f in files:
             wiki_db = model_re.findall(f)
             if len(wiki_db) > 0:
