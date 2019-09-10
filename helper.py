@@ -190,6 +190,12 @@ def get_wheels_package_versions(path):
 
 # load the environment according to the deploy
 def load_model_environment(date = None, commit=None, wiki_db=None):
+    
+    # we'll need to see what's installed so we can remove unnecessary packages at each step to avoid conflicts.
+
+    subprocess.run("python3 -m pip freeze > old_requirements.txt", shell=True)
+
+    old_versions = {name:version for name, version in [(s[0], s[1]) for s in [l.split('==') for l in open('old_requirements.txt','r')]]}
 
     if isinstance(date, str):
         date = fromisoformat(date)
@@ -275,8 +281,18 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     with open("temp_requirements.txt",'w') as reqfile:
         reqfile.writelines(requirements)
 
+    # modules that are safe and good to keep since they are either required or have long compilation times. 
+    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','numpy','scipy','scikit-learn']
 
-    call = "source {0}/bin/activate".format(repo.working_dir)
+
+    to_uninstall = [k + '\n' for k in old_versions.keys() if k not in packages and k.lower() not in to_keep]
+    with open('to_uninstall.txt','w') as uf:
+        uf.writelines(to_uninstall)
+    
+    if len(to_uninstall) > 0:
+        call = "source {0}/bin/activate".format(repo.working_dir)
+
+    call = call + " && python3 -m pip uninstall -y -r to_uninstall.txt"
 
     call = call + " && python3 -m pip download -r temp_requirements.txt -d deps && python3 -m pip install -r temp_requirements.txt --find-links=deps"
 
