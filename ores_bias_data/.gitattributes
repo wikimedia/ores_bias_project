@@ -1,0 +1,4 @@
+wiki_weeks.csv filter=lfs diff=lfs merge=lfs -text
+test_revisions_sample.csv filter=lfs diff=lfs merge=lfs -text
+test_revisions_sample filter=lfs diff=lfs merge=lfs -text
+test_revisions_sample2.csv filter=lfs diff=lfs merge=lfs -text
