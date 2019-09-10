@@ -8,4 +8,4 @@ python3 ores_archaeologist.py get_threshhold --wiki_db=enwiki --date=2018-08-07 
 
 python3 ores_archaeologist.py score_history --cutoff_revisions='ores_bias_data/test_revisions_sample2.csv'  --wrap=True
 
-python3 ores_archaeologist.py score_revisions --wiki_db=enwiki --uri=https://en.wikipedia.org --date=2018-08-22 --infile=test_revids.txt
+python3 ores_archaeologist.py score_revisions --wiki_db=enwiki --uri=https://en.wikipedia.org --date=2018-08-22 --infile='ores_bias/data/test_revisions_sample2.csv'
