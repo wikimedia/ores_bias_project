@@ -67,10 +67,10 @@ else:
     for commit in commits:
         editquality_repo.git.checkout('-f', 'master')
         wheels_repo.git.checkout('-f', 'master')
+        repo.git.checkout('-f', commit)
         commit_datetime = datetime.datetime.fromtimestamp(commit.committed_datetime.timestamp())
         if commit_datetime > lfs_transition_date:
             models_path = os.path.join(repo_path,'submodules/editquality/models')
-            repo.git.checkout('-f', commit)
 
             try:
                 editquality_submodule = repo.submodule("submodules/editquality")
@@ -132,6 +132,7 @@ else:
         date_commits[commit_datetime] = commit.hexsha
         model_re = re.compile(r'(.*)\.damaging\..*\.model')
         files = os.listdir(models_path)
+
         for f in files:
             wiki_db = model_re.findall(f)
             if len(wiki_db) > 0:
@@ -159,8 +160,8 @@ def lookup_commit_from_date(date, sorted_dict):
 
     if idx > 0:
         idx = idx - 1
-    commited_datetime = date_commits.keys()[idx]
-    commit = date_commits[commited_datetime]
+    commited_datetime = sorted_dict.keys()[idx]
+    commit = sorted_dict[commited_datetime]
 
     return commit
 
@@ -189,6 +190,12 @@ def get_wheels_package_versions(path):
 
 # load the environment according to the deploy
 def load_model_environment(date = None, commit=None, wiki_db=None):
+    
+    # we'll need to see what's installed so we can remove unnecessary packages at each step to avoid conflicts.
+
+    subprocess.run("source {0}/bin/activate && python3 -m pip freeze > old_requirements.txt".format(repo.working_dir), shell=True)
+
+    old_versions = {name:version for name, version in [(s[0], s[1]) for s in [l.split('==') for l in open('old_requirements.txt','r')]]}
 
     if isinstance(date, str):
         date = fromisoformat(date)
@@ -241,6 +248,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
         try:
             wheels_submodule = repo.submodule("submodules/wheels")
             if hasattr(wheels_submodule, 'update'):
+                wheels_submodule.sync(init=True, recursive=True, force=True)
                 wheels_submodule.update(init=True, recursive=True, force=True)
 
         except git.exc.GitCommandError as e:
@@ -249,21 +257,47 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     # the order of dependency priorities: wheels > repo > editquality_repo
     wheels_package_versions = dict(get_wheels_package_versions(wheels_path))
     
-    repo_package_versions = {s[0]:s[1] for s in [l.strip().replace("-","_").split('==') for l in open(os.path.join(repo.working_dir,'frozen-requirements.txt'))]}
+    if os.path.exists(os.path.join(repo_path,'frozen-requirements.txt')):
+        repo_package_versions = {s[0]:s[1] for s in [l.strip().replace("-","_").split('==') for l in open(os.path.join(repo.working_dir,'frozen-requirements.txt'))]}
+    else:
+        repo_package_versions = {}
+
+    #     reqtxt = []
+
+    # elif os.path.exists(os.path.join(repo_path,'requirements.txt')):
+    #     reqtxt = open(os.path.join(repo.working_dir,'requirements.txt')).readlines()
+    #     repo_package_versions = {}
 
     packages = {**repo_package_versions, **wheels_package_versions}
+
+    if packages.get('pywikibase',None) == '0.0.4a':
+        packages['pywikibase'] = '0.0.4'
+
     requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items()]
+    # requirements = requirements + reqtxt 
+
+    ## special case pywikibase 0.0.4a
 
     with open("temp_requirements.txt",'w') as reqfile:
         reqfile.writelines(requirements)
 
+    # modules that are safe and good to keep since they are either required or have long compilation times. 
+    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','numpy','scipy','scikit-learn']
 
-    call = "source {0}/bin/activate".format(repo.working_dir)
 
-    call = call + " && pip3 download -r temp_requirements.txt -d deps && pip3 install -r temp_requirements.txt --find-links=deps"
+    to_uninstall = [k + '\n' for k in old_versions.keys() if k not in packages and k.lower() not in to_keep]
+    with open('to_uninstall.txt','w') as uf:
+        uf.writelines(to_uninstall)
+    
+    if len(to_uninstall) > 0:
+        call = "source {0}/bin/activate".format(repo.working_dir)
+
+    call = call + " && python3 -m pip uninstall -y -r to_uninstall.txt"
+
+    call = call + " && python3 -m pip download -r temp_requirements.txt -d deps && python3 -m pip install -r temp_requirements.txt --find-links=deps --no-deps"
 
     print(editquality_path)
-    call = call + " && cd {0} && python3 setup.py install && cd ../../..".format(editquality_path)
+    call = call + " && cd {0} && python3 setup.py install && cd ../../.. && source ./bin/activate".format(editquality_path)
 
     print(call)
     subprocess.run(call, shell=True, executable="/bin/bash")
