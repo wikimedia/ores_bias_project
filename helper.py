@@ -16,7 +16,10 @@ import json
 
 # python 3.5 doesn't have datetime.fromisoformat
 from dateutil import parser
-fromisoformat = parser.isoparse
+if hasattr(parser,'isoparse'):
+    fromisoformat = parser.isoparse
+else:
+    fromisoformat = parser.parse
 
 api = mwapi.Session("https://en.wikipedia.org",'ores bias project by groceryheist <nathante@uw.edu>')
 
