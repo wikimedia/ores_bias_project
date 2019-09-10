@@ -193,7 +193,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     
     # we'll need to see what's installed so we can remove unnecessary packages at each step to avoid conflicts.
 
-    subprocess.run("python3 -m pip freeze > old_requirements.txt", shell=True)
+    subprocess.run("source {0}/bin/activate && python3 -m pip freeze > old_requirements.txt".format(repo.working_dir), shell=True)
 
     old_versions = {name:version for name, version in [(s[0], s[1]) for s in [l.split('==') for l in open('old_requirements.txt','r')]]}
 
