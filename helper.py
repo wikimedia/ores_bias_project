@@ -294,7 +294,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
 
     call = call + " && python3 -m pip uninstall -y -r to_uninstall.txt"
 
-    call = call + " && python3 -m pip download -r temp_requirements.txt -d deps && python3 -m pip install -r temp_requirements.txt --find-links=deps"
+    call = call + " && python3 -m pip download -r temp_requirements.txt -d deps && python3 -m pip install -r temp_requirements.txt --find-links=deps --no-deps"
 
     print(editquality_path)
     call = call + " && cd {0} && python3 setup.py install && cd ../../.. && source ./bin/activate".format(editquality_path)
