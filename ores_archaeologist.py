@@ -20,7 +20,7 @@ class Ores_Archaeologist(object):
         # make sure that we run using the right virtualenv
         threshhold_temp = "model_threshholds.txt"
 
-        call = "source {0}/bin/activate && python3 get_model_threshhold.py --model_path={1} --query=\"{2}\" --outfile={3} --append=True --commit={4}".format(repo.working_dir, model_path, threshhold_string,threshhold_temp, commit)
+        call = "source {0}/bin/activate && python3 get_model_threshhold.py --model_path={1} --query=\"{2}\" --outfile={3} --append=True --commit={4} && source ./bin/activate".format(repo.working_dir, model_path, threshhold_string,threshhold_temp, commit)
         print(call)
         proc = subprocess.run(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash')
         out = proc.stdout
@@ -48,7 +48,7 @@ class Ores_Archaeologist(object):
         # if model_file is None:
         #     import pdb; pdb.set_trace()
 
-        proc = subprocess.run("source {0}/bin/activate".format(repo.working_dir) + " && {0}/bin/python3".format(repo.working_dir) + " revscoring_score_shim.py " + model_file + " --host={0} --rev-ids={1}".format(uri, infile), shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
+        proc = subprocess.run("source {0}/bin/activate".format(repo.working_dir) + " && {0}/bin/python3".format(repo.working_dir) + " revscoring_score_shim.py " + model_file + " --host={0} --rev-ids={1} && source ./bin/activate".format(uri, infile), shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
 
         print(proc.args)
         print("--commit={0}".format(commit))
