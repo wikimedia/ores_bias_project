@@ -132,8 +132,7 @@ else:
         date_commits[commit_datetime] = commit.hexsha
         model_re = re.compile(r'(.*)\.damaging\..*\.model')
         files = os.listdir(models_path)
-        if commit.hexsha == '1ae7dd42a4dee7f47a04e9306e2dea72c4fb58b2':
-            import pdb; pdb.set_trace();
+
         for f in files:
             wiki_db = model_re.findall(f)
             if len(wiki_db) > 0:
