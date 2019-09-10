@@ -5,8 +5,17 @@ import sys
 import revscoring
 
 def get_threshhold(model_path, query, outfile, commit = None, append = True):
-    model = revscoring.Model.load(open(model_path))
-    threshhold =  model.info['statistics']['thresholds'][True][query]
+    if hasattr(revscoring, 'Model'):
+        model = revscoring.Model.load(open(model_path))
+    else:
+        model = revscoring.ScorerModel.load(open(model_path))
+
+    try: 
+        threshhold =  model.info['statistics']['thresholds'][True][query]
+
+    except (NotImplementedError, TypeError) as e:
+        threshhold = 'model info not implemented in this version of revscoring'
+
     outline = '\t'.join(str(v) for v in [query, threshhold, commit] if v is not None)
     if append: 
         flag = 'a'
