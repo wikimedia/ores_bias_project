@@ -278,7 +278,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
 
     call = "source {0}/bin/activate".format(repo.working_dir)
 
-    call = call + " && pip3 download -r temp_requirements.txt -d deps && pip3 install -r temp_requirements.txt --find-links=deps"
+    call = call + " && python3 -m pip download -r temp_requirements.txt -d deps && python3 -m pip install -r temp_requirements.txt --find-links=deps"
 
     print(editquality_path)
     call = call + " && cd {0} && python3 setup.py install && cd ../../..".format(editquality_path)
