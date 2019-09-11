@@ -32,6 +32,7 @@ class Ores_Archaeologist(object):
         poll_interval = 60*5
         success = False
         while success is False:
+
             with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash') as proc:
                 print("starting process:{0}".format(call))
                 while success is False:
@@ -42,6 +43,18 @@ class Ores_Archaeologist(object):
                     except subprocess.TimeoutExpired as e:
                         success = False
                         if proc.poll() is None:
+                            # try to terminate it and then kill it
+                            while True:
+                                term_tries = 0
+                                if term_tries < 6:
+                                    proc.terminate()
+                                    try:
+                                        proc.wait(10)
+                                    except subprocess.TimeoutExpired as e1:
+                                        term_tries = term_tries + 1
+                                else:
+                                    proc.kill()
+                                    proc.wait()
                             break
 
             if success is True:
