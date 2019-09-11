@@ -11,6 +11,36 @@ from helper import *
 call_log = "syscalls.sh"
 
 class Ores_Archaeologist(object):
+
+    def _call_and_retry(self, call, poll_interval = 60*5, max_terminate_tries = 6):
+        while success is False:
+            with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash') as proc:
+                print("starting process:{0}".format(call))
+                while success is False:
+                    try:
+                        proc.wait(poll_interval)
+                        success = True
+
+                    except subprocess.TimeoutExpired as e:
+                        success = False
+                        if proc.poll() is None:
+                            # try to terminate it and then kill it
+                            while True:
+                                term_tries = 0
+                                if term_tries < max_terminate_tries:
+                                    proc.terminate()
+                                    try:
+                                        proc.wait(10)
+                                    except subprocess.TimeoutExpired as e1:
+                                        term_tries = term_tries + 1
+                                else:
+                                    proc.kill()
+                                    proc.wait()
+                                    return None
+                            break
+            if success is True:
+                return proc
+            
     def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging'):
 
         if isinstance(date,str):
@@ -25,43 +55,16 @@ class Ores_Archaeologist(object):
 
         call = "source {0}/bin/activate && python3 get_model_threshhold.py --model_path={1} --query=\"{2}\" --outfile={3} --append=True --commit={4} && source ./bin/activate".format(repo.working_dir, model_path, threshhold_string,threshhold_temp, commit)
 
+        
         with open(call_log,'a') as log:
             log.write(call + '\n')
 
         # poll every 5 minutes. If the proccess is dead restart it. 
-        poll_interval = 60*5
-        success = False
-        while success is False:
-
-            with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash') as proc:
-                print("starting process:{0}".format(call))
-                while success is False:
-                    try:
-                        proc.wait(poll_interval)
-                        success = True
-
-                    except subprocess.TimeoutExpired as e:
-                        success = False
-                        if proc.poll() is None:
-                            # try to terminate it and then kill it
-                            while True:
-                                term_tries = 0
-                                if term_tries < 6:
-                                    proc.terminate()
-                                    try:
-                                        proc.wait(10)
-                                    except subprocess.TimeoutExpired as e1:
-                                        term_tries = term_tries + 1
-                                else:
-                                    proc.kill()
-                                    proc.wait()
-                            break
-
-            if success is True:
-                out = proc.stdout
-                with open(threshhold_temp,'r') as f:
-                    lines = f.readlines()
-                    return lines[-1]
+        proc = self._call_and_retry(call)
+        if proc is not None:
+            with open(threshhold_temp,'r') as f:
+                lines = f.readlines()
+                return lines[-1]
 
     # some versions of revscoring don't handle errors properly so I need to hot-patch it.'
     # basically this will be the same functionality as in revscoring.score_processor but will handle errors instead of raising them.
@@ -83,7 +86,8 @@ class Ores_Archaeologist(object):
         #     import pdb; pdb.set_trace()
 
         call = "source {0}/bin/activate".format(repo.working_dir) + " && {0}/bin/python3".format(repo.working_dir) + " revscoring_score_shim.py " + model_file + " --host={0} --rev-ids={1} && source ./bin/activate".format(uri, infile)
-        proc = subprocess.run(call, shell=True, stdout=subprocess.PIPE, executable="/bin/bash")
+
+        proc = self._call_and_retry(call)
 
         with open(call_log,'a') as log:
             log.write(call + '\n')
@@ -92,7 +96,6 @@ class Ores_Archaeologist(object):
         print("--commit={0}".format(commit))
         print(proc.returncode)
         output = proc.stdout.decode()
-
         return output
 
     def score_history(self, cutoff_revisions, preprocess=True):
