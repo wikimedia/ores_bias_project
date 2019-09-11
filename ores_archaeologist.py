@@ -35,7 +35,8 @@ class Ores_Archaeologist(object):
             with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash') as proc:
                 print("starting process:{0}".format(call))
                 while success is False:
-                    try proc.wait(proc_interval):
+                    try:
+                        proc.wait(poll_interval)
                         success = True
 
                     except subprocess.TimeoutExpired as e:
@@ -105,7 +106,7 @@ class Ores_Archaeologist(object):
             scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, all_revisions, preprocess=False, load_environment=False)
             parts.append(scored_revisions)
 
-        return pd.concat(parts)
+        return pd.concat(parts, sort=False)
 
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True):
         if preprocess:
