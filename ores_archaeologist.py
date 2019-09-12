@@ -15,7 +15,7 @@ class Ores_Archaeologist(object):
     def _call_and_retry(self, call, poll_interval = 60*5, max_terminate_tries = 6):
         success = False
         while success is False:
-            with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash',text=True) as proc:
+            with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash',universal_newlines=True) as proc:
                 print("starting process:{0}".format(call))
                 while success is False:
                     try:
