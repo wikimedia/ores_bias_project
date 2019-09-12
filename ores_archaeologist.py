@@ -7,6 +7,7 @@ import subprocess
 import sys
 import io
 from helper import *
+import numpy as np
 
 call_log = "syscalls.sh"
 
