@@ -18,13 +18,14 @@ class Ores_Archaeologist(object):
             with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash',universal_newlines=True) as proc:
                 print("starting process:{0}".format(call))
                 while success is False:
+                    print("waiting for process ...")
                     try:
                         proc.wait(poll_interval)
                         success = True
-
                     except subprocess.TimeoutExpired as e:
                         success = False
                         if proc.poll() is None:
+                            print("process may have stalled, trying to terminate")
                             # try to terminate it and then kill it
                             term_tries = 0
                             while True:
@@ -36,15 +37,17 @@ class Ores_Archaeologist(object):
                                     except subprocess.TimeoutExpired as e1:
                                         pass
                                 else:
+                                    print("process killed")
                                     proc.kill()
                                     return None
                             break
-                    if (success is True) or (proc.returncode == 0):
-                        print("success")
-                        return proc.stdout.read()
-                    if proc.returncode != 0:
-                        print(proc.stderr.read())
-                        return None
+                    finally:
+                        if (success is True) or (proc.returncode == 0):
+                            print("success")
+                            return proc.stdout.read()
+                        if proc.returncode != 0:
+                            print(proc.stderr.read())
+                            return None
             
     def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging'):
 
