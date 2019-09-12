@@ -151,32 +151,35 @@ class Ores_Archaeologist(object):
         score_jsons = self.score_revisions(wiki_db, uri, commit=commit, load_environment=load_environment, model_type="damaging", infile=tmpfilename)
 
         scores = []
+        if score_jsons is not None:
+            for line in score_jsons.split('\n'):
+                error = None
+                if line == '':
+                    continue
+                fields = line.split('\t')
+                revid = fields[0]
 
-        for line in score_jsons.split('\n'):
-            error = None
-            if line == '':
-                continue
-            fields = line.split('\t')
-            revid = fields[0]
-
-            if len(fields) < 2:
-                probability = None
-            else:
-                result = json.loads(fields[1])
-
-                probability = result.get('probability', None)
-                if probability is not None:
-                    probability = probability['true']
-
+                if len(fields) < 2:
+                    probability = np.NaN
                 else:
-                    error = line
-                    
-            scores.append({"revision_id":int(revid), "prob_damaging":probability, "revscoring_error":error})
+                    result = json.loads(fields[1])
 
+                    probability = result.get('probability', None)
+                    if probability is not None:
+                        probability = probability['true']
+
+                    else:
+                        error = line
+
+                scores.append({"revision_id":int(revid), "prob_damaging":probability, "revscoring_error":error})
 
         if len(scores) > 0:
             scores = pd.DataFrame.from_records(scores)
             all_revisions = pd.merge(all_revisions, scores, on=['revision_id'], how='left')
+
+        else:
+            all_revisions['prob_damaging'] = np.NaN
+            all_revisions["revscoring_error"] = "Unknown error. Check log. Process died?"
 
         return all_revisions
         
