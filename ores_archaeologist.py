@@ -13,8 +13,9 @@ call_log = "syscalls.sh"
 class Ores_Archaeologist(object):
 
     def _call_and_retry(self, call, poll_interval = 60*5, max_terminate_tries = 6):
+        success = False
         while success is False:
-            with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash') as proc:
+            with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash',text=True) as proc:
                 print("starting process:{0}".format(call))
                 while success is False:
                     try:
@@ -38,8 +39,8 @@ class Ores_Archaeologist(object):
                                     proc.wait()
                                     return None
                             break
-            if success is True:
-                return proc
+                    if success is True:
+                        return proc.stdout.read()
             
     def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging'):
 
@@ -87,15 +88,12 @@ class Ores_Archaeologist(object):
 
         call = "source {0}/bin/activate".format(repo.working_dir) + " && {0}/bin/python3".format(repo.working_dir) + " revscoring_score_shim.py " + model_file + " --host={0} --rev-ids={1} && source ./bin/activate".format(uri, infile)
 
-        proc = self._call_and_retry(call)
-
         with open(call_log,'a') as log:
             log.write(call + '\n')
 
-        print(proc.args)
+        print(call)
+        output = self._call_and_retry(call)
         print("--commit={0}".format(commit))
-        print(proc.returncode)
-        output = proc.stdout.decode()
         return output
 
     def score_history(self, cutoff_revisions, preprocess=True):
