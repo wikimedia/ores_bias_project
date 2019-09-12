@@ -46,7 +46,8 @@ class Ores_Archaeologist(object):
                             print("success")
                             return proc.stdout.read()
                         if proc.returncode != 0:
-                            print(proc.stderr.read())
+                            if proc.stderr:
+                                print(proc.stderr.read())
                             return None
             
     def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging'):
