@@ -40,6 +40,7 @@ class Ores_Archaeologist(object):
                                     return None
                             break
                     if success is True:
+                        print("success")
                         return proc.stdout.read()
                     if proc.returncode != 0:
                         print(proc.stderr.read())
