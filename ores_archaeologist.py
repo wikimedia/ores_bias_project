@@ -26,20 +26,20 @@ class Ores_Archaeologist(object):
                         success = False
                         if proc.poll() is None:
                             # try to terminate it and then kill it
+                            term_tries = 0
                             while True:
-                                term_tries = 0
                                 if term_tries < max_terminate_tries:
+                                    term_tries = term_tries + 1
                                     proc.terminate()
                                     try:
                                         proc.wait(10)
                                     except subprocess.TimeoutExpired as e1:
-                                        term_tries = term_tries + 1
+                                        pass
                                 else:
                                     proc.kill()
-                                    proc.wait()
                                     return None
                             break
-                    if success is True:
+                    if (success is True) or (proc.returncode == 0):
                         print("success")
                         return proc.stdout.read()
                     if proc.returncode != 0:
@@ -59,7 +59,6 @@ class Ores_Archaeologist(object):
         threshhold_temp = "model_threshholds.txt"
 
         call = "source {0}/bin/activate && python3 get_model_threshhold.py --model_path={1} --query=\"{2}\" --outfile={3} --append=True --commit={4} && source ./bin/activate".format(repo.working_dir, model_path, threshhold_string,threshhold_temp, commit)
-
         
         with open(call_log,'a') as log:
             log.write(call + '\n')
