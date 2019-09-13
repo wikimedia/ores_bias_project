@@ -37,7 +37,7 @@
 
 # monkey-patch score processor so that it never errors
 from revscoring.utilities import score
-import Timer
+from threading import Timer
 import sys
 import time
 class MyScoreProcessor(score.ScoreProcessor):
