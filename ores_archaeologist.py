@@ -14,18 +14,15 @@ call_log = "syscalls.sh"
 class Ores_Archaeologist(object):
 
     def _call_and_retry(self, call, poll_interval = 60*5, max_retries=5):
-        success = False
-        while success is False:
-            max_proc_tries = max_proc_tries - 1
-            with subprocess.Popen(call, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, executable='/bin/bash',universal_newlines=True) as proc:
-                while max_retries > 0 :
-                    max_retries = max_retries - 1
-                    print("starting process:{0}".format(call))
-                    (results, errors) = proc.communicate()
-                    print(errors)
-                    if proc.returncode == 0:
-                        return results
-                return None
+        while max_retries > 0 :
+            with subprocess.Popen(call, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, executable='/bin/bash', universal_newlines=True) as proc:
+                max_retries = max_retries - 1
+                print("starting process:{0}".format(call))
+                (results, errors) = proc.communicate()
+                print(errors)
+                if proc.returncode == 0:
+                    return results
+        return None
                     # try:
                     #     (results, errors) = proc.communicate(timeout=poll_interval)
                     #     if proc.returncode == 0:
