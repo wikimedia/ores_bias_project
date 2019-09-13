@@ -13,9 +13,10 @@ call_log = "syscalls.sh"
 
 class Ores_Archaeologist(object):
 
-    def _call_and_retry(self, call, poll_interval = 60*5, max_terminate_tries = 6):
+    def _call_and_retry(self, call, poll_interval = 60*5, max_terminate_tries = 6, max_proc_tries=5):
         success = False
         while success is False:
+            max_proc_tries = max_proc_tries - 1
             with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash',universal_newlines=True) as proc:
                 print("starting process:{0}".format(call))
                 while success is False:
@@ -26,12 +27,13 @@ class Ores_Archaeologist(object):
                     except subprocess.TimeoutExpired as e:
                         success = False
                         if proc.poll() is None:
+                            (results, errors) = p.communicate()
                             print("process may have stalled, trying to terminate")
                             # try to terminate it and then kill it
                             term_tries = 0
                             while True:
-                                if term_tries < max_terminate_tries:
-                                    term_tries = term_tries + 1
+                                if max_terminate_tries > 0:
+                                    max_terminate_tries = max_terminate_tries - 1
                                     proc.terminate()
                                     try:
                                         proc.wait(10)
@@ -39,9 +41,10 @@ class Ores_Archaeologist(object):
                                         pass
                                 else:
                                     print("process killed")
+                                    print(errors)
                                     proc.kill()
-                                    return None
-                            break
+                                    if max_proc_tries > 0:
+                                        return results
                     finally:
                         if (success is True) or (proc.returncode == 0):
                             print("success")
@@ -49,7 +52,8 @@ class Ores_Archaeologist(object):
                         if proc.returncode != 0:
                             if proc.stderr:
                                 print(proc.stderr.read())
-                            return None
+                            if max_proc_tries < 0:
+                                return None
             
     def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging'):
 
@@ -179,8 +183,8 @@ class Ores_Archaeologist(object):
             all_revisions = pd.merge(all_revisions, scores, on=['revision_id'], how='left')
 
         else:
-            all_revisions['prob_damaging'] = np.NaN
-            all_revisions["revscoring_error"] = "Unknown error. Check log. Process died?"
+            all_revisions.loc[:, 'prob_damaging'] = np.NaN
+            all_revisions.loc[:, "revscoring_error"] = "Unknown error. Check log. Process died?"
 
         return all_revisions
         
