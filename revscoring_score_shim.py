@@ -66,5 +66,5 @@ if __name__ == "__main__":
                 self.finished.wait(self.interval)
 
 
-    t = RepeatingTimer(30.0, lambda: sys.stderr("{0}:ScoreProcessor is running".format(time.now()))
+    t = RepeatingTimer(30.0, lambda: sys.stderr("{0}:ScoreProcessor is running".format(time.now())))
     score.main()
