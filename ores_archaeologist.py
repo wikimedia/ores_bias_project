@@ -29,7 +29,7 @@ class Ores_Archaeologist(object):
                         if proc.poll() is None:
                             print("process may have stalled, trying to terminate")
                             # try to terminate it and then kill it
-                            (results, errors) = p.communicate()
+                            (results, errors) = proc.communicate()
                             term_tries = 0
                             while True:
                                 success = False
