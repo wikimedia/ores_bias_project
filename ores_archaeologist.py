@@ -27,11 +27,12 @@ class Ores_Archaeologist(object):
                     except subprocess.TimeoutExpired as e:
                         success = False
                         if proc.poll() is None:
-                            (results, errors) = p.communicate()
                             print("process may have stalled, trying to terminate")
                             # try to terminate it and then kill it
+                            (results, errors) = proc.communicate()
                             term_tries = 0
                             while True:
+                                success = False
                                 if max_terminate_tries > 0:
                                     max_terminate_tries = max_terminate_tries - 1
                                     proc.terminate()
