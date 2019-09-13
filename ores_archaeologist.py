@@ -13,48 +13,56 @@ call_log = "syscalls.sh"
 
 class Ores_Archaeologist(object):
 
-    def _call_and_retry(self, call, poll_interval = 60*5, max_terminate_tries = 6, max_proc_tries=5):
+    def _call_and_retry(self, call, poll_interval = 60*5, max_proc_tries=5):
         success = False
         while success is False:
             max_proc_tries = max_proc_tries - 1
-            with subprocess.Popen(call, stdout=subprocess.PIPE, shell=True, executable='/bin/bash',universal_newlines=True) as proc:
-                print("starting process:{0}".format(call))
-                while success is False:
-                    print("waiting for process ...")
-                    try:
-                        proc.wait(poll_interval)
-                        success = True
-                    except subprocess.TimeoutExpired as e:
-                        success = False
-                        if proc.poll() is None:
-                            print("process may have stalled, trying to terminate")
-                            # try to terminate it and then kill it
-                            (results, errors) = proc.communicate()
-                            term_tries = 0
-                            while True:
-                                success = False
-                                if max_terminate_tries > 0:
-                                    max_terminate_tries = max_terminate_tries - 1
-                                    proc.terminate()
-                                    try:
-                                        proc.wait(10)
-                                    except subprocess.TimeoutExpired as e1:
-                                        pass
-                                else:
-                                    print("process killed")
-                                    print(errors)
-                                    proc.kill()
-                                    if max_proc_tries > 0:
-                                        return results
-                    finally:
-                        if (success is True) or (proc.returncode == 0):
-                            print("success")
-                            return proc.stdout.read()
-                        if proc.returncode != 0:
-                            if proc.stderr:
-                                print(proc.stderr.read())
-                            if max_proc_tries < 0:
-                                return None
+            with subprocess.Popen(call, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, executable='/bin/bash',universal_newlines=True, max_retries=5) as proc:
+                while max_retries > 0 :
+                    max_retries = max_retries - 1
+                    print("starting process:{0}".format(call))
+                    (results, errors) = proc.communicate()
+                    print(errors)
+                    if proc.returncode == 0:
+                        return results
+                return None
+                    # try:
+                    #     (results, errors) = proc.communicate(timeout=poll_interval)
+                    #     if proc.returncode == 0:
+                    #         return results
+                    #     else:
+                    #         print(errors)
+                    #         return None
+                    # # except subprocess.TimeoutExpired as e:
+                    #     # check stderr
+                    #     success = False
+                    #     status = proc.poll()
+                    #     if status is  None:
+                    #         print("process may have stalled, trying to terminate")
+                    #         # try to terminate it and then kill it
+                    #         (results, errors) = proc.communicate()
+                    #         term_tries = 0
+                    #         while True:
+                    #             success = False
+                    #             if max_terminate_tries > 0:
+                    #                 max_terminate_tries = max_terminate_tries - 1
+                    #                 proc.terminate()
+                    #                 try:
+                    #                     proc.wait(10)
+                    #                     print(errors)
+                    #                     return results
+                    #                 except subprocess.TimeoutExpired as e1:
+                    #                     pass
+                                    
+                    # finally:
+                    #     if (success is True) or (proc.returncode == 0):
+                    #         print("success")
+
+                    #     if proc.returncode != 0:
+                    #         if proc.stderr:
+                    #             print(proc.stderr.read())
+                    #         if max_proc_tries < 0:
+                    #             return None
             
     def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging'):
 
