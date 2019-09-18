@@ -67,9 +67,11 @@ class Ores_Archaeologist(object):
             date = fromisoformat(date)
 
         commit = lookup_commit_from_wiki_date(wiki_db, date)
-        model_path = find_model_file(wiki_db, commit, model_type)
+
         if load_environment is True: 
             load_model_environment(date=date, commit=commit)
+
+        model_path = find_model_file(wiki_db, commit, model_type)
 
         # make sure that we run using the right virtualenv
         threshhold_temp = "model_threshholds.txt"
@@ -87,7 +89,7 @@ class Ores_Archaeologist(object):
                 return lines[-1]
 
 
-    def get_all_threshholds(self, cutoffs, output = None):
+    def get_all_threshholds(self, cutoffs):
 
         if isinstance(cutoffs, str):
             cutoffs = pd.read_csv(cutoffs)
@@ -131,18 +133,16 @@ class Ores_Archaeologist(object):
                         else:
                             model_type = 'damaging'
 
-                        first = False
                         res = self.get_threshhold(wiki_db = row.wiki_db, date=row.deploy_dt, threshhold_string = threshhold, model_type = model_type, load_environment=first)
-                        value = res.split('\t')[1]
+                        first = False
+                        if res is not None:
+                            value = res.split('\t')[1]
                         
 
                 row[string_value_dict[key]] = value
             output_rows.append(row)
 
-        result = pd.from_records(output_rows)
-        if output is not None:
-            with open(output, 'w') as outfile:
-                result.to_csv(outfile, index=False)
+        result = pd.DataFrame.from_records(output_rows)
         return result
 
     # some versions of revscoring don't handle errors properly so I need to hot-patch it.'
@@ -327,9 +327,9 @@ class Ores_Archaeologist_Api():
         cls = Ores_Archaeologist()
         return cls.get_threshhold(*args, **kwargs)
 
-    def get_all_threshholds(self, *args, **kwargs):
+    def get_all_threshholds(self, cutoffs, output = None):
         cls = Ores_Archaeologist()
-        return self._wrap(cls.get_all_threshholds(*args, **kwargs))
+        return self._wrap(cls.get_all_threshholds, output, cutoffs)
 
 if __name__ == "__main__":
     fire.Fire(Ores_Archaeologist_Api)
