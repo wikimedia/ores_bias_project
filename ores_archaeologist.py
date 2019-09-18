@@ -61,14 +61,15 @@ class Ores_Archaeologist(object):
                     #         if max_proc_tries < 0:
                     #             return None
             
-    def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging'):
+    def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging', load_model_environment=True):
 
         if isinstance(date,str):
             date = fromisoformat(date)
 
         commit = lookup_commit_from_wiki_date(wiki_db, date)
         model_path = find_model_file(wiki_db, commit, model_type)
-        load_model_environment(date=date, commit=commit)
+        if load_model_environment: 
+            load_model_environment(date=date, commit=commit)
 
         # make sure that we run using the right virtualenv
         threshhold_temp = "model_threshholds.txt"
@@ -115,7 +116,9 @@ class Ores_Archaeologist(object):
                              
         output_rows = []
         for k, row in cutoffs.iterrows():
+            first = True
             for key in string_value_dict.keys():
+
                 threshhold = row[key]
                 try:
                     value = float(threshhold)
@@ -127,9 +130,10 @@ class Ores_Archaeologist(object):
                             model_type = 'goodfaith'
                         else:
                             model_type = 'damaging'
-                        res = self.get_threshhold(wiki_db = row.wiki_db, date=row.deploy_dt, threshhold_string = threshhold, model_type = model_type)
+                        res = self.get_threshhold(wiki_db = row.wiki_db, date=row.deploy_dt, threshhold_string = threshhold, model_type = model_type, load_model_environment=first)
                         value = res.split('\t')[1]
-
+                        
+                first = False
                 row[string_value_dict[key]] = value
             output_rows.append(row)
 
