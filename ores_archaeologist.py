@@ -130,7 +130,7 @@ class Ores_Archaeologist(object):
                             model_type = 'goodfaith'
                         else:
                             model_type = 'damaging'
-                        res = self.get_threshhold(wiki_db = row.wiki_db, date=row.deploy_dt, threshhold_string = threshhold, model_type = model_type, load_model_environment=first)
+                        res = self.get_threshhold(wiki_db = row.wiki_db, date=row.deploy_dt, threshhold_string = threshhold, model_type = model_type, load_environment=first)
                         value = res.split('\t')[1]
                         
                 first = False
