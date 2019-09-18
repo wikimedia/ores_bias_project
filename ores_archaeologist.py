@@ -61,14 +61,14 @@ class Ores_Archaeologist(object):
                     #         if max_proc_tries < 0:
                     #             return None
             
-    def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging', load_model_environment=True):
+    def get_threshhold(self, wiki_db, date, threshhold_string, outfile = None, append=True, model_type='damaging', load_environment=True):
 
         if isinstance(date,str):
             date = fromisoformat(date)
 
         commit = lookup_commit_from_wiki_date(wiki_db, date)
         model_path = find_model_file(wiki_db, commit, model_type)
-        if load_model_environment: 
+        if load_environment is True: 
             load_model_environment(date=date, commit=commit)
 
         # make sure that we run using the right virtualenv
