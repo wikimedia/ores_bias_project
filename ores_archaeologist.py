@@ -85,6 +85,60 @@ class Ores_Archaeologist(object):
                 lines = f.readlines()
                 return lines[-1]
 
+
+    def get_all_threshholds(self, cutoffs, output = None):
+
+        if isinstance(cutoffs, str):
+            cutoffs = pd.read_csv(cutoffs)
+
+        string_value_dict = {'damaging_likelybad_max':'damaging_likelybad_max_value',
+                             'damaging_likelybad_min':'damaging_likelybad_min_value',
+                             'damaging_likelygood_max':'damaging_likelygood_max_value',
+                             'damaging_likelygood_min':'damaging_likelygood_min_value',
+                             'damaging_maybebad_max':'damaging_maybebad_max_value',
+                             'damaging_maybebad_min':'damaging_maybebad_min_value',
+                             'damaging_verylikelybad_max':'damaging_verylikelybad_max_value',
+                             'damaging_verylikelybad_min':'damaging_verylikelybad_min_value',
+                             'goodfaith_bad_max':'goodfaith_bad_max_value',
+                             'goodfaith_bad_min':'goodfaith_bad_min_value',
+                             'goodfaith_good_max':'goodfaith_good_max_value',
+                             'goodfaith_good_min':'goodfaith_good_min_value',
+                             'goodfaith_likelybad_max':'goodfaith_likelybad_max_value',
+                             'goodfaith_likelybad_min':'goodfaith_likelybad_min_value',
+                             'goodfaith_likelygood_max':'goodfaith_likelygood_max_value',
+                             'goodfaith_likelygood_min':'goodfaith_likelygood_min_value',
+                             'goodfaith_maybebad_max':'goodfaith_maybebad_max_value',
+                             'goodfaith_maybebad_min':'goodfaith_maybebad_min_value',
+                             'goodfaith_verylikelybad_max':'goodfaith_verylikelybad_max_value',
+                             'goodfaith_verylikelybad_min':'goodfaith_verylikelybad_min_value'
+                             }
+                             
+        output_rows = []
+        for k, row in cutoffs.iterrows():
+            for key in string_value_dict.keys():
+                threshhold = row[key]
+                try:
+                    value = float(threshhold)
+                except ValueError as e:
+                    if len(threshhold) == 0 or pd.isna(threshhold):
+                        value = pd.np.NaN
+                    else:
+                        if key.startswith('goodfaith'):
+                            model_type = 'goodfaith'
+                        else:
+                            model_type = 'damaging'
+                        res = self.get_threshhold(wiki_db = row.wiki_db, date=row.deploy_dt, threshhold_string = threshhold, model_type = model_type)
+                        value = res.split('\t')[1]
+
+                row[string_value_dict[key]] = value
+            output_rows.append(row)
+
+        result = pd.from_records(output_rows)
+        if output is not None:
+            with open(output, 'w') as outfile:
+                result.to_csv(outfile, index=False)
+        return result
+
     # some versions of revscoring don't handle errors properly so I need to hot-patch it.'
     # basically this will be the same functionality as in revscoring.score_processor but will handle errors instead of raising them.
     def score_revisions(self, wiki_db, uri, date=None, commit=None, load_environment=True, model_type='damaging', infile="<stdin>"):
@@ -267,6 +321,9 @@ class Ores_Archaeologist_Api():
         cls = Ores_Archaeologist()
         return cls.get_threshhold(*args, **kwargs)
 
+    def get_all_threshholds(self, *args, **kwargs):
+        cls = Ores_Archaeologist()
+        return self._wrap(cls.get_all_threshholds(*args, **kwargs))
 
 if __name__ == "__main__":
     fire.Fire(Ores_Archaeologist_Api)
