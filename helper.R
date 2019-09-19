@@ -23,24 +23,11 @@ ttr_density_plot <- function(sample, wiki, tool){
     
     s <- rbindlist(equal.sample(s_pre,s_post))
 
-    p <- ggplot(s, aes_string(x=x,y=y)) + facet_grid(as.formula(paste0(facet_row, "~", facet_col))) + geom_density() + scale_x_log10(breaks=breaks, labels=labels)
-
-    p1_data <- data.table(ggplot_build(p)$data[[1]])
-    
-    p1_data_pre <- p1_data[ (PANEL == 1)]
-    p1_data_post <- p1_data[ (PANEL == 2)]
-    p2_data <- merge(p1_data_pre, p1_data_post, by=c('x'),suffixes=c(".pre",".post"))
-    p2_data[,post.min.pre := count.post - count.pre]
-
-    setnames(p2_data,old=c('count.pre','count.post','post.min.pre'),new = c('Before change', 'After change','After - Before'))
-
-    p2_data <- melt(p2_data,id.vars=c('x'),measure.vars=c('Before change', 'After change','After - Before'))
-    p2_data[,revert_tool := tool]
+    p2_data <- gen.ttr.density.data(s, tool)
 
     p <- ggplot(p2_data,aes(x=x,y=value)) + geom_line() + facet_grid(cols=vars(revert_tool), rows=vars(variable),scales='free_y')
     p <- p + scale_x_continuous(breaks = log10(duration_x_values), labels = duration_x_names) + theme(axis.text.x=element_text(angle=90,hjust=1))
     p <- p + ggtitle(wiki)
-
 }
 
 # adding density
@@ -58,7 +45,40 @@ ttr_histogram_plot <- function(sample, wiki, tool, bins=50){
     s_post <- s[pre_cutoff==F]
     
     s <- rbindlist(equal.sample(s_pre,s_post))
+
+    p2_data <- gen.ttr.histogram.data(s, tool, bins)
     
+    p <- ggplot(p2_data,aes(xmin=xmin,xmax=xmax,ymin=0,ymax=value)) + geom_rect() + facet_grid(cols=vars(revert_tool), rows=vars(variable),scales='free_y')
+    p <- p + scale_x_continuous(breaks = log10(duration_x_values), labels = duration_x_names) + theme(axis.text.x=element_text(angle=90,hjust=1))
+    p <- p + ggtitle(wiki)
+    return(p)
+}
+
+
+ttr_grid_plot <- function(sample, wiki, tool, bins){
+    s <- sample[ (wiki_db==wiki) & (revert_tool==tool) ]
+
+    if(nrow(s) < 100){
+        return(ggplot() + ggtitle(wiki))
+    }
+
+    s_pre <- s[pre_cutoff==T]
+    s_post <- s[pre_cutoff==F]
+    
+    s <- rbindlist(equal.sample(s_pre,s_post))
+
+    hist.data <- gen.ttr.histogram.data(s, tool, bins)
+    density.data <- gen.ttr.density.data(s, tool, bins)
+
+    p <- ggplot(hist.data) + geom_rect(data=hist.data, mapping=aes(xmin=xmin,xmax=xmax,ymin=0,ymax=value)) + geom_line(data=density.data, mapping=aes(x=x,y=value)) + facet_grid(cols=vars(revert_tool), rows=vars(variable), scales='free_y')
+
+    p <- p + scale_x_continuous(breaks = log10(duration_x_values), labels = duration_x_names) + theme(axis.text.x=element_text(angle=90,hjust=1))
+    p <- p + ggtitle(wiki)
+    return(p)
+}
+
+
+gen.ttr.histogram.data <- function(s, tool, bins){
     p <- ggplot(s, aes_string(x=x,y=y)) + facet_grid(as.formula(paste0(facet_row, "~", facet_col))) + geom_histogram(bins=bins) + scale_x_log10(breaks=breaks, labels=labels)
 
     p1_data <- data.table(ggplot_build(p)$data[[1]])
@@ -73,9 +93,24 @@ ttr_histogram_plot <- function(sample, wiki, tool, bins=50){
 
     p2_data <- melt(p2_data,id.vars=c('xmin','xmax'),measure.vars=c('Before change', 'After change','After - Before'))
     p2_data[,revert_tool := tool]
+
+    return(p2_data)
+}
+
+gen.ttr.density.data <- function(s, tool){
+    p <- ggplot(s, aes_string(x=x,y=y)) + facet_grid(as.formula(paste0(facet_row, "~", facet_col))) + geom_density() + scale_x_log10(breaks=breaks, labels=labels)
+
+    p1_data <- data.table(ggplot_build(p)$data[[1]])
     
-    p <- ggplot(p2_data,aes(xmin=xmin,xmax=xmax,ymin=0,ymax=value)) + geom_rect() + facet_grid(cols=vars(revert_tool), rows=vars(variable),scales='free_y')
-    p <- p + scale_x_continuous(breaks = log10(duration_x_values), labels = duration_x_names) + theme(axis.text.x=element_text(angle=90,hjust=1))
-    p <- p + ggtitle(wiki)
-    return(p)
+    p1_data_pre <- p1_data[ (PANEL == 1)]
+    p1_data_post <- p1_data[ (PANEL == 2)]
+    p2_data <- merge(p1_data_pre, p1_data_post, by=c('x'),suffixes=c(".pre",".post"))
+    p2_data[,post.min.pre := count.post - count.pre]
+
+    setnames(p2_data,old=c('count.pre','count.post','post.min.pre'),new = c('Before change', 'After change','After - Before'))
+
+    p2_data <- melt(p2_data,id.vars=c('x'),measure.vars=c('Before change', 'After change','After - Before'))
+    p2_data[,revert_tool := tool]
+
+    return(p2_data)
 }
