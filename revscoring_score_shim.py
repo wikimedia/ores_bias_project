@@ -37,7 +37,8 @@
 
 # monkey-patch score processor so that it never errors
 from revscoring.utilities import score
-
+import sys
+import time
 class MyScoreProcessor(score.ScoreProcessor):
 
     @classmethod
@@ -55,4 +56,14 @@ class MyScoreProcessor(score.ScoreProcessor):
 score.ScoreProcessor = MyScoreProcessor
 
 if __name__ == "__main__":
+    from threading import Timer
+
+    class RepeatingTimer(Timer):
+        def run(self):
+            while not self.finished.is_set():
+                self.function(*self.args, **self.kwargs)
+                self.finished.wait(self.interval)
+
+
+    t = RepeatingTimer(30.0, lambda: sys.stderr("{0}:ScoreProcessor is running".format(time.now())))
     score.main()
