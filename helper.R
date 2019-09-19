@@ -67,8 +67,8 @@ ttr_grid_plot <- function(sample, wiki, tool, bins=50){
     
     s <- rbindlist(equal.sample(s_pre,s_post))
 
-    hist.data <- gen.ttr.histogram.data(s, tool)
-    density.data <- gen.ttr.density.data(s, tool, bins)
+    hist.data <- gen.ttr.histogram.data(s, tool, bins)
+    density.data <- gen.ttr.density.data(s, tool)
 
     p <- ggplot(hist.data) + geom_rect(data=hist.data, mapping=aes(xmin=xmin,xmax=xmax,ymin=0,ymax=value)) + geom_line(data=density.data, mapping=aes(x=x,y=value)) + facet_grid(cols=vars(revert_tool), rows=vars(variable), scales='free_y')
 
