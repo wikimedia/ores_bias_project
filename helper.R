@@ -55,7 +55,7 @@ ttr_histogram_plot <- function(sample, wiki, tool, bins=50){
 }
 
 
-ttr_grid_plot <- function(sample, wiki, tool, bins){
+ttr_grid_plot <- function(sample, wiki, tool, bins=50){
     s <- sample[ (wiki_db==wiki) & (revert_tool==tool) ]
 
     if(nrow(s) < 100){
@@ -67,7 +67,7 @@ ttr_grid_plot <- function(sample, wiki, tool, bins){
     
     s <- rbindlist(equal.sample(s_pre,s_post))
 
-    hist.data <- gen.ttr.histogram.data(s, tool, bins)
+    hist.data <- gen.ttr.histogram.data(s, tool)
     density.data <- gen.ttr.density.data(s, tool, bins)
 
     p <- ggplot(hist.data) + geom_rect(data=hist.data, mapping=aes(xmin=xmin,xmax=xmax,ymin=0,ymax=value)) + geom_line(data=density.data, mapping=aes(x=x,y=value)) + facet_grid(cols=vars(revert_tool), rows=vars(variable), scales='free_y')
