@@ -175,7 +175,7 @@ def find_model_file(wiki_db, commit, model_type='damaging'):
     
     model_re = r'{0}\.{1}\..*\.model'.format(wiki_db, model_type)
     files = os.listdir(models_path)
-    model_files = [f for f in files if re.match(model_re,f)]
+    model_files = [f for f in files if re.match(model_re, f)]
     if len(model_files) > 0:
         return os.path.join(models_path, model_files[0])
 
