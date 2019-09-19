@@ -74,6 +74,7 @@ ttr_grid_plot <- function(sample, wiki, tool, bins=50){
     max.counts.hist <- hist.data[,.(max.hist=max(value)),by=.(variable)]
     max.counts.dens <- density.data[,.(max.dense=max(value)),by=.(variable)]
     scaling <- merge(max.counts.dens, max.counts.hist, by='variable')
+    scaling <- scaling[,scaling.factor := max.hist / max.dense]
     density.data <- merge(density.data, scaling, by='variable',how='leftouter')
     density.data <- density.data[,value := value * scaling.factor]
     p <- ggplot(hist.data) + geom_rect(data=hist.data, mapping=aes(xmin=xmin,xmax=xmax,ymin=0,ymax=value)) + geom_line(data=density.data, mapping=aes(x=x,y=value)) + facet_grid(cols=vars(revert_tool), rows=vars(variable), scales='free_y')
