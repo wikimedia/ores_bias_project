@@ -71,7 +71,7 @@ ttr_grid_plot <- function(sample, wiki, tool, bins=50){
     density.data <- gen.ttr.density.data(s, tool)
 
     ## scale the density so it's max is the same as the max of the histogram
-    max.counts.hist <- hist.data[,.(max.hist=max(value)),by=.(variable)]
+    max.counts.hist <- hist.data[,.(max.hist=sort(abs(value),partial=bins-2)[bins-2]),by=.(variable)]
     max.counts.dens <- density.data[,.(max.dense=max(value)),by=.(variable)]
     scaling <- merge(max.counts.dens, max.counts.hist, by='variable')
     scaling <- scaling[,scaling.factor := max.hist / max.dense]
