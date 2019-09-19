@@ -2,3 +2,80 @@ parse.date.tz <- function(s) as.POSIXct(s, format="%Y-%m-%dT%T.000Z",tz='UTC')
 parse.date.iso <- function(s) as.POSIXct(s, format="%Y-%m-%d %T",tz='UTC')
 
 
+equal.sample <- function(df.left, df.right){
+    sample.size <- min(nrow(df.left),nrow(df.right))
+    new.left <- df.left[sample(nrow(df.left),sample.size,replace=F)]
+    new.right <- df.right[sample(nrow(df.right),sample.size,replace=F)]
+    return(list(new.left = new.left, new.right = new.right))
+}
+
+
+
+ttr_density_plot <- function(sample, wiki, tool){
+    s <- sample[ (wiki_db==wiki) & (revert_tool==tool) ]
+
+    if(nrow(s) < 100){
+        return(ggplot() + ggtitle(wiki))
+    }
+
+    s_pre <- s[pre_cutoff==T]
+    s_post <- s[pre_cutoff==F]
+    
+    s <- rbindlist(equal.sample(s_pre,s_post))
+
+    p <- ggplot(s, aes_string(x=x,y=y)) + facet_grid(as.formula(paste0(facet_row, "~", facet_col))) + geom_density() + scale_x_log10(breaks=breaks, labels=labels)
+
+    p1_data <- data.table(ggplot_build(p)$data[[1]])
+    
+    p1_data_pre <- p1_data[ (PANEL == 1)]
+    p1_data_post <- p1_data[ (PANEL == 2)]
+    p2_data <- merge(p1_data_pre, p1_data_post, by=c('x'),suffixes=c(".pre",".post"))
+    p2_data[,post.min.pre := count.post - count.pre]
+
+    setnames(p2_data,old=c('count.pre','count.post','post.min.pre'),new = c('Before change', 'After change','After - Before'))
+
+    p2_data <- melt(p2_data,id.vars=c('x'),measure.vars=c('Before change', 'After change','After - Before'))
+    p2_data[,revert_tool := tool]
+
+    p <- ggplot(p2_data,aes(x=x,y=value)) + geom_line() + facet_grid(cols=vars(revert_tool), rows=vars(variable),scales='free_y')
+    p <- p + scale_x_continuous(breaks = log10(duration_x_values), labels = duration_x_names) + theme(axis.text.x=element_text(angle=90,hjust=1))
+    p <- p + ggtitle(wiki)
+
+}
+
+# adding density
+# normalizing to no. sample an equal number
+# try a count density
+
+ttr_histogram_plot <- function(sample, wiki, tool, bins=50){
+    s <- sample[ (wiki_db==wiki) & (revert_tool==tool) ]
+
+    if(nrow(s) < 100){
+        return(ggplot() + ggtitle(wiki))
+    }
+
+    s_pre <- s[pre_cutoff==T]
+    s_post <- s[pre_cutoff==F]
+    
+    s <- rbindlist(equal.sample(s_pre,s_post))
+    
+    p <- ggplot(s, aes_string(x=x,y=y)) + facet_grid(as.formula(paste0(facet_row, "~", facet_col))) + geom_histogram(bins=bins) + scale_x_log10(breaks=breaks, labels=labels)
+
+    p1_data <- data.table(ggplot_build(p)$data[[1]])
+    
+    p1_data_pre <- p1_data[ (PANEL == 1)]
+    p1_data_post <- p1_data[ (PANEL == 2)]
+
+    p2_data <- merge(p1_data_pre, p1_data_post, by=c('xmin','xmax'),suffixes=c(".pre",".post"))
+    p2_data[,post.min.pre := count.post - count.pre]
+    
+    setnames(p2_data,old=c('count.pre','count.post','post.min.pre'),new = c('Before change', 'After change','After - Before'))
+
+    p2_data <- melt(p2_data,id.vars=c('xmin','xmax'),measure.vars=c('Before change', 'After change','After - Before'))
+    p2_data[,revert_tool := tool]
+    
+    p <- ggplot(p2_data,aes(xmin=xmin,xmax=xmax,ymin=0,ymax=value)) + geom_rect() + facet_grid(cols=vars(revert_tool), rows=vars(variable),scales='free_y')
+    p <- p + scale_x_continuous(breaks = log10(duration_x_values), labels = duration_x_names) + theme(axis.text.x=element_text(angle=90,hjust=1))
+    p <- p + ggtitle(wiki)
+    return(p)
+}
