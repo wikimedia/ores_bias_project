@@ -15,6 +15,7 @@ import fire
 import json
 
 # python 3.5 doesn't have datetime.fromisoformat
+call_log = "syscalls.sh"
 from dateutil import parser
 fromisoformat = parser.isoparse
 
@@ -193,7 +194,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     
     # we'll need to see what's installed so we can remove unnecessary packages at each step to avoid conflicts.
 
-    subprocess.run("source {0}/bin/activate && python3 -m pip freeze > old_requirements.txt".format(repo.working_dir), shell=True)
+    subprocess.run("source {0}/bin/activate && python3 -m pip freeze > old_requirements.txt".format(repo.working_dir), shell=True, executable='/bin/bash')
 
     old_versions = {name:version for name, version in [(s[0], s[1]) for s in [l.split('==') for l in open('old_requirements.txt','r')]]}
 
@@ -282,22 +283,24 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
         reqfile.writelines(requirements)
 
     # modules that are safe and good to keep since they are either required or have long compilation times. 
-    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','numpy','scipy','scikit-learn']
+    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','numpy','scipy','scikit-learn','mysqltsv','more-itertools']
 
 
     to_uninstall = [k + '\n' for k in old_versions.keys() if k not in packages and k.lower() not in to_keep]
     with open('to_uninstall.txt','w') as uf:
         uf.writelines(to_uninstall)
     
+    call = "source {0}/bin/activate".format(repo.working_dir)
+    
     if len(to_uninstall) > 0:
-        call = "source {0}/bin/activate".format(repo.working_dir)
-
-    call = call + " && python3 -m pip uninstall -y -r to_uninstall.txt"
+        call = call + " && python3 -m pip uninstall -y -r to_uninstall.txt"    
 
     call = call + " && python3 -m pip download -r temp_requirements.txt -d deps && python3 -m pip install -r temp_requirements.txt --find-links=deps --no-deps"
 
     print(editquality_path)
-    call = call + " && cd {0} && python3 setup.py install && cd ../../.. && source ./bin/activate".format(editquality_path)
+    call = call + " && cd {0} && python3 setup.py install && cd ../ores_bias_project/ && source ./bin/activate".format(editquality_path)
 
-    print(call)
-    subprocess.run(call, shell=True, executable="/bin/bash")
+    with open(call_log,'a') as log:
+        log.write(call + '\n')
+    proc = subprocess.run(call, shell=True, executable="/bin/bash")
+    
