@@ -13,6 +13,7 @@ import os
 import pickle
 import fire
 import json
+from project_settings import *
 
 # python 3.5 doesn't have datetime.fromisoformat
 call_log = "syscalls.sh"
@@ -53,10 +54,10 @@ wheels_repo.git.checkout("-f", 'master')
 
 commits = repo.iter_commits(paths=["submodules/editquality"])
 
-wheels_commits_path = "ores_bias_data/wheels_commits.pickle"
-editquality_commits_path = "ores_bias_data/editquality_commits.pickle"
-date_commits_path = "ores_bias_data/date_commits.pickle"
-wiki_date_commits_path = "ores_bias_data/wiki_date_commits.pickle"
+wheels_commits_path = os.path.join(data_dir,"wheels_commits.pickle")
+editquality_commits_path = os.path.join(data_dir,"editquality_commits.pickle")
+date_commits_path = os.path.join("date_commits.pickle")
+wiki_date_commits_path = os.path.join("wiki_date_commits.pickle")
 lfs_transition_date = fromisoformat("2018-08-10")
 
 if os.path.exists(wiki_date_commits_path) and os.path.exists(date_commits_path):
@@ -303,4 +304,3 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     with open(call_log,'a') as log:
         log.write(call + '\n')
     proc = subprocess.run(call, shell=True, executable="/bin/bash")
-    
