@@ -141,11 +141,13 @@ else:
                 d[commit_datetime] = commit.hexsha
                 wiki_date_commits[wiki_db[0]] = d
 
+
     pickle.dump(wheels_commits, open(wheels_commits_path,'wb'))
     pickle.dump(wiki_date_commits, open(wiki_date_commits_path,'wb'))
     pickle.dump(date_commits, open(date_commits_path,'wb'))
     pickle.dump(editquality_commits, open(editquality_commits_path,'wb'))
 
+wiki_date_commits['simplewiki'] = wiki_date_commits['enwiki']
 repo.git.checkout("-f", "master")
 editquality_repo.git.checkout('-f', "master")
 wheels_repo.git.checkout("-f", "master")
@@ -173,6 +175,8 @@ def find_model_file(wiki_db, commit, model_type='damaging'):
     else:
         models_path = os.path.join(repo_path, 'submodules/editquality/models')
     
+    if wiki_db == 'simplewiki':
+        wiki_db = 'enwiki'
     model_re = r'{0}\.{1}\..*\.model'.format(wiki_db, model_type)
     files = os.listdir(models_path)
     model_files = [f for f in files if re.match(model_re,f)]
@@ -274,16 +278,16 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     if packages.get('pywikibase',None) == '0.0.4a':
         packages['pywikibase'] = '0.0.4'
 
-    requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items()]
+    requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items() if name != 'pkg_resources']
     # requirements = requirements + reqtxt 
 
     ## special case pywikibase 0.0.4a
 
     with open("temp_requirements.txt",'w') as reqfile:
-        reqfile.writelines(requirements)
+         reqfile.writelines(requirements)
 
     # modules that are safe and good to keep since they are either required or have long compilation times. 
-    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','numpy','scipy','scikit-learn','mysqltsv','more-itertools']
+    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','numpy','scipy','scikit-learn','mysqltsv','more-itertools', 'editquality']
 
 
     to_uninstall = [k + '\n' for k in old_versions.keys() if k not in packages and k.lower() not in to_keep]
