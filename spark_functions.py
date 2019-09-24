@@ -1,7 +1,9 @@
 from pyspark.sql.functions import udf
 from pyspark.sql.types import *
+from pyspark.sql import Window
 import pyspark.sql.functions as f
 import mwcomments
+from functools import reduce
 
 def broadcast_match_comment(sc):
         wtm = mwcomments.WikiToolMap.load_WikiToolMap()
@@ -27,17 +29,13 @@ def add_revert_types(wmhist, comment_column='event_comment'):
     wmhist = wmhist.withColumn("is_undo", f.array_contains(col='revert_tools_match',value='undo'))
     wmhist = wmhist.withColumn("is_rollback", f.array_contains(col='revert_tools_match',value='rollback'))
 
-    wmhist = wmhist.withColumn(
-        'revert_tool',
-        f.when(f.array_contains(f.col("revert_tools_match"),
-                                "undo"),
-               'undo').otherwise(f.when(f.array_contains(f.col("revert_tools_match"),
-                                                         "rollback"),
-                                        'rollback').otherwise(f.when(f.array_contains(f.col("revert_tools_match"),
-                                                                                      'huggle'),
-                                                                     'huggle').otherwise(f.when(f.array_contains(f.col("revert_tools_match"),
-                                                                                                                 "twinkle"),
-                                                                                                "twinkle").otherwise("otherTool")))))
+    tool_priority = ['huggle','twinkle','fastbuttons','LiveRC','rollback','undo']
+
+    for tool in tool_priority:
+            wmhist = wmhist.withColumn("revert_tool_{0}".format(tool), f.when(f.array_contains(f.col("revert_tools_match"),tool),tool).otherwise(None))
+
+    wmhist = wmhist.withColumn("revert_tool",f.coalesce(tool_priority))
+
     return wmhist
 
 def add_is_newcomer(wmhist):
@@ -51,9 +49,9 @@ def add_is_newcomer(wmhist):
                                ))
     
     wmhist = wmhist.withColumn('anon_new_established',
-                                                          f.when(f.col("event_user_is_newcomer"),'newcomer'). \
-                                                          otherwise(f.when(f.col("event_user_is_anonymous"),'anonymous'). \
-                                                                                                                otherwise("established")))
+                               f.when(f.col("event_user_is_newcomer"),'newcomer'). \
+                               otherwise(f.when(f.col("event_user_is_anonymous"),'anonymous'). \
+                                         otherwise("established")))
 
     return wmhist
 
@@ -80,9 +78,9 @@ def add_user_roles(wmhist):
     wmhist = wmhist.withColumn("event_user_ispatroller", udf_is_patroller(wmhist.event_user_groups))
     wmhist = wmhist.withColumn("event_user_isbot2", f.size(wmhist.event_user_is_bot_by) > 0)
 
-    wmhist = wmhist.withColumn("role_type", f.when(wmhist.event_user_isadmin == True, "admin").otherwise(
-        f.when( (wmhist.event_user_isbot1 == True) | (wmhist.event_user_isbot2 == True),"bot").otherwise(
-            f.when(wmhist.event_user_ispatroller == True, "patroller").otherwise("other")
+    wmhist = wmhist.withColumn("role_type", f.when(wmhist.event_user_isadmin, "admin").otherwise(
+        f.when( (wmhist.event_user_isbot1) | (wmhist.event_user_isbot2),"bot").otherwise(
+            f.when(wmhist.event_user_ispatroller, "patroller").otherwise("other")
         )))
     
     return wmhist
@@ -109,6 +107,7 @@ def process_reverts(wmhist):
     reverts = wmhist.filter((wmhist.page_namespace==0)&(wmhist.revision_is_identity_revert == True))
 
     reverts = reverts.select(['wiki_db',
+                              'event_user_id',
                               'event_user_text',
                               'event_timestamp',
                               'role_type',
@@ -118,12 +117,25 @@ def process_reverts(wmhist):
                               f.col('event_comment').alias('revert_comment')
                               ])
 
+
+    reverts = reverts.withColumnRenamed("event_user_id","revert_user_id")
     reverts = reverts.withColumnRenamed("event_user_text","revert_user_text")
     reverts = reverts.withColumnRenamed("event_timestamp","revert_timestamp")
     reverts = reverts.withColumnRenamed("revision_id","revert_revision_id")
     reverts = reverts.withColumnRenamed("wiki_db","wiki_db_l")
     reverts = reverts.withColumnRenamed("revision_is_identity_reverted","revert_is_identity_reverted")
     reverts = reverts.withColumnRenamed("revision_first_identity_reverting_revision_id","revert_first_identity_reverting_revision_id")
+
+    ## DataFrame doesn't support window functions by date range in spark 2.3 
+    ## https://stackoverflow.com/questions/33207164/spark-window-functions-rangebetween-dates
+    reverts = spark.sql(
+            """SELECT *, count(revert_revision_id) OVER (
+            PARTITION BY revert_user_id
+            ORDER BY CAST(revert_timestamp AS timestamp)
+            RANGE BETWEEN INTERVAL 30 DAYS PRECEDING AND CURRENT ROW)
+            AS revert_user_Nreverts_past_month from reverts""")
+
+    # use a window function to count the number of reverts in a given timespan
 
     # exclude self-reverts
     reverts = reverts.join(reverteds,
@@ -153,6 +165,4 @@ def process_reverts(wmhist):
     # convert time to revert into seconds
     reverts = reverts.withColumn("time_to_revert",(f.unix_timestamp(f.col("revert_timestamp")) - f.unix_timestamp(f.col("reverted_timestamp"))) / 1000)
     # let's use median ttr as the metric
-
-
     return reverts
