@@ -8,6 +8,7 @@ import sys
 import io
 from helper import *
 import numpy as np
+import shutil
 
 call_log = "syscalls.sh"
 
@@ -333,4 +334,4 @@ class Ores_Archaeologist_Api():
 
 if __name__ == "__main__":
     fire.Fire(Ores_Archaeologist_Api)
-    os.rmdir(tmpdir)
+    shutil.rmtree(tmpdir)
