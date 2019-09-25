@@ -146,6 +146,7 @@ rcfilters_watchlist_default_date = datetime.datetime.fromisoformat("2018-06-16")
 table = dedup_chronological(table1, distinct_cols)
 
 for wiki in set(table.wiki_db):
+
     prev_date =  table.loc[ (table.wiki_db == wiki) & (table.date <= rcfilters_watchlist_available_date), ['date']].max()
     prev_date = list(prev_date)[0]
     new_row = table.loc[ (table.wiki_db == wiki) & (table.date == prev_date)].to_dict('records')
@@ -193,10 +194,10 @@ table['has_rcfilters'] = has_rcfilters
 
 table['has_rcfilters_watchlist'] = (table.has_ores == True) & ( (table.rcfilters_watchlist_enabled == True) | (( (table.rcfilters_watchlist_enabled_default == True) |  (table.date >= max(default[default.rcfilters_watchlist_enabled.isna()].date)) | (table.date >= rcfilters_watchlist_default_date)  & (table.rcfilters_watchlist_enabled != False))))
 
-
 table.to_csv(os.path.join(data_dir, "mw_config_history.csv"),index=False)
 
 #cutoffs = table.loc[:,['wiki_db','date','commitsha','has_ores','has_rcfilters','has_rcfilters_watchlist']]
+import pdb; pdb.set_trace()
 
 cutoffs = dedup_chronological(table, ['has_ores','has_rcfilters','has_rcfilters_watchlist'])
 
@@ -238,5 +239,4 @@ cutoffs['commit_dt'] = cutoffs.date
 cutoffs['deploy_dt'] = cutoffs.commit_dt.apply(find_deploy_time)
 cutoffs['deploy_gap'] = cutoffs.deploy_dt - cutoffs.commit_dt  
 cutoffs = cutoffs.drop('date',1)
-cutoffs = cutoffs.reindex(columns=["wiki_db","commitsha","has_ores","has_rcfilters","has_rcfilters_watchlist","commit_dt","deploy_dt","deploy_gap"])
 cutoffs.to_csv(os.path.join(data_dir,"ores_rcfilters_cutoffs.csv"), index=False)
