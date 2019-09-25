@@ -197,7 +197,6 @@ table['has_rcfilters_watchlist'] = (table.has_ores == True) & ( (table.rcfilters
 table.to_csv(os.path.join(data_dir, "mw_config_history.csv"),index=False)
 
 #cutoffs = table.loc[:,['wiki_db','date','commitsha','has_ores','has_rcfilters','has_rcfilters_watchlist']]
-import pdb; pdb.set_trace()
 
 cutoffs = dedup_chronological(table, ['has_ores','has_rcfilters','has_rcfilters_watchlist'])
 
