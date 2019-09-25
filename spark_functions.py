@@ -1,7 +1,7 @@
 from pyspark.sql.functions import udf
 from pyspark.sql.types import *
-from pyspark.sql import Window
 import pyspark.sql.functions as f
+from pyspark import sql
 import mwcomments
 from functools import reduce
 
@@ -90,7 +90,7 @@ def build_wmhist_step1(wmhist):
     wmhist = add_user_roles(wmhist)
     return wmhist
 
-def process_reverts(wmhist):
+def process_reverts(wmhist, spark):
     # next lets look at time to revert
     reverteds = wmhist.filter((wmhist.page_namespace==0) & (wmhist.revision_is_identity_reverted == True))
     reverteds = reverteds.select(['wiki_db',
@@ -126,11 +126,14 @@ def process_reverts(wmhist):
     reverts = reverts.withColumnRenamed("revision_is_identity_reverted","revert_is_identity_reverted")
     reverts = reverts.withColumnRenamed("revision_first_identity_reverting_revision_id","revert_first_identity_reverting_revision_id")
 
+
+
     ## DataFrame doesn't support window functions by date range in spark 2.3 
     ## https://stackoverflow.com/questions/33207164/spark-window-functions-rangebetween-dates
+    reverts.createOrReplaceTempView("reverts")
     reverts = spark.sql(
             """SELECT *, count(revert_revision_id) OVER (
-            PARTITION BY revert_user_id
+            PARTITION BY wiki_db, revert_user_id
             ORDER BY CAST(revert_timestamp AS timestamp)
             RANGE BETWEEN INTERVAL 30 DAYS PRECEDING AND CURRENT ROW)
             AS revert_user_Nreverts_past_month from reverts""")
