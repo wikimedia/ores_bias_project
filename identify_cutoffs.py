@@ -239,4 +239,4 @@ cutoffs['deploy_dt'] = cutoffs.commit_dt.apply(find_deploy_time)
 cutoffs['deploy_gap'] = cutoffs.deploy_dt - cutoffs.commit_dt  
 cutoffs = cutoffs.drop('date',1)
 cutoffs = cutoffs.reindex(columns=["wiki_db","commitsha","has_ores","has_rcfilters","has_rcfilters_watchlist","commit_dt","deploy_dt","deploy_gap"])
-cutoffs.to_csv(os.path.join(data_dir,"ores_rcfilters_cutoffs_updated.csv"), index=False)
+cutoffs.to_csv(os.path.join(data_dir,"ores_rcfilters_cutoffs.csv"), index=False)
