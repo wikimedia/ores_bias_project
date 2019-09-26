@@ -34,7 +34,7 @@ def add_revert_types(wmhist, comment_column='event_comment'):
     for tool in tool_priority:
             wmhist = wmhist.withColumn("revert_tool_{0}".format(tool), f.when(f.array_contains(f.col("revert_tools_match"),tool),tool).otherwise(None))
 
-    wmhist = wmhist.withColumn("revert_tool",f.coalesce(tool_priority))
+    wmhist = wmhist.withColumn("revert_tool",f.coalesce(*tool_priority))
 
     return wmhist
 
@@ -133,7 +133,7 @@ def process_reverts(wmhist, spark):
     reverts.createOrReplaceTempView("reverts")
     reverts = spark.sql(
             """SELECT *, count(revert_revision_id) OVER (
-            PARTITION BY wiki_db, revert_user_id
+            PARTITION BY wiki_db_l, revert_user_id
             ORDER BY CAST(revert_timestamp AS timestamp)
             RANGE BETWEEN INTERVAL 30 DAYS PRECEDING AND CURRENT ROW)
             AS revert_user_Nreverts_past_month from reverts""")
