@@ -30,11 +30,12 @@ def add_revert_types(wmhist, comment_column='event_comment'):
     wmhist = wmhist.withColumn("is_rollback", f.array_contains(col='revert_tools_match',value='rollback'))
 
     tool_priority = ['huggle','twinkle','fastbuttons','LiveRC','rollback','undo']
+    tool_column_names = ["revert_tool_{0}".format(tool) for tool in tool_priority]
+    for tool, tool_column_name in zip(tool_priority, tool_column_names):
+            wmhist = wmhist.withColumn(tool_column_name, f.when(f.array_contains(f.col("revert_tools_match"),tool),tool).otherwise(None))
 
-    for tool in tool_priority:
-            wmhist = wmhist.withColumn("revert_tool_{0}".format(tool), f.when(f.array_contains(f.col("revert_tools_match"),tool),tool).otherwise(None))
-
-    wmhist = wmhist.withColumn("revert_tool",f.coalesce(*tool_priority))
+    wmhist = wmhist.withColumn("revert_tool",f.coalesce(*tool_column_names))
+    wmhist = wmhist.fillna('otherTool',subset=['revert_tool'])
 
     return wmhist
 
