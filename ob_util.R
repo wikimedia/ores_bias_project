@@ -14,13 +14,13 @@ load.cutoffs <- function(){
 
     cutoffs <- cutoffs[order(wiki.db,deploy.dt)]
     ##handle special cases
-    ## fawiki had a bug that we can ignroe
-    cutoffs <- cutoffs[!((wiki.db == 'fawiki') & ( (deploy.dt == parse.date.iso("2017-12-09 11:19:00"))  | (deploy.dt == parse.date.iso("2017-12-11 18:56:00"))))]
+    ## fawiki, ruwiki, and frwiki had a bug that we can't ignore
+#    cutoffs <- cutoffs[!((wiki.db == 'fawiki') & ( (deploy.dt == parse.date.iso("2017-12-09 11:19:00"))  | (deploy.dt == parse.date.iso("2017-04-11 18:56:00"))))]
 
                                         #frwiki and ruwiki had a bug that we can ignore
-    cutoffs <- cutoffs[!((wiki.db=='frwiki') & (deploy.dt >= parse.date.iso("2017-11-09 14:35:00")))]
+#    cutoffs <- cutoffs[!((wiki.db=='frwiki') & (deploy.dt >= parse.date.iso("2017-11-09 14:35:00")))]
 
-    cutoffs <- cutoffs[!((wiki.db=='ruwiki') & (deploy.dt >= parse.date.iso("2017-11-20 19:22:00")))]
+#    cutoffs <- cutoffs[!((wiki.db=='ruwiki') & (deploy.dt >= parse.date.iso("2017-11-20 19:22:00")))]
 
                                         # kowiki's two commits have the same deploy time
     cutoffs <- cutoffs[!((wiki.db == 'kowiki') & (commit.dt == parse.date.iso("2019-03-04 11:26:06")))]
@@ -164,14 +164,19 @@ load.rdd.ds <- function(){
 }
 
 shape.model.data <- function(wiki.model.data, dv){
-    wiki.model.data <- wiki.model.data[,(dv) := scale(wiki.model.data[[dv]],center=F,scale=T)]
 
-    y <- wiki.model.data[[dv]]
-
-    if(sum(y,na.rm=T) == 0){
-            print(paste(wiki,"is all 0 for this measure"))
-            next
+    wiki.model.data <- wiki.model.data[order(week,decreasing=FALSE)]
+    wiki.model.data[is.na(wiki.model.data[[dv]]), dv] <- 0L
+    if(all(wiki.model.data[[dv]] == 0L)){
+        wiki <- unique(wiki.model.data$wiki)
+        print(paste(wiki,"is all 0 for this measure"))
+        y <- rep(0L,length(wiki.model.data[[dv]]))
+    }    else{
+        wiki.model.data <- wiki.model.data[,(dv) := scale(wiki.model.data[[dv]],center=F,scale=T)]
+    
+        y <- wiki.model.data[[dv]]
     }
+
     xreg <- wiki.model.data[,.(has.ores = as.numeric(has.ores),
                                has.rcfilters = as.numeric(has.rcfilters),
                                has.rcfilters.watchlist = as.numeric(has.rcfilters.watchlist))]
@@ -193,6 +198,7 @@ shape.model.data <- function(wiki.model.data, dv){
     return(list(y=y,xreg=xreg,wiki.model.data=wiki.model.data))
 }
 
+
 fit.models <- function(model.data, dv){
     arima.models <- list()
     for(wiki in unique(model.data$wiki.db)){
@@ -211,6 +217,7 @@ fit.models <- function(model.data, dv){
         ## watchlist, rcfilters, has.ores
 
     
+#        fit.model <- auto.arima(y,xreg=xreg, ic='bic', parallel=T,stepwise=F,approximation=F)
         fit.model <- auto.arima(y,xreg=xreg, ic='bic')
         arima.models[[wiki]] <- fit.model
         
@@ -222,11 +229,13 @@ fit.models <- function(model.data, dv){
 }
 
 get.est.interval <- function(model){
-    print(vcov(model))
-    est <- coef(model)['has.rcfilters.watchlist']
-    var <- vcov(model)['has.rcfilters.watchlist','has.rcfilters.watchlist']
-    se <- sqrt(var)
-    list(lower = est - 1.96*se, est = est, upper = est + 1.96*se)
+    if('has.rcfilters.watchlist' %in% names(coef(model))){
+        
+        est <- coef(model)['has.rcfilters.watchlist']
+        var <- vcov(model)['has.rcfilters.watchlist','has.rcfilters.watchlist']
+        se <- sqrt(var)
+        return(list(lower = est - 1.96*se, est = est, upper = est + 1.96*se))
+    }
 }
 
 plot.model.fit <- function(model.data, dv){
@@ -250,7 +259,7 @@ plot.model.fit <- function(model.data, dv){
 
 plot.model.coefficients <- function(arima.models, dv){
     plot.data <- rbindlist(lapply(arima.models,get.est.interval))
-    plot.data$wiki.db = names(fit.models)
+    plot.data$wiki.db = names(arima.models)
     plot.data <- plot.data[order(-est)]
     plot.data[,wiki.db := gsub("wiki","",wiki.db)]
 
