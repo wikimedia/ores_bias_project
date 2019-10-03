@@ -6,3 +6,4 @@ cutoff_revisions_sample.csv filter=lfs diff=lfs merge=lfs -text
 historically_scored_sample.csv filter=lfs diff=lfs merge=lfs -text
 ores_rcfilters_threshholds_updated.csv filter=lfs diff=lfs merge=lfs -text
 ores_rcfilters_cutoffs_updated.csv filter=lfs diff=lfs merge=lfs -text
+ores_rcfilters_cutoffs.csv filter=lfs diff=lfs merge=lfs -text
