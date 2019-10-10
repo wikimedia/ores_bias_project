@@ -196,7 +196,8 @@ class Ores_Archaeologist(object):
         parts = []
 
         for wiki_db in set(all_revisions.wiki_db):
-            scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, all_revisions, preprocess=False, load_environment=False)
+            revisions = all_revisions.loc[ (all_revisions.wiki_db == wiki_db)]
+            scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, revisions, preprocess=False, load_environment=False)
             parts.append(scored_revisions)
 
         return pd.concat(parts, sort=False)
@@ -243,7 +244,7 @@ class Ores_Archaeologist(object):
                     else:
                         error = line
 
-                scores.append({"revision_id":int(revid), "prob_damaging":probability, "revscoring_error":error})
+                scores.append({"revision_id":str(revid), "prob_damaging":probability, "revscoring_error":error})
 
         if len(scores) > 0:
             scores = pd.DataFrame.from_records(scores)
@@ -261,6 +262,7 @@ class Ores_Archaeologist(object):
             cutoff_revisions = pd.read_csv(cutoff_revisions, sep=',',parse_dates=['event_timestamp','date','period_start','period_end'],quotechar='\"',infer_datetime_format=True,error_bad_lines=False,escapechar='\\')
 
 
+        cutoff_revisions.revision_id = cutoff_revisions.revision_id.astype(str)
         # cutoff_revisions.date = pd.to_datetime(cutoff_revisions.date)
         # cutoff_revisions.event_timestamp = pd.to_datetime(cutoff_revisions.event_timestamp)
         # cutoff_revisions.period_start = pd.to_datetime(cutoff_revisions.period_start)
