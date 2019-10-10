@@ -7,5 +7,5 @@ historically_scored_sample.csv filter=lfs diff=lfs merge=lfs -text
 ores_rcfilters_threshholds_updated.csv filter=lfs diff=lfs merge=lfs -text
 ores_rcfilters_cutoffs_updated.csv filter=lfs diff=lfs merge=lfs -text
 ores_rcfilters_cutoffs.csv filter=lfs diff=lfs merge=lfs -text
-ores_rcfilters_threshholds filter=lfs diff=lfs merge=lfs -text
 ores_rcfilters_threshholds.csv filter=lfs diff=lfs merge=lfs -text
+manually_checked_threshholds.csv filter=lfs diff=lfs merge=lfs -text

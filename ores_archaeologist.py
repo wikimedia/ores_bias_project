@@ -183,9 +183,11 @@ class Ores_Archaeologist(object):
         for commit in set(cutoff_revisions.commit):
             scored_revisions = self.score_commit_revisions(commit, cutoff_revisions, preprocess=False)
             parts.append(scored_revisions)
-        return pd.concat(parts, sort=False)
+        return pd.concat(parts,
+                         sort=False,
+                         ignore_index=True)
 
-    def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True):
+    def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True, rescore=False):
         if preprocess:
             cutoff_revisions = self.preprocess_cutoff_history(cutoff_revisions)
 
@@ -196,11 +198,14 @@ class Ores_Archaeologist(object):
         parts = []
 
         for wiki_db in set(all_revisions.wiki_db):
+
             revisions = all_revisions.loc[ (all_revisions.wiki_db == wiki_db)]
             scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, revisions, preprocess=False, load_environment=False)
             parts.append(scored_revisions)
 
-        return pd.concat(parts, sort=False)
+        return pd.concat(parts,
+                         sort=False,
+                         ignore_index=True)
 
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True):
         if preprocess:
@@ -209,8 +214,11 @@ class Ores_Archaeologist(object):
         if load_environment:
             load_model_environment(commit=commit, wiki_db=wiki_db)
 
-        uri = siteList[wiki_db]
+        # don't score revisions we have already scored
+        if 'prob_damaging' in all_revisions.columns and not all(all_revisions.prob_damaging.isna()):
+            return all_revisions
 
+        uri = siteList[wiki_db]
 
         wiki_db_revisions = all_revisions.loc[(all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit)]
         revids = list(wiki_db_revisions.revision_id)
@@ -320,7 +328,6 @@ class Ores_Archaeologist_Api():
         cls = Ores_Archaeologist()
 
         return self._wrap(cls.score_history, output, cutoff_revisions, preprocess)
-
 
     def score_revisions(self, *args, **kwargs):
         cls = Ores_Archaeologist()
