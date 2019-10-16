@@ -1,7 +1,7 @@
 #!/bin/bash
 source ./bin/activate
 
-python3 ores_archaeologist.py get_all_threshholds ores_bias_data/test_cutoffs.csv
+python3 ores_archaeologist.py get_all_threshholds ores_bias_data/test_cutoffs.csv --output='ores_bias_data/test_cutoffs_threshholds.csv'
 
 #python3 ores_archaeologist.py get_threshhold --wiki_db=enwiki --date=2018-08-07 --threshhold_string="maximum recall @ precision >= 0.99" # 
 
