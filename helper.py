@@ -279,7 +279,8 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     if packages.get('pywikibase',None) == '0.0.4a':
         packages['pywikibase'] = '0.0.4'
 
-    requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items() if name != 'pkg_resources']
+    no_install = {'pkg_resources','numpy'}
+    requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items() if name not in no_install]
     # requirements = requirements + reqtxt 
 
     ## special case pywikibase 0.0.4a
@@ -288,7 +289,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
          reqfile.writelines(requirements)
 
     # modules that are safe and good to keep since they are either required or have long compilation times. 
-    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','numpy','scipy','scikit-learn','mysqltsv','more-itertools', 'editquality']
+    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','mysqltsv','more-itertools', 'editquality','numpy']
 
 
     to_uninstall = [k + '\n' for k in old_versions.keys() if k not in packages and k.lower() not in to_keep]

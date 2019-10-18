@@ -1,3 +1,4 @@
+#!/usr/bin python3.6
 import fire
 import pickle
 import os
@@ -245,7 +246,12 @@ class Ores_Archaeologist(object):
                 else:
                     result = json.loads(fields[1])
 
-                    probability = result.get('probability', None)
+                    if type(result) is str:
+                        probability = None
+                        error = result
+                    else:
+                        probability = result.get('probability', None)
+
                     if probability is not None:
                         probability = probability['true']
 
