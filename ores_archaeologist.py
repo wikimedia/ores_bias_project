@@ -182,26 +182,26 @@ class Ores_Archaeologist(object):
 
         parts = []
         for commit in set(cutoff_revisions.commit):
-            scored_revisions = self.score_commit_revisions(commit, cutoff_revisions, preprocess=False)
+            scored_revisions = self.score_commit_revisions(commit, cutoff_revisions, preprocess=False, load_environment=True)
             parts.append(scored_revisions)
         return pd.concat(parts,
                          sort=False,
                          ignore_index=True)
 
-    def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True, rescore=False):
+    def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True):
         if preprocess:
             cutoff_revisions = self.preprocess_cutoff_history(cutoff_revisions)
 
         if load_environment:
             load_model_environment(commit=commit)
 
-        all_revisions = cutoff_revisions.loc[cutoff_revisions.commit == commit]
+        commit_revisions = cutoff_revisions.loc[cutoff_revisions.commit == commit]
         parts = []
 
-        for wiki_db in set(all_revisions.wiki_db):
+        for wiki_db in set(commit_revisions.wiki_db):
 
-            revisions = all_revisions.loc[ (all_revisions.wiki_db == wiki_db)]
-            scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, revisions, preprocess=False, load_environment=False)
+            wiki_commit_revisions = commit_revisions.loc[ (commit_revisions.wiki_db == wiki_db)]
+            scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, wiki_commit_revisions, preprocess=False, load_environment=False)
             parts.append(scored_revisions)
 
         return pd.concat(parts,
@@ -225,10 +225,18 @@ class Ores_Archaeologist(object):
         revids = list(wiki_db_revisions.revision_id)
         # write revids to a temporary file
         tmpfilename = "{0}_{1}_revids.tmp".format(commit[0:10], wiki_db)
+        
+        
 
+        non_int_revids = []
         with open(tmpfilename,'w') as tempfile:
             tempfile.write("rev_id\n")
-            tempfile.writelines([str(r) + '\n' for r in revids])
+            for r in revids:
+                try:
+                   r = int(r)
+                   tempfile.write(str(r) + '\n')
+                except ValueError as e:
+                    non_int_revids.append(r)
                     
         score_jsons = self.score_revisions(wiki_db, uri, commit=commit, load_environment=load_environment, model_type="damaging", infile=tmpfilename)
 
@@ -259,6 +267,9 @@ class Ores_Archaeologist(object):
                         error = line
 
                 scores.append({"revision_id":str(revid), "prob_damaging":probability, "revscoring_error":error})
+
+        for r in non_int_revids:
+            scores.append({"revision_id":r, "prob_damaging":None, "revscoring_error":"revid is not an integer"})
 
         if len(scores) > 0:
             scores = pd.DataFrame.from_records(scores)
