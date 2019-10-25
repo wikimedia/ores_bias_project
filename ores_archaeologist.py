@@ -166,7 +166,11 @@ class Ores_Archaeologist(object):
         # if model_file is None:
         #     import pdb; pdb.set_trace()
 
-        call = "source {0}/bin/activate".format(repo.working_dir) + " && {0}/bin/python3".format(repo.working_dir) + " revscoring_score_shim.py " + model_file + " --host={0} --rev-ids={1} && source ./bin/activate".format(uri, infile)
+        set_revscoring_version(model_file)
+
+        call = "source {0}/bin/activate".format(repo.working_dir)
+
+        call = call + " && {0}/bin/python3".format(repo.working_dir) + " revscoring_score_shim.py " + model_file + " --host={0} --rev-ids={1} && source ./bin/activate".format(uri, infile)
 
         with open(call_log,'a') as log:
             log.write(call + '\n')
