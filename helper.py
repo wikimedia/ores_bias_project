@@ -309,3 +309,31 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     with open(call_log,'a') as log:
         log.write(call + '\n')
     proc = subprocess.run(call, shell=True, executable="/bin/bash")
+
+def set_revscoring_version(model_file):
+    from packaging import version
+    from revscoring import __version__
+
+    proc = subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 show revscoring", shell=True, stdout=subprocess.PIPE, executable='/bin/bash', universal_newlines=True)
+
+    res = proc.stdout
+    revscoring_re = re.compile("Version: (.*)")
+    revscoring_version = revscoring_re.findall(res)[0]
+    
+    if version.parse(revscoring_version) < version.parse("2.0.3"):
+        call = "source ../mediawiki-services-ores-deploy/bin/activate && revscoring model_info {0} --as-json".format(model_file)
+
+    else:
+        call = "source ../mediawiki-services-ores-deploy/bin/activate && revscoring model_info {0} --formatting=json".format(model_file)
+
+    if 'lvwiki' in model_file:
+        import pdb; pdb.set_trace()
+    # if revscoring version is older than # Aug 12, 2017  commit cc42736f3a934b1dca0cda8d74817feeda773747 pass --as-json
+    # other wise pass --formatting=json
+    # we might need to special case lvwiki
+
+    proc = subprocess.run(call, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, universal_newlines=True)
+    res = json.loads(proc.stdout)
+    version = res.get("environment",{}).get("revscoring_version",None)
+    if version is not None:
+        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring=={0}".format(version), shell=True, executable="/bin/bash")
