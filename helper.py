@@ -310,7 +310,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
         log.write(call + '\n')
     proc = subprocess.run(call, shell=True, executable="/bin/bash")
 
-def set_revscoring_version(model_file):
+def set_revscoring_version(model_file, commit):
     from packaging import version
     from revscoring import __version__
 
@@ -319,15 +319,19 @@ def set_revscoring_version(model_file):
     res = proc.stdout
     revscoring_re = re.compile("Version: (.*)")
     revscoring_version = revscoring_re.findall(res)[0]
-    
-    if version.parse(revscoring_version) < version.parse("2.0.3"):
+    revscoring_version = version.parse(revscoring_version) 
+    if revscoring_version < version.parse("2.0.3"):
         call = "source ../mediawiki-services-ores-deploy/bin/activate && revscoring model_info {0} --as-json".format(model_file)
 
+    #special case for arwiki
+    elif commit.startswith("47d9a6bad2") and ('arwiki' in model_file or 'lvwiki' in model_file):
+        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring==2.2.0 numpy==1.17.0", shell=True, stdout=subprocess.PIPE, executable="/bin/bash", universal_newlines=True)
+        return
     else:
         call = "source ../mediawiki-services-ores-deploy/bin/activate && revscoring model_info {0} --formatting=json".format(model_file)
 
-    if 'lvwiki' in model_file:
-        import pdb; pdb.set_trace()
+
+    # if 'lvwiki' in model_file:
     # if revscoring version is older than # Aug 12, 2017  commit cc42736f3a934b1dca0cda8d74817feeda773747 pass --as-json
     # other wise pass --formatting=json
     # we might need to special case lvwiki
