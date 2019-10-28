@@ -336,8 +336,14 @@ def set_revscoring_version(model_file, commit):
     # other wise pass --formatting=json
     # we might need to special case lvwiki
 
-    proc = subprocess.run(call, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, universal_newlines=True)
-    res = json.loads(proc.stdout)
-    version = res.get("environment",{}).get("revscoring_version",None)
+    try:
+        proc = subprocess.run(call, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, universal_newlines=True)
+        res = json.loads(proc.stdout)
+        version = res.get("environment",{}).get("revscoring_version",None)
+    except Exception e:
+        print(e)
+        print(model_file)
+        version = None
+
     if version is not None:
         subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring=={0}".format(version), shell=True, executable="/bin/bash")
