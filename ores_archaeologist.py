@@ -13,6 +13,12 @@ import shutil
 
 call_log = "syscalls.sh"
 
+def tryparsefloat(s):
+    try:
+        return float(s)
+    except ValueError as e:
+        return None
+    
 class Ores_Archaeologist(object):
 
     def _call_and_retry(self, call, poll_interval = 60*5, max_retries=5):
@@ -75,7 +81,7 @@ class Ores_Archaeologist(object):
 
 
         model_path = find_model_file(wiki_db, commit, model_type)
-        set_revscoring_version(model_path)
+        set_revscoring_version(model_path, commit)
 
         # make sure that we run using the right virtualenv
         threshold_temp = "model_thresholds.txt"
@@ -93,7 +99,31 @@ class Ores_Archaeologist(object):
                 return lines[-1]
 
 
+
     def get_all_thresholds(self, cutoffs):
+        default_thresholds = pd.read_json("./data/default_thresholds.json")
+        default_thresholds = default_thresholds.iloc[1]
+        def lookup_threshold(key, threshold):
+            value = tryparsefloat(threshold)
+            if value is not None:
+                return value
+            if pd.isna(value) or len(threshold)==0:
+                # pre_cutoff_thresholds = default_thresholds.loc[default_thresholds.date<=row.deploy_dt]
+                # min_dt = pre_cutoff_thresholds.date.max()
+                # threshold = list(pre_cutoff_thresholds.loc[pre_cutoff_thresholds.date==min_dt,key])[0]
+                threshhold = default_thresholds.get(key,np.nan)
+                if isinstance(threshold, float):
+                    return threshold
+                
+            if key.startswith('goodfaith'):
+                model_type = 'goodfaith'
+            else:
+                model_type = 'damaging'
+
+            res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=first)
+            if res is not None:
+                value = res.split('\t')[1]
+                return tryparsefloat(value)
 
         if isinstance(cutoffs, str):
             cutoffs = pd.read_csv(cutoffs)
@@ -121,28 +151,12 @@ class Ores_Archaeologist(object):
                              }
                              
         output_rows = []
+
         for k, row in cutoffs.iterrows():
             first = True
             for key in string_value_dict.keys():
-
                 threshold = row[key]
-                try:
-                    value = float(threshold)
-                except ValueError as e:
-                    if len(threshold) == 0 or pd.isna(threshold):
-                        value = pd.np.NaN
-                    else:
-                        if key.startswith('goodfaith'):
-                            model_type = 'goodfaith'
-                        else:
-                            model_type = 'damaging'
-
-                        res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=first)
-                        first = False
-                        if res is not None:
-                            value = res.split('\t')[1]
-                        
-
+                value = lookup_threshold(key, threshold)
                 row[string_value_dict[key]] = value
             output_rows.append(row)
 
