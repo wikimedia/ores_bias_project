@@ -111,7 +111,7 @@ class Ores_Archaeologist(object):
                 # pre_cutoff_thresholds = default_thresholds.loc[default_thresholds.date<=row.deploy_dt]
                 # min_dt = pre_cutoff_thresholds.date.max()
                 # threshold = list(pre_cutoff_thresholds.loc[pre_cutoff_thresholds.date==min_dt,key])[0]
-                threshhold = default_thresholds.get(key,np.nan)
+                threshold = default_thresholds.get(key,np.nan)
                 if isinstance(threshold, float):
                     return threshold
                 
