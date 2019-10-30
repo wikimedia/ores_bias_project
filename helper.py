@@ -287,6 +287,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
 
     with open("temp_requirements.txt",'w') as reqfile:
          reqfile.writelines(requirements)
+         reqfile.writelines("numpy==1.17.0")
 
     # modules that are safe and good to keep since they are either required or have long compilation times. 
     to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','mysqltsv','more-itertools', 'editquality','numpy']
@@ -295,7 +296,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     to_uninstall = [k + '\n' for k in old_versions.keys() if k not in packages and k.lower() not in to_keep]
     with open('to_uninstall.txt','w') as uf:
         uf.writelines(to_uninstall)
-    
+        
     call = "source {0}/bin/activate".format(repo.working_dir)
     
     if len(to_uninstall) > 0:
@@ -346,4 +347,4 @@ def set_revscoring_version(model_file, commit):
         version = None
 
     if version is not None:
-        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring=={0}".format(version), shell=True, executable="/bin/bash")
+        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring=={0} numpy==1.17.0".format(version), shell=True, executable="/bin/bash")
