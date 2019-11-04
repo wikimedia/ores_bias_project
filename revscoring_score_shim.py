@@ -37,6 +37,7 @@
 
 # monkey-patch score processor so that it never errors
 from revscoring.utilities import score
+
 import sys
 import time
 class MyScoreProcessor(score.ScoreProcessor):
@@ -50,8 +51,8 @@ class MyScoreProcessor(score.ScoreProcessor):
             return rev_id, error
         except Exception as error:
             rev_id, scoring_model, extractor, cache, _ = e_r_caches
-            raise error
-            return rev_id, error_score(error)
+#            raise error
+            return rev_id, str(error)
 
 score.ScoreProcessor = MyScoreProcessor
 
