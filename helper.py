@@ -279,22 +279,24 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     if packages.get('pywikibase',None) == '0.0.4a':
         packages['pywikibase'] = '0.0.4'
 
-    requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items() if name != 'pkg_resources']
+    no_install = {'pkg_resources','numpy'}
+    requirements = ["{0}=={1}\n".format(name, version) for name, version in packages.items() if name not in no_install]
     # requirements = requirements + reqtxt 
 
     ## special case pywikibase 0.0.4a
 
     with open("temp_requirements.txt",'w') as reqfile:
          reqfile.writelines(requirements)
+         reqfile.writelines("numpy==1.17.0")
 
     # modules that are safe and good to keep since they are either required or have long compilation times. 
-    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','numpy','scipy','scikit-learn','mysqltsv','more-itertools', 'editquality']
+    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','mysqltsv','more-itertools', 'editquality','numpy']
 
 
     to_uninstall = [k + '\n' for k in old_versions.keys() if k not in packages and k.lower() not in to_keep]
     with open('to_uninstall.txt','w') as uf:
         uf.writelines(to_uninstall)
-    
+        
     call = "source {0}/bin/activate".format(repo.working_dir)
     
     if len(to_uninstall) > 0:
@@ -308,3 +310,41 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     with open(call_log,'a') as log:
         log.write(call + '\n')
     proc = subprocess.run(call, shell=True, executable="/bin/bash")
+
+def set_revscoring_version(model_file, commit):
+    from packaging import version
+    from revscoring import __version__
+
+    proc = subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 show revscoring", shell=True, stdout=subprocess.PIPE, executable='/bin/bash', universal_newlines=True)
+
+    res = proc.stdout
+    revscoring_re = re.compile("Version: (.*)")
+    revscoring_version = revscoring_re.findall(res)[0]
+    revscoring_version = version.parse(revscoring_version) 
+    if revscoring_version < version.parse("2.0.3"):
+        call = "source ../mediawiki-services-ores-deploy/bin/activate && revscoring model_info {0} --as-json".format(model_file)
+
+    #special case for arwiki
+    elif commit.startswith("47d9a6bad2") and ('arwiki' in model_file or 'lvwiki' in model_file):
+        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring==2.2.0 numpy==1.17.0", shell=True, stdout=subprocess.PIPE, executable="/bin/bash", universal_newlines=True)
+        return
+    else:
+        call = "source ../mediawiki-services-ores-deploy/bin/activate && revscoring model_info {0} --formatting=json".format(model_file)
+
+
+    # if 'lvwiki' in model_file:
+    # if revscoring version is older than # Aug 12, 2017  commit cc42736f3a934b1dca0cda8d74817feeda773747 pass --as-json
+    # other wise pass --formatting=json
+    # we might need to special case lvwiki
+
+    try:
+        proc = subprocess.run(call, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, universal_newlines=True)
+        res = json.loads(proc.stdout)
+        version = res.get("environment",{}).get("revscoring_version",None)
+    except Exception as e:
+        print(e)
+        print(model_file)
+        version = None
+
+    if version is not None:
+        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring=={0} numpy==1.17.0".format(version), shell=True, executable="/bin/bash")
