@@ -1,10 +1,12 @@
 #!/bin/bash
 source ./bin/activate
 
+python3 ores_archaeologist.py get_all_threshholds ores_bias_data/test_cutoffs.csv --output='ores_bias_data/test_cutoffs_threshholds.csv'
 
 #python3 ores_archaeologist.py score_history data/enwiki_revisions_small_c98ec.csv --output data/enwiki_revisions_small_error.csv
 
 python3 ores_archaeologist.py get_all_thresholds --cutoffs=data/ores_rcfilters_enwiki_cutoffs.csv --output=data/ores_rcfilters_enwiki_thresholds.csv
+
 
 #python3.6 ores_archaeologist.py get_threshhold --wiki_db=enwiki --date=2018-08-07 --threshhold_string="maximum recall @ precision >= 0.99" # 
 
