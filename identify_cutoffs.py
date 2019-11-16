@@ -46,9 +46,6 @@ def process_commit(commit):
     print(date)
     repo.git.checkout('-f', commit)
 
-    if date < fromisoformat("2019-09-16"):
-        import pdb;pdb.set_trace()
-
     json_config = load_mwconfig()
 
 
@@ -114,7 +111,6 @@ if not os.path.exists(full_table_pickle):
 else:
     table1 = pd.read_pickle(full_table_pickle)
 
-import pdb; pdb.set_trace()
 fr = table1[table1.wiki_db == 'frwiki']
 
 distinct_cols = [
@@ -156,7 +152,7 @@ rcfilters_watchlist_available_date = fromisoformat("2017-09-19")
 rcfilters_watchlist_default_date = fromisoformat("2018-06-16")
 
 table = dedup_chronological(table1, distinct_cols)
-import pdb; pdb.set_trace()
+
 for wiki in set(table.wiki_db):
     prev_date =  table.loc[ (table.wiki_db == wiki) & (table.date <= rcfilters_watchlist_available_date), ['date']].max()
 
@@ -210,7 +206,8 @@ table['has_rcfilters'] = has_rcfilters
 
 table['has_rcfilters_watchlist'] = (table.has_ores == True) & ( (table.rcfilters_watchlist_enabled == True) | (( (table.rcfilters_watchlist_enabled_default == True) |  (table.date >= max(default[default.rcfilters_watchlist_enabled.isna()].date)) | (table.date >= rcfilters_watchlist_default_date)  & (table.rcfilters_watchlist_enabled != False))))
 
-table.to_csv(os.path.join(data_dir, "mw_config_history.csv"),index=False)
+
+table.to_csv(os.path.join(data_dir, "mw_config_history.csv"),index=False,)
 
 #cutoffs = table.loc[:,['wiki_db','date','commitsha','has_ores','has_rcfilters','has_rcfilters_watchlist']]
 
@@ -254,4 +251,9 @@ cutoffs['commit_dt'] = cutoffs.date
 cutoffs['deploy_dt'] = cutoffs.commit_dt.apply(find_deploy_time)
 cutoffs['deploy_gap'] = cutoffs.deploy_dt - cutoffs.commit_dt  
 cutoffs = cutoffs.drop('date',1)
+cutoffs = cutoffs[["commitsha","damaging_hard","damaging_likelybad_max","damaging_likelybad_min","damaging_likelygood_max","damaging_likelygood_min","damaging_maybebad_max","damaging_maybebad_min","damaging_soft","damaging_softest","damaging_verylikelybad_max","damaging_verylikelybad_min","extension_status","goodfaith_bad_max","goodfaith_bad_min","goodfaith_good_max","goodfaith_good_min","goodfaith_likelybad_max","goodfaith_likelybad_min","goodfaith_likelygood_max","goodfaith_likelygood_min","goodfaith_maybebad_max","goodfaith_maybebad_min","goodfaith_verylikelybad_max","goodfaith_verylikelybad_min","rcfilters_enabled","rcfilters_watchlist_enabled","useOres","useOresUi","wiki_db","has_ores","rcfilters_enabled_default","extension_status_default","rcfilters_watchlist_enabled_default","commitsha_default","has_extension","has_beta_extension","has_rcfilters","has_rcfilters_watchlist","commit_dt","deploy_dt","deploy_gap"]]
+
+# there was a spelling mistake in one configuration:
+cutoffs.damaging_likelybad_min = cutoffs.damaging_likelybad_min.str.replace("prevision","precision")
+
 cutoffs.to_csv(os.path.join(data_dir,"ores_rcfilters_cutoffs.csv"), index=False)
