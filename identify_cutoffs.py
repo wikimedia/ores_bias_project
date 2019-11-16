@@ -7,10 +7,11 @@ import json
 import subprocess
 import datetime
 import os
+from helper import fromisoformat
 from project_settings import *
 
 def load_mwconfig():
-    out = subprocess.run(["php","-f","wmf-config_to_json.php"], capture_output=True)
+    out = subprocess.run(["php","-f","wmf-config_to_json.php"], stdout=subprocess.PIPE, universal_newlines=True)
     try:
         jsonobj = json.loads(out.stdout)
         return jsonobj
@@ -18,22 +19,22 @@ def load_mwconfig():
         print(E)
         print(out.stdout)
 
-def unpack_threshholds(wiki_db, models):
+def unpack_thresholds(wiki_db, models):
     line = {}
     if wiki_db == 'default':
         return {}
 
     for model, levels in models.items():
-        for threshhold, values in levels.items():
+        for threshold, values in levels.items():
             if isinstance(values,bool):
                 continue
             for level, value in values.items():
-                key = "{0}_{1}_{2}".format(model,threshhold,level)
+                key = "{0}_{1}_{2}".format(model,threshold,level)
                 line[key] = value
 
     return line
 
-def unpack_old_threshholds(wiki_db, levels):
+def unpack_old_thresholds(wiki_db, levels):
     return {"damaging_{0}".format(name):value for name,value in levels.items()}
 
 
@@ -45,11 +46,20 @@ def process_commit(commit):
     print(date)
     repo.git.checkout('-f', commit)
 
+    if date < fromisoformat("2019-09-16"):
+        import pdb;pdb.set_trace()
+
     json_config = load_mwconfig()
 
-    json_config = json_config['settings']
 
-    threshholds = json_config.get('wgOresFiltersThresholds',{})
+    if json_config is None:
+        json_config = {}
+
+
+    if "settings" in json_config:
+        json_config = json_config['settings']
+
+    thresholds = json_config.get('wgOresFiltersThresholds',{})
 
     # This made it opt-in before some point in time after which it was opt-out
     rcfilters_enabled = json_config.get("wgEnableRcFiltersBetaFeature", {})
@@ -62,12 +72,12 @@ def process_commit(commit):
     # Just a kill switch that shouldn't have been used in practice
     useOresUi = json_config.get("wgOresUiEnabled",{})
 
-    oldDamagingThreshholds = json_config.get("wgOresDamagingThresholds",{})
+    oldDamagingThresholds = json_config.get("wgOresDamagingThresholds",{})
 
     # makes it available on watchlists by default.
     rcfilters_watchlist_enabled = json_config.get("wgStructuredChangeFiltersOnWatchlist",{})
 
-    wikis = reduce(lambda l, r: set(r.keys()).union(l),[threshholds, rcfilters_enabled, extension_status, useOres, useOresUi, rcfilters_watchlist_enabled],{})
+    wikis = reduce(lambda l, r: set(r.keys()).union(l),[thresholds, rcfilters_enabled, extension_status, useOres, useOresUi, rcfilters_watchlist_enabled],{})
 
     for wiki_db in wikis:
         line = {"wiki_db":wiki_db,
@@ -79,8 +89,8 @@ def process_commit(commit):
                 'useOresUi':useOresUi.get(wiki_db,None),
                 'rcfilters_watchlist_enabled':rcfilters_watchlist_enabled.get(wiki_db,None)}
 
-        line = {** line, ** unpack_threshholds(wiki_db, threshholds.get(wiki_db,{}))}
-        line = {** line, ** unpack_old_threshholds(wiki_db, oldDamagingThreshholds.get(wiki_db,{}))}
+        line = {** line, ** unpack_thresholds(wiki_db, thresholds.get(wiki_db,{}))}
+        line = {** line, ** unpack_old_thresholds(wiki_db, oldDamagingThresholds.get(wiki_db,{}))}
 
         yield line
 
@@ -94,15 +104,17 @@ if not os.path.exists(full_table_pickle):
     # we only care about damaging for now
     # we only care about 'maybe bad' and 'likely bad'
     # goal schema:
-    ## wiki | date | dmg_$threshhold_min |dmg_$threshhold_max | gf_$threshhold_min | gf_$threshhold_max
+    ## wiki | date | dmg_$threshold_min |dmg_$threshold_max | gf_$threshold_min | gf_$threshold_max
 
     lines = list(chain(*map(process_commit, commits)))
+    
     table1 = pd.DataFrame.from_records(lines)
     table1.to_pickle(full_table_pickle)
 
 else:
     table1 = pd.read_pickle(full_table_pickle)
 
+import pdb; pdb.set_trace()
 fr = table1[table1.wiki_db == 'frwiki']
 
 distinct_cols = [
@@ -119,9 +131,9 @@ distinct_cols = [
     'damaging_maybebad_max', 
     'damaging_likelygood_min',
     'damaging_likelygood_max',
-    'damaging_soft',
-    'damaging_softest',
-    'damaging_hard',
+    # 'damaging_soft',
+    # 'damaging_softest',
+    # 'damaging_hard',
     'goodfaith_verylikelybad_min',
     'goodfaith_verylikelybad_max', 
     'goodfaith_likelybad_min',
@@ -140,14 +152,18 @@ def dedup_chronological(df, distinct_cols):
     return (df[~identical])
 
 
-rcfilters_watchlist_available_date = datetime.datetime.fromisoformat("2017-09-19")
-rcfilters_watchlist_default_date = datetime.datetime.fromisoformat("2018-06-16")
+rcfilters_watchlist_available_date = fromisoformat("2017-09-19")
+rcfilters_watchlist_default_date = fromisoformat("2018-06-16")
 
 table = dedup_chronological(table1, distinct_cols)
-
+import pdb; pdb.set_trace()
 for wiki in set(table.wiki_db):
-
     prev_date =  table.loc[ (table.wiki_db == wiki) & (table.date <= rcfilters_watchlist_available_date), ['date']].max()
+
+    # ORES was first created for this wiki after the default date
+    if len(prev_date) == 0:
+        continue
+
     prev_date = list(prev_date)[0]
     new_row = table.loc[ (table.wiki_db == wiki) & (table.date == prev_date)].to_dict('records')
     if len(new_row) > 0:
@@ -224,7 +240,7 @@ for pageid in pages:
         # the log is sorted
         day = day[-1][0]
         time = match.groups()[0]
-        dt = datetime.datetime.fromisoformat(day + " " + time)
+        dt = fromisoformat(day + " " + time)
         init_sync_ts.append(dt)
 
 init_sync_ts = pd.Series(init_sync_ts)
