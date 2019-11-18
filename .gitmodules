@@ -1,3 +1,6 @@
 [submodule "RemembR"]
 	path = RemembR
 	url = https://github.com/groceryheist/RemembR
+[submodule "operations-mediawiki-config"]
+	path = operations-mediawiki-config
+	url = https://gerrit.wikimedia.org/r/operations/mediawiki-config
