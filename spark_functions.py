@@ -94,7 +94,7 @@ def add_user_roles(wmhist, remember_dict):
 def build_wmhist_step1(wmhist, remember_dict):
     wmhist, remember_dict = add_is_newcomer(wmhist, remember_dict)
     wmhist, remember_dict = add_user_roles(wmhist, remember_dict)
-    return (wmhist, rememberdict)
+    return (wmhist, remember_dict)
 
 def process_reverts(wmhist, spark):
     # next lets look at time to revert
