@@ -39,8 +39,13 @@ def add_revert_types(wmhist, comment_column='event_comment'):
 
     return wmhist
 
-def add_is_newcomer(wmhist):
+def add_is_newcomer(wmhist, remember_dict):
 
+    remember_dict['newcomer_days_1'] = 4
+    remember_dict['newcomer_days_2'] = 90
+    remember_dict['newcomer_revisions_1'] = 10
+    remember_dict['newcomer_revisions_2'] = 100
+    remember_dict['newcomer_exclude_ipblock_exempt'] = True
     wmhist = wmhist.withColumn("event_user_is_newcomer", (wmhist.event_user_is_anonymous == False) &
                                ((f.datediff(wmhist.event_timestamp, wmhist.event_user_creation_timestamp) < 4) &
                                 (wmhist.event_user_revision_count < 10)) |
@@ -54,9 +59,9 @@ def add_is_newcomer(wmhist):
                                otherwise(f.when(f.col("event_user_is_anonymous"),'anonymous'). \
                                          otherwise("established")))
 
-    return wmhist
+    return (wmhist, remember_dict)
 
-def add_user_roles(wmhist):
+def add_user_roles(wmhist, remember_dict):
 
     def role_filter(rg, role_set):
         if rg is None:
@@ -84,12 +89,12 @@ def add_user_roles(wmhist):
             f.when(wmhist.event_user_ispatroller, "patroller").otherwise("other")
         )))
     
-    return wmhist
+    return (wmhist, remember_dict)
 
-def build_wmhist_step1(wmhist):
-    wmhist = add_is_newcomer(wmhist)
-    wmhist = add_user_roles(wmhist)
-    return wmhist
+def build_wmhist_step1(wmhist, remember_dict):
+    wmhist, remember_dict = add_is_newcomer(wmhist, remember_dict)
+    wmhist, remember_dict = add_user_roles(wmhist, remember_dict)
+    return (wmhist, rememberdict)
 
 def process_reverts(wmhist, spark):
     # next lets look at time to revert
