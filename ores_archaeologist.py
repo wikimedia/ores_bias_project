@@ -196,25 +196,42 @@ class Ores_Archaeologist(object):
         print("--commit={0}".format(commit))
         return output
 
-    def score_history(self, cutoff_revisions, preprocess=True):
+    def score_history(self, cutoff_revisions, preprocess=True, use_cache=True):
+        cache_file = "data/revscoring_cache.pickle"
+        
         if preprocess:
             cutoff_revisions = self.preprocess_cutoff_history(cutoff_revisions)
+
+        if use_cache is True:
+            if os.path.exists(cache_file):
+                cached_scores = pd.read_pickle(cache_file)
+                cutoff_revisions = cutoff_revisions.merge(cached_scores, on=['wiki_db','revision_id'], how='left')
 
         parts = []
         for commit in set(cutoff_revisions.commit):
             scored_revisions = self.score_commit_revisions(commit, cutoff_revisions, preprocess=False, load_environment=True)
             parts.append(scored_revisions)
-        return pd.concat(parts,
+
+        result =  pd.concat(parts,
                          sort=False,
                          ignore_index=True)
+        
+        scored_revids = result.loc[:,["wiki_db", "revision_id", "prob_damaging"]]
+        scored_revids.to_pickle(cache_file)
+
+        return result
 
     def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True):
+
+        if 'pred_damaging' in cutoff_revisions.columns and not cutoff_revisions.pred_damaging.isna().any():
+            return cutoff_revisions
+        
         if preprocess:
             cutoff_revisions = self.preprocess_cutoff_history(cutoff_revisions)
 
         if load_environment:
             load_model_environment(commit=commit)
-
+            
         commit_revisions = cutoff_revisions.loc[cutoff_revisions.commit == commit]
         parts = []
 
@@ -227,6 +244,9 @@ class Ores_Archaeologist(object):
         return pd.concat(parts,
                          sort=False,
                          ignore_index=True)
+            
+
+        
 
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True):
         if preprocess:
@@ -236,7 +256,7 @@ class Ores_Archaeologist(object):
             load_model_environment(commit=commit, wiki_db=wiki_db)
 
         # don't score revisions we have already scored
-        if 'prob_damaging' in all_revisions.columns and not all(all_revisions.prob_damaging.isna()):
+        if 'prob_damaging' in all_revisions.columns and not all_revisions.prob_damaging.isna().any():
             return all_revisions
 
         uri = siteList[wiki_db]
@@ -245,8 +265,6 @@ class Ores_Archaeologist(object):
         revids = list(wiki_db_revisions.revision_id)
         # write revids to a temporary file
         tmpfilename = "{0}_{1}_revids.tmp".format(commit[0:10], wiki_db)
-        
-        
 
         non_int_revids = []
         with open(tmpfilename,'w') as tempfile:
