@@ -1,0 +1,1 @@
+spark-submit --name "lookup wikidata info for pages used in ores labels" --master yarn --conf spark.driver.memory=4g --conf spark.executor.memory=8g --conf spark.executor-memoryOverhead=2g lookup_wikidata_entries.py
