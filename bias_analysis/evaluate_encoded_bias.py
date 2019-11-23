@@ -9,6 +9,9 @@ import numpy as np
 import re
 import subprocess
 from confidence_levels import ORESConfidenceLevel, dmg_levels, gf_levels
+from pyRemembeR import Remember
+
+remember = Remember("encoded_bias_remember.RDS")
 
 theme_set(theme_bw())
 
@@ -165,7 +168,8 @@ def build_plot_dataset(rates, prefix):
 
 def make_plots(rates, suffix1, suffix2):
     fp_rates_damaging = build_plot_dataset(rates, 'fp_dmg')
-
+    remember(fp_rates_damaging, 'fp_rates_damaging_{0}_{1}'.format(suffix1, suffix2))
+    
     fp_rates_damaging.variable.cat.reorder_categories(['fp_dmg_unlikely', 'fp_dmg_maybe','fp_dmg_likely','fp_dmg_very_likely'],ordered=True,inplace=True)
 
     fp_rates_damaging.variable.cat.rename_categories(['Very likely good', 'May have problems','Likely have problems','Very likely have problems'],inplace=True)
@@ -179,6 +183,7 @@ def make_plots(rates, suffix1, suffix2):
     p.save("Damaging_fpr_{0}.png".format(suffix2),width=18, height=8,units='in')
 
     fn_rates_damaging = build_plot_dataset(rates, 'fn_dmg')
+    remember(fn_rates_damaging, 'fn_rates_damaging_{0}_{1}'.format(suffix1, suffix2))
 
     fn_rates_damaging.variable.cat.reorder_categories(['fn_dmg_unlikely', 'fn_dmg_maybe','fn_dmg_likely','fn_dmg_very_likely'],ordered=True,inplace=True)
 
@@ -193,6 +198,7 @@ def make_plots(rates, suffix1, suffix2):
     p.save("Damaging_fnr_{0}.png".format(suffix2),width=18, height=8,units='in')
 
     fp_rates_goodfaith = build_plot_dataset(rates, 'fp_gf')
+    remember(fp_rates_goodfaith, 'fp_rates_goodfaith_{0}_{1}'.format(suffix1, suffix2))
 
     fp_rates_goodfaith.variable.cat.reorder_categories(['fp_gf_very_likely', 'fp_gf_likely','fp_gf_unlikely','fp_gf_very_unlikely'],ordered=True,inplace=True)
 
@@ -207,6 +213,7 @@ def make_plots(rates, suffix1, suffix2):
     p.save("Goodfaith_fpr_{0}.png".format(suffix2),width=18, height=8,units='in')
 
     fn_rates_goodfaith = build_plot_dataset(rates, 'fn_gf')
+    remember(fn_rates_goodfaith, 'fn_rates_goodfaith_{0}_{1}'.format(suffix1, suffix2))
 
     fn_rates_goodfaith.variable.cat.reorder_categories(['fn_gf_very_likely', 'fn_gf_likely','fn_gf_unlikely','fn_gf_very_unlikely'],ordered=True,inplace=True)
 
@@ -238,6 +245,7 @@ def make_plots(rates, suffix1, suffix2):
 
 
 rates = build_rates(df, dmg_levels, gf_levels)
+remember(rates, 'newanon_bias_rates')
 
 make_plots(rates, "newcomers and anons", "newanon")
 
@@ -261,6 +269,7 @@ df.loc[df.sexorgender == 'male', 'group'] = 'men'
 df.loc[df.sexorgender == 'female', 'group'] = 'women'
 
 rates = build_rates(df, dmg_levels, gf_levels)
+remember(rates, 'gender_bias_rates')
 
 make_plots(rates, "revisions to articles on women", "gender")
 
@@ -285,4 +294,5 @@ df.loc[df.economic_region == 'Global North', 'group'] = 'Global North'
 df.loc[df.economic_region == 'Global South', 'group'] = 'Global South'
 
 rates = build_rates(df, dmg_levels, gf_levels)
+remember(rates, 'global_north_bias_rates')
 make_plots(rates, "articles on the Global South", "geo") 
