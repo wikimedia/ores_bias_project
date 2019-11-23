@@ -6,19 +6,15 @@ import os
 import shutil
 import json
 import itertools
+import pandas as pd
 
 def load_wikis():
-    lines = open("rcfilters_enabled.csv",'r')
-    wikis = [line.split(',')[0] for line in lines]
-    wikis = [wiki for wiki in wikis if wiki != "Wiki"]
-
-    # simple wiki uses the same models and labels as english wikipedia
-    wikis = [wiki for wiki in wikis if wiki != "simplewiki"]
-    return list(set(wikis))
+    cutoffs = pd.read_csv(os.path.join('data',"ores_rcfilters_cutoffs.csv"))
+    return list(set(cutoffs.wiki_db))
     
 def load_makefile():
-    with open("../Makefile",'r') as makefile1:
-        with open("../Makefile.manual",'r') as makefile2:
+    with open("editquality/Makefile",'r') as makefile1:
+        with open("editquality/Makefile.manual",'r') as makefile2:
             makefile = makefile1.read() + '\n' + makefile2.read()
     return makefile
                            
@@ -49,15 +45,15 @@ def grep_labelfile(wiki, makefile):
         return label_file
         
 def _download_labels(label_file):
-    os.chdir("..")
+    os.chdir("editquality")
     try: 
         subprocess.call(["make",label_file])
     except Exception as e:
         print(e)
-    os.chdir("bias_analysis")
+    os.chdir("..")
 
 def load_labels(label_file):
-    return open("../{0}".format(label_file))
+    return open("editquality/{0}".format(label_file))
 
 def download_labels(label_files):
     for label_file in label_files:
