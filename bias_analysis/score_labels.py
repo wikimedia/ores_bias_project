@@ -3,10 +3,10 @@ from get_labels import load_labels
 from ores.utilities.score_revisions import run as call_ores
 
 def _score_labels(labels,context,label_file, overwrite = False):
-    if not os.path.exists("../datasets/scored_labels"):
-        os.makedirs("../datasets/scored_labels")
+    if not os.path.exists("data/scored_labels"):
+        os.makedirs("data/scored_labels")
 
-    output_filename = "../datasets/scored_labels/{0}".format(os.path.split(label_file)[1])
+    output_filename = "data/scored_labels/{0}".format(os.path.split(label_file)[1])
 
     if os.path.exists(output_filename) and overwrite == False:
         return

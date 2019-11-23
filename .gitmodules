@@ -4,3 +4,6 @@
 [submodule "operations-mediawiki-config"]
 	path = operations-mediawiki-config
 	url = https://gerrit.wikimedia.org/r/operations/mediawiki-config
+[submodule "bias_analysis/editquality"]
+	path = bias_analysis/editquality
+	url = https://gerrit.wikimedia.org/r/scoring/ores/editquality

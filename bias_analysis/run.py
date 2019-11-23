@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+# to be run on a wikimedia environment with spark access
 from get_labels import load_wikis, load_makefile, grep_labelfile, download_labels
 from score_labels import score_labels
 from move_labels_to_datalake import move_labels_to_datalake

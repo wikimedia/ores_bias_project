@@ -7,7 +7,7 @@ import json
 import os
 import numpy as np
 import re
-
+import subprocess
 from confidence_levels import ORESConfidenceLevel, dmg_levels, gf_levels
 
 theme_set(theme_bw())
@@ -17,8 +17,15 @@ makefile = load_makefile()
 label_files = list(map(lambda x: grep_labelfile(x, makefile), wikis))
 
 def load_scored_labels(label_file, context):
-    filename = "../datasets/scored_labels/{0}".format(
+
+    filename = "editquality/datasets/{0}".format(
         os.path.split(label_file)[1])
+
+    if not os.path.exists(filename):
+        os.chdir('editquality')
+        subprocess.call(['make', label_file])
+        os.chdir("..")
+
     labels = (json.loads(l) for l in open(filename, 'r'))
     missing_revs = open("missing_revisions.txt", 'w')
     for label in labels:
@@ -49,15 +56,14 @@ def load_scored_labels(label_file, context):
 
         yield row
 
-
 rows = itertools.chain(* [load_scored_labels(label_file, context)
                           for label_file, context in zip(label_files, wikis)])
 
 df_labels = pd.DataFrame(list(rows))
 df_labels = df_labels.set_index("rev_id")
 
-df_editors = pd.read_pickle("labeled_newcomers_anons.pickle")
-df_editors2 = pd.read_pickle("label_edits_gender_geo.pickle")
+df_editors = pd.read_pickle(os.path.join('data',"labeled_newcomers_anons.pickle"))
+df_editors2 = pd.read_pickle(os.path.join("data","label_edits_gender_geo.pickle"))
 
 # at this point we have the data we need
 df_editors2 = df_editors2.loc[:,['entityid','revid','wiki','title_namespace_localized','sexorgender','ishuman','latitude','longitude','country_code','name','economic_region','maxmind_continent']]
