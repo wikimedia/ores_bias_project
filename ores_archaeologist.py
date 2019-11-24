@@ -322,7 +322,7 @@ class Ores_Archaeologist(object):
     def preprocess_cutoff_history(self, cutoff_revisions):
         
         if isinstance(cutoff_revisions,str):
-            cutoff_revisions = pd.read_csv(cutoff_revisions, sep=',',parse_dates=['event_timestamp','date','period_start','period_end'],quotechar='\"',infer_datetime_format=True,error_bad_lines=False,escapechar='\\')
+            cutoff_revisions = pd.read_csv(cutoff_revisions, sep=',',parse_dates=['event_timestamp','period1_start','period2_end','date_first','date_last'],quotechar='\"',infer_datetime_format=True,error_bad_lines=False,escapechar='\\')
 
 
         cutoff_revisions.revision_id = cutoff_revisions.revision_id.astype(str)
