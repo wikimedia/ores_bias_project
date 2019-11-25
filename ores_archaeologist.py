@@ -267,7 +267,11 @@ class Ores_Archaeologist(object):
 
         uri = siteList[wiki_db]
 
-        wiki_db_revisions = all_revisions.loc[(all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit)]
+        if use_cache is False:
+            wiki_db_revisions = all_revisions.loc[(all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit)]
+        else:
+            wiki_db_revisions = all_revisions.loc[(all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit) & (all.revisions.prob_damaging.isna())]
+
         revids = list(wiki_db_revisions.revision_id)
         # write revids to a temporary file
         tmpfilename = "{0}_{1}_revids.tmp".format(commit[0:10], wiki_db)
