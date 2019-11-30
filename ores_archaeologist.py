@@ -25,7 +25,7 @@ def tryWaitKill(proc):
             return False
                         
         # check if all child processes are stuck
-        children = proc.children()
+        children = proc.children(recursive=True)
         if all([p.cpu_percent(0.2) < 0.2 for p in children]):
             return False
 
@@ -38,7 +38,7 @@ def reap_children(proc, timeout=3):
     def on_terminate(proc):
         print("process {} terminated with exit code {}".format(proc, proc.returncode))
 
-    procs = proc.children() + [proc]
+    procs = proc.children(recursive=True) + [proc]
     # send SIGTERM
     for p in procs:
         try:
