@@ -11,8 +11,54 @@ from helper import *
 import numpy as np
 import shutil
 from functools import partial
+import psutil
 
 call_log = "syscalls.sh"
+
+# loop here sleep before we check for a hang.
+def tryWaitKill(proc):
+    try:
+        proc.wait(5)
+    except psutil.TimeoutExpired as e:
+        
+        if proc.status() == psutil.STATUS_ZOMBIE:
+            return False
+                        
+        # check if all child processes are stuck
+        children = proc.children()
+        if all([p.cpu_percent(0.2) < 0.2 for p in children]):
+            return False
+
+        else:
+            tryWaitKill()
+    return True
+
+def reap_children(proc, timeout=3):
+    "Tries hard to terminate and ultimately kill all the children of this process."
+    def on_terminate(proc):
+        print("process {} terminated with exit code {}".format(proc, proc.returncode))
+
+    procs = proc.children() + [proc]
+    # send SIGTERM
+    for p in procs:
+        try:
+            p.terminate()
+        except psutil.NoSuchProcess:
+            pass
+    gone, alive = psutil.wait_procs(procs, timeout=timeout, callback=on_terminate)
+    if alive:
+        # send SIGKILL
+        for p in alive:
+            print("process {} survived SIGTERM; trying SIGKILL".format(p))
+            try:
+                p.kill()
+            except psutil.NoSuchProcess:
+                pass
+        gone, alive = psutil.wait_procs(alive, timeout=timeout, callback=on_terminate)
+        if alive:
+            # give up
+            for p in alive:
+                print("process {} survived SIGKILL; giving up".format(p))
 
 def tryparsefloat(s):
     try:
@@ -24,9 +70,20 @@ class Ores_Archaeologist(object):
 
     def _call_and_retry(self, call, poll_interval = 60*5, max_retries=5):
         while max_retries > 0 :
-            with subprocess.Popen(call, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, executable='/bin/bash', universal_newlines=True) as proc:
+            with psutil.Popen(call, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, executable='/bin/bash', universal_newlines=True) as proc:
                 max_retries = max_retries - 1
+
+                success = tryWaitKill(proc)
                 print("starting process:{0}".format(call))
+                
+
+                if not success:
+                    # send sigterm
+                    reap_children(proc)
+                    continue
+
+                # then look at the process tree and see if the subprocess is stuck
+
                 (results, errors) = proc.communicate()
                 print(errors)
                 if proc.returncode == 0:
