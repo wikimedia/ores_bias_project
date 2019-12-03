@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import time
 import itertools
 import mwapi
 import pyarrow as pa
@@ -22,6 +23,8 @@ def get_editor_traits(labels, context, out_schema):
         host= "https://wikidata.org".format(context.replace("wiki",""))
     elif context == "eswikibooks":
         host= "https://es.wikibooks.org".format(context.replace("wiki",""))
+    elif context == "eswikiquote":
+        host= "https://es.wikiquote.org".format(context.replace("wiki",""))
     else:
         host= "https://{0}.wikipedia.org".format(context.replace("wiki",""))
 
@@ -74,7 +77,7 @@ def move_labels_to_datalake(label_files, wikis):
 
     fs = pa.hdfs.connect(host='an-coord1001.eqiad.wmnet', port=10000)
     fs = fs.connect()
-    parquet_path = "/user/nathante/ores_bias/nathante.ores_label_editors"
+    parquet_path = "/user/nathante/ores_bias_data/nathante.ores_label_editors"
     if fs.exists(parquet_path):
         fs.rm(parquet_path, recursive=True)
 
@@ -82,18 +85,19 @@ def move_labels_to_datalake(label_files, wikis):
     print("collecting userids")
 
     for label_file, context in zip(label_files,wikis):
+        if label_file is not None:
 
-        labels = load_labels(label_file)
+            labels = load_labels(label_file)
 
-        rows = get_editor_traits(labels,context, out_schema)
-        pddf = pd.DataFrame(rows)
-        
-        pddf.to_pickle("ores_label_editors.pickle")
-        out_table = pa.Table.from_pandas(pddf)
+            rows = get_editor_traits(labels,context, out_schema)
+            pddf = pd.DataFrame(rows)
 
-        pq.write_to_dataset(out_table, root_path=parquet_path, partition_cols=['wiki'], filesystem=fs, flavor='spark',preserve_index=False)
+            pddf.to_pickle("ores_label_editors.pickle")
+            out_table = pa.Table.from_pandas(pddf)
 
-        print ("pushed labels for {0}".format(context))
+            pq.write_to_dataset(out_table, root_path=parquet_path, partition_cols=['wiki'], filesystem=fs, flavor='spark')
+
+            print ("pushed labels for {0}".format(context))
 
 
 ##    conn.close()

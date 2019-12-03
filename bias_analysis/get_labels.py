@@ -19,7 +19,7 @@ def load_makefile():
     return makefile
                            
 def grep_labelfile(wiki, makefile):
-    humanlabel_re_format = r"datasets/{0}\.human_labeled_revisions\.(.*)k_(.*)\.json:.*"
+    humanlabel_re_format = r"data/scored_labels/{0}\.human_labeled_revisions\.(.*)k_(.*)\.json:.*"
     # find candidate human labeled revisions
     humanlabel_re = re.compile(humanlabel_re_format.format(wiki))
     # choose the best match
