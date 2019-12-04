@@ -96,7 +96,7 @@ def build_wmhist_step1(wmhist, remember_dict):
     wmhist, remember_dict = add_user_roles(wmhist, remember_dict)
     return (wmhist, remember_dict)
 
-def process_reverts(wmhist, spark):
+def process_reverts(wmhist, spark, remember_dict):
     # next lets look at time to revert
     reverteds = wmhist.filter((wmhist.page_namespace==0) & (wmhist.revision_is_identity_reverted == True))
     reverteds = reverteds.select(['wiki_db',
@@ -104,7 +104,8 @@ def process_reverts(wmhist, spark):
                                   'revision_id',
                                   'event_timestamp',
                                   'revision_first_identity_reverting_revision_id',
-                                  'anon_new_established'])
+                                  'anon_new_established',
+                                  'week'])
 
     reverteds = reverteds.withColumnRenamed("event_timestamp","reverted_timestamp")
     reverteds = reverteds.withColumnRenamed("revision_id","reverted_revision_id")
@@ -146,6 +147,9 @@ def process_reverts(wmhist, spark):
 
     # use a window function to count the number of reverts in a given timespan
 
+
+    remember_dict['n_reverts_past_month_window'] = 30
+
     # exclude self-reverts
     reverts = reverts.join(reverteds,
                            on=[reverts.wiki_db_l == reverteds.wiki_db,
@@ -174,4 +178,4 @@ def process_reverts(wmhist, spark):
     # convert time to revert into seconds
     reverts = reverts.withColumn("time_to_revert",(f.unix_timestamp(f.col("revert_timestamp")) - f.unix_timestamp(f.col("reverted_timestamp"))) / 1000)
     # let's use median ttr as the metric
-    return reverts
+    return (reverts, remember_dict)
