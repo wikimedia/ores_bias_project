@@ -284,7 +284,7 @@ class Ores_Archaeologist(object):
         last_commit = last_commit.loc[:,['wiki_db','commit']]
         period_1 = period_1.drop('commit', 1)
         period_1 = pd.merge(period_1, last_commit, on=['wiki_db'])
-        cutoff_revisions = pd.concat([period_1, period_2])
+        cutoff_revisions = pd.concat([period_1, period_2], sort=True)
 
         parts = []
         for commit in set(cutoff_revisions.commit):
