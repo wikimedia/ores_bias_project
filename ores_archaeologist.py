@@ -30,7 +30,7 @@ def tryWaitKill(proc):
             return False
 
         else:
-            tryWaitKill()
+            tryWaitKill(proc)
     return True
 
 def reap_children(proc, timeout=3):
@@ -180,6 +180,7 @@ class Ores_Archaeologist(object):
             else:
                 model_type = 'damaging'
 
+            import pdb; pdb.set_trace()
             res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=first)
             if res is not None:
                 value = res.split('\t')[1]
@@ -278,7 +279,7 @@ class Ores_Archaeologist(object):
         last_commit = last_commit.loc[:,['wiki_db','commit']]
         period_1 = period_1.drop('commit', 1)
         period_1 = pd.merge(period_1, last_commit, on=['wiki_db'])
-        cutoff_revisions = pd.concat([period_1, period_2])
+        cutoff_revisions = pd.concat([period_1, period_2], sort=True)
 
         parts = []
         for commit in set(cutoff_revisions.commit):
@@ -429,14 +430,24 @@ class Ores_Archaeologist(object):
         commit = revisions.commit[0]
 
         threshold_names =['damaging_likelybad_min', 
+                          'damaging_likelybad_max'
                           'damaging_likelygood_max',
                           'damaging_likelygood_min',
                           'damaging_maybebad_max',
                           'damaging_maybebad_min',
                           'damaging_verylikelybad_max',
-                          'damaging_verylikelybad_min'
-        ]
+                          'damaging_verylikelybad_min',
+                          'goodfaith_likelybad_max',
+                          'goodfaith_likelybad_min',
+                          'goodfaith_likelygood_max',
+                          'goodfaith_likelygood_min',
+                          'goodfaith_maybebad_max',
+                          'goodfaith_maybebad_min',
+                          'goodfaith_verylikelybad_max',
+                          'goodfaith_verylikelybad_min']
                                         
+
+        import pdb; pdb.set_trace();
         cutoffs = cutoffs.loc[cutoffs.deploy_dt == deploy_dt].reset_index()
                 
         thresholds = self.get_all_thresholds(cutoffs)
