@@ -1,5 +1,6 @@
 #!/usr/bin python3.6
 import fire
+import json
 import pickle
 import os
 import re
@@ -26,11 +27,18 @@ def tryWaitKill(proc):
                         
         # check if all child processes are stuck
         children = proc.children(recursive=True)
-        if all([p.cpu_percent(0.2) < 0.2 for p in children]):
+        active = []
+        for p in children:
+            try:
+                active.append(p.cpu_percent(0.2) > 0.2)
+            except psutil.NoSuchProcess as e:
+                active.append(True)
+
+        if not any(active):
             return False
 
         else:
-            tryWaitKill()
+            tryWaitKill(proc)
     return True
 
 def reap_children(proc, timeout=3):
@@ -38,7 +46,7 @@ def reap_children(proc, timeout=3):
     def on_terminate(proc):
         print("process {} terminated with exit code {}".format(proc, proc.returncode))
 
-    procs = proc.children(recursive=True) + [proc]
+    procs = proc.children(recursive=True)
     # send SIGTERM
     for p in procs:
         try:
@@ -83,7 +91,6 @@ class Ores_Archaeologist(object):
                 if not success:
                     # send sigterm
                     reap_children(proc)
-                    continue
 
                 # then look at the process tree and see if the subprocess is stuck
 
@@ -160,8 +167,7 @@ class Ores_Archaeologist(object):
                 return lines[-1]
 
     def get_all_thresholds(self, cutoffs):
-        default_thresholds = pd.read_json("./data/default_thresholds.json")
-        default_thresholds = default_thresholds.iloc[0]
+        default_thresholds = json.load(open("data/default_thresholds.json",'r'))
 
         def lookup_threshold(key, threshold):
             value = tryparsefloat(threshold)
@@ -348,7 +354,8 @@ class Ores_Archaeologist(object):
 
         revids = list(wiki_db_revisions.revision_id)
         # write revids to a temporary file
-        tmpfilename = "{0}_{1}_revids.tmp".format(commit[0:10], wiki_db)
+        
+        tmpfilename = "temp_files/{0}_{1}_revids.tmp".format(commit[0:10], wiki_db)
 
         non_int_revids = []
         with open(tmpfilename,'w') as tempfile:
@@ -393,14 +400,20 @@ class Ores_Archaeologist(object):
         for r in non_int_revids:
             scores.append({"revision_id":r, "prob_damaging":None, "revscoring_error":"revid is not an integer"})
 
+    
         if len(scores) > 0:
             scores = pd.DataFrame.from_records(scores)
+            if use_cache is True:
+                scores = pd.concat(scores,cache)
+
+        else:
+            scores = cache
             all_revisions = pd.merge(all_revisions, scores, on=['revision_id'], how='left')
 
         else:
             all_revisions.loc[:, 'prob_damaging'] = np.NaN
             all_revisions.loc[:, "revscoring_error"] = "Unknown error. Check log. Process died?"
-
+            
 
         if add_thresholds is True:
             all_revisions = self.lookup_revision_thresholds(all_revisions)
@@ -434,16 +447,14 @@ class Ores_Archaeologist(object):
                           'damaging_maybebad_max',
                           'damaging_maybebad_min',
                           'damaging_verylikelybad_max',
-                          'damaging_verylikelybad_min'
-        ]
+                          'damaging_verylikelybad_min']
                                         
         cutoffs = cutoffs.loc[cutoffs.deploy_dt == deploy_dt].reset_index()
                 
         thresholds = self.get_all_thresholds(cutoffs)
 
         value_names = [s+'_value' for s in threshold_names]
-        if len(set(value_names+threshold_names) - set(thresholds.columns)) != 0:
-            import pdb; pdb.set_trace()
+
         revisions = pd.concat([revisions, thresholds.loc[:,value_names + threshold_names]])
         return revisions
             
