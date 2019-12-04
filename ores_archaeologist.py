@@ -26,7 +26,14 @@ def tryWaitKill(proc):
                         
         # check if all child processes are stuck
         children = proc.children(recursive=True)
-        if all([p.cpu_percent(0.2) < 0.2 for p in children]):
+        active = []
+        for p in children:
+            try:
+                active.append(p.cpu_percent(0.2) > 0.2)
+            except psutil.NoSuchProcess as e:
+                active.append(True)
+
+        if not any(active):
             return False
 
         else:
@@ -38,7 +45,7 @@ def reap_children(proc, timeout=3):
     def on_terminate(proc):
         print("process {} terminated with exit code {}".format(proc, proc.returncode))
 
-    procs = proc.children(recursive=True) + [proc]
+    procs = proc.children(recursive=True)
     # send SIGTERM
     for p in procs:
         try:
@@ -160,8 +167,7 @@ class Ores_Archaeologist(object):
                 return lines[-1]
 
     def get_all_thresholds(self, cutoffs):
-        default_thresholds = pd.read_json("./data/default_thresholds.json")
-        default_thresholds = default_thresholds.iloc[0]
+        default_thresholds = json.load(open("data/default_thresholds.json",'r'))
 
         def lookup_threshold(key, threshold):
             value = tryparsefloat(threshold)
@@ -180,7 +186,6 @@ class Ores_Archaeologist(object):
             else:
                 model_type = 'damaging'
 
-            import pdb; pdb.set_trace()
             res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=first)
             if res is not None:
                 value = res.split('\t')[1]
@@ -279,7 +284,7 @@ class Ores_Archaeologist(object):
         last_commit = last_commit.loc[:,['wiki_db','commit']]
         period_1 = period_1.drop('commit', 1)
         period_1 = pd.merge(period_1, last_commit, on=['wiki_db'])
-        cutoff_revisions = pd.concat([period_1, period_2], sort=True)
+        cutoff_revisions = pd.concat([period_1, period_2])
 
         parts = []
         for commit in set(cutoff_revisions.commit):
@@ -349,7 +354,8 @@ class Ores_Archaeologist(object):
 
         revids = list(wiki_db_revisions.revision_id)
         # write revids to a temporary file
-        tmpfilename = "{0}_{1}_revids.tmp".format(commit[0:10], wiki_db)
+        
+        tmpfilename = "temp_files/{0}_{1}_revids.tmp".format(commit[0:10], wiki_db)
 
         non_int_revids = []
         with open(tmpfilename,'w') as tempfile:
@@ -446,15 +452,12 @@ class Ores_Archaeologist(object):
                           'goodfaith_verylikelybad_max',
                           'goodfaith_verylikelybad_min']
                                         
-
-        import pdb; pdb.set_trace();
         cutoffs = cutoffs.loc[cutoffs.deploy_dt == deploy_dt].reset_index()
                 
         thresholds = self.get_all_thresholds(cutoffs)
 
         value_names = [s+'_value' for s in threshold_names]
-        if len(set(value_names+threshold_names) - set(thresholds.columns)) != 0:
-            import pdb; pdb.set_trace()
+
         revisions = pd.concat([revisions, thresholds.loc[:,value_names + threshold_names]])
         return revisions
             
