@@ -73,4 +73,4 @@ label_editors = label_editors.withColumnRenamed("is_newcomer_2", "is_newcomer")
 
 pddf = label_editors.toPandas()
 pddf.to_pickle("labeled_newcomers_anons.pickle")
-pddf.to_table("labeled_newcomers_anons.tsv")
+pddf.to_csv("labeled_newcomers_anons.tsv", sep='\t')

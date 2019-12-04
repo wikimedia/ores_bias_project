@@ -2,6 +2,9 @@ import os
 from get_labels import load_labels
 from ores.utilities.score_revisions import run as call_ores
 
+# instead of ores we want to use ores_archaeologist to score the revisions so we can them for a
+# particular date for reproducibility. But frankly this should be a lower priority. 
+
 def _score_labels(labels,context,label_file, overwrite = False):
     if not os.path.exists("data/scored_labels"):
         os.makedirs("data/scored_labels")
@@ -29,6 +32,7 @@ def _score_labels(labels,context,label_file, overwrite = False):
 
     output_file.close()
 
-def score_labels(label_files, wikis):
+def score_labels(label_files, wikis, overwrite=False):
     for wiki, label_file in zip(wikis,label_files):
-        _score_labels(load_labels(label_file),wiki,label_file)
+        if label_file is not None:
+            _score_labels(load_labels(label_file),wiki,label_file, overwrite)
