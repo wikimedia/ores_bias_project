@@ -166,7 +166,7 @@ class Ores_Archaeologist(object):
                 lines = f.readlines()
                 return lines[-1]
 
-    def get_all_thresholds(self, cutoffs):
+    def get_all_thresholds(self, cutoffs, wiki_db, date, load_environment=False):
         default_thresholds = json.load(open("data/default_thresholds.json",'r'))
 
         def lookup_threshold(key, threshold):
@@ -185,8 +185,9 @@ class Ores_Archaeologist(object):
                 model_type = 'goodfaith'
             else:
                 model_type = 'damaging'
+                
 
-            res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=first)
+            res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=(first & load_environment))
             if res is not None:
                 value = res.split('\t')[1]
                 return tryparsefloat(value)
@@ -324,9 +325,6 @@ class Ores_Archaeologist(object):
                          sort=False,
                          ignore_index=True)
             
-
-        
-
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = True):
         if preprocess:
             all_revisions = self.preprocess_cutoff_history(all_revisions)

@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
 # to be run on a wikimedia environment with spark access
-from get_labels import load_wikis, load_makefile, grep_labelfile, download_labels, label_files_to_csv
-#from score_labels import score_labels
+from get_labels import load_wikis, load_makefile, grep_labelfile, download_labels
+from score_labels import score_labels, get_thresholds
 #from move_labels_to_datalake import move_labels_to_datalake
 import subprocess
 
-wikis = list(load_wikis())
+test_wikis = ['test2wiki']
+wikis = [wiki for wiki in load_wikis() if wiki not in test_wikis]
+
 makefile = load_makefile()
-label_files = list(map(lambda x: grep_labelfile(x, makefile), wikis))
+label_files = [lf for lf in map(lambda x: grep_labelfile(x, makefile), wikis) if lf is not None]
 download_labels(label_files)
 
-label_file_wikis = zip(label_files, wikis)
-label_files_to_csv(label_file_wikis)
-
-score_labels(label_files, wikis, overwrite=True)
+#label_files_to_csv(label_file_wikis)
+scored_labels = score_labels(label_files, wikis)
+scored_threshold_labels = get_thresholds(wikis, load_environment=False)
 
 move_labels_to_datalake(label_files, wikis)
 
