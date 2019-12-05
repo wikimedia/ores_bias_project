@@ -43,7 +43,9 @@ fit.models <- function(model.data, dv){
         wiki.model.data <- model.data[wiki.db == wiki]
 
         res <- shape.model.data(wiki.model.data, dv)
-        y <- res$y
+
+        # since we have weekly data: 52 weeks in a year
+        y <- ts(res$y,frequency=52)
         xreg  <- res$xreg
         wiki.model.data <- res$wiki.model.data
         # for the final analysis we shouldn't use stepwise selection
@@ -55,6 +57,7 @@ fit.models <- function(model.data, dv){
 
     
 #        fit.model <- auto.arima(y,xreg=xreg, ic='bic', parallel=T,stepwise=F,approximation=F)
+        
         fit.model <- auto.arima(y,xreg=xreg, ic='bic')
         arima.models[[wiki]] <- fit.model
         

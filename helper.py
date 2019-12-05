@@ -23,9 +23,8 @@ fromisoformat = parser.isoparse
 api = mwapi.Session("https://en.wikipedia.org",'ores bias project by groceryheist <nathante@uw.edu>')
 
 sys.path.append("../../mw_revert_tool_detector")
-from mwcomments.siteList import SiteList
 
-siteList = dict(SiteList.from_api())
+siteList = pickle.load(open("data/wikimedia_sites.pickle",'rb'))
 
 tmpdir = os.path.join(os.path.abspath('.'),'tmp')
 
@@ -225,6 +224,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     if commit in editquality_commits:
 
         print('checkout {0} from {1}'.format(editquality_commits[commit], editquality_repo.working_dir))
+        editquality_repo.git.checkout('-f', 'master')
         editquality_repo.git.checkout('-f', editquality_commits[commit])
         editquality_path = editquality_repo_path
     else:
