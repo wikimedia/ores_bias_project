@@ -32,3 +32,7 @@ enwiki_revisions_small_error.csv filter=lfs diff=lfs merge=lfs -text
 test_cutoffs.csv filter=lfs diff=lfs merge=lfs -text
 enwiki_scored_small_sample.csv filter=lfs diff=lfs merge=lfs -text
 cutoff_revisions_sample filter=lfs diff=lfs merge=lfs -text
+canonical_data.countries.feather filter=lfs diff=lfs merge=lfs -text
+labeled_newcomers_anons.pickle filter=lfs diff=lfs merge=lfs -text
+labeled_newcomers_anons.tsv filter=lfs diff=lfs merge=lfs -text
+page_wikidata_properties.pickle filter=lfs diff=lfs merge=lfs -text
