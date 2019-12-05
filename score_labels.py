@@ -81,8 +81,10 @@ def get_thresholds(wikis, mock_date = default_mock_date, load_environment = True
     oa = Ores_Archaeologist()
     threshold_dict = {}
 
-    cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv")
-
+    cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv", parse_dates = ['deploy_dt'])
+    last_deploy = cutoffs[cutoffs.deploy_dt <= mock_date].groupby('wiki_db').deploy_dt.max()
+    cutoffs = pd.merge(cutoffs, last_deploy, on=['wiki_db','deploy_dt'])
+    
     load_environment = False
     thresholds = [oa.get_all_thresholds(cutoffs["wiki_db"] == wiki_db], wiki_db, mock_date, load_environment]
     return pd.concat(thresholds, sort=True)
@@ -114,4 +116,5 @@ def get_thresholds(wikis, mock_date = default_mock_date, load_environment = True
 #               verbose=True)
 
 #     output_file.close()
+
 
