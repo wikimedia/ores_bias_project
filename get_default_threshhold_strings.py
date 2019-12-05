@@ -1,9 +1,13 @@
+
 import git
 import json
 import pandas as pd
+import datetime
+
 repo = git.Repo("../mediawiki-extensions-ORES")
 repo.git.checkout("-f","master")
-commits = repo.iter_commits(paths="extension.json")
+# we only use the last commit
+commit = list(repo.iter_commits(paths="extension.json", until=datetime.datetime(2019,12,1)))[0]
 found_maybebad_thresholds = set()
 found_likelybad_thresholds = set()
 found_verylikelybad_thresholds = set()
@@ -14,40 +18,39 @@ damaging_likelybad_min = []
 damaging_likelybad_max = []
 damaging_verylikelybad_min = []
 damaging_verylikelybad_max = []
-for commit in commits:
-    repo.git.checkout('-f',commit)
-    config = json.load(open("../mediawiki-extensions-ORES/extension.json",'r'))
-    default_thresholds = config.get('config',{}).get('OresFiltersThresholds',{}).get("value",{}).get("damaging",{})
-    commit_dt = commit.committed_datetime
-    maybebad_threshold = default_thresholds.get('maybebad',{})
-    maybebad_threshold_str = json.dumps(maybebad_threshold)
-    likelybad_threshold = default_thresholds.get('likelybad',{})
-    likelybad_threshold_str = json.dumps(likelybad_threshold)
-    verylikelybad_threshold = default_thresholds.get('verylikelybad',{})
-    verylikelybad_threshold_str = json.dumps(verylikelybad_threshold)
-    if not all([maybebad_threshold_str in found_maybebad_thresholds,
-               likelybad_threshold_str in found_likelybad_thresholds,
-                verylikelybad_threshold_str in found_verylikelybad_thresholds]):
 
-        found_maybebad_thresholds.add(maybebad_threshold_str)
-        found_likelybad_thresholds.add(likelybad_threshold_str)
-        found_verylikelybad_thresholds.add(verylikelybad_threshold_str)
-        damaging_maybebad_min.append(maybebad_threshold.get('min',None))
-        damaging_maybebad_max.append(maybebad_threshold.get('max',None))
-        damaging_likelybad_min.append(likelybad_threshold.get('min',None))
-        damaging_likelybad_max.append(likelybad_threshold.get('max',None))
-        damaging_verylikelybad_min.append(verylikelybad_threshold.get('min',None))
-        damaging_verylikelybad_max.append(verylikelybad_threshold.get('max',None))
-        dates.append(commit_dt)
+repo.git.checkout('-f',commit)
+config = json.load(open("../mediawiki-extensions-ORES/extension.json",'r'))
+dmg_default_thresholds = config.get('config',{}).get('OresFiltersThresholds',{}).get("value",{}).get("damaging",{})
+gf_default_thresholds = config.get('config',{}).get('OresFiltersThresholds',{}).get("value",{}).get("goodfaith",{})
+commit_dt = commit.committed_datetime
 
-# damaging_maybebad_min damaging_maybebad_max damaging_likelybad_min damaging_likelybad_max damaging_verylikelybad_min damaging_verylikelybad_max
+dmg_likelygood_threshold = dmg_default_thresholds.get('likelygood',{})
+dmg_maybebad_threshold = dmg_default_thresholds.get('maybebad',{})
+dmg_likelybad_threshold = dmg_default_thresholds.get('likelybad',{})
+dmg_verylikelybad_threshold = dmg_default_thresholds.get('verylikelybad',{})
+gf_likelygood_threshold = gf_default_thresholds.get('likelygood',{})
+gf_maybebad_threshold = gf_default_thresholds.get('maybebad',{})
+gf_likelybad_threshold = gf_default_thresholds.get('likelybad',{})
 
-defaults = pd.DataFrame({"date":dates,
-                         "damaging_maybebad_min":damaging_maybebad_min,
-                         "damaging_maybebad_max":damaging_maybebad_max,
-                         "damaging_likelybad_min":damaging_likelybad_min,
-                         "damaging_likelybad_max":damaging_likelybad_max,
-                         "damaging_verylikelybad_min":damaging_verylikelybad_min,
-                         "damaging_verylikelybad_max":damaging_verylikelybad_max})
+## this value is "False"
+gf_verylikelybad_threshold = gf_default_thresholds.get('verylikelybad',{})
 
-defaults.to_json("./data/deafult_threshholds.json")
+defaults = {    "damaging_likelygood_min": dmg_likelygood_threshold['min'], 
+    "damaging_likelygood_max": dmg_likelygood_threshold['max'],
+    "damaging_maybebad_min": dmg_maybebad_threshold['min'],
+    "damaging_maybebad_max": dmg_maybebad_threshold['max'],
+    "damaging_likelybad_min": dmg_likelybad_threshold['min'],
+    "damaging_likelybad_max": dmg_likelybad_threshold['max'],
+    "damaging_verylikelybad_min": dmg_verylikelybad_threshold['min'],
+    "damaging_verylikelybad_max": dmg_verylikelybad_threshold['max'],
+    "goodfaith_likelygood_min": gf_likelygood_threshold['min'], 
+    "goodfaith_likelygood_max": gf_likelygood_threshold['max'],
+    "goodfaith_maybebad_min": gf_maybebad_threshold['min'],
+    "goodfaith_maybebad_max": gf_maybebad_threshold['max'],
+    "goodfaith_likelybad_min": gf_likelybad_threshold['min'],
+    "goodfaith_likelybad_max": gf_likelybad_threshold['max'],
+    "goodfaith_verylikelybad_min": None,
+    "goodfaith_verylikelybad_max": None}
+
+json.dump(defaults,open("./data/default_threshholds.json",'w'))
