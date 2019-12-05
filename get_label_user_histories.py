@@ -8,7 +8,7 @@ import pyspark.sql.functions as f
 reader = spark.read
 
 # ok we can get the table
-label_editors = reader.parquet("/user/nathante/ores_bias/nathante.ores_label_editors")
+label_editors = reader.parquet("/user/nathante/ores_bias_data/ores_label_editors")
 
 # get the edit history
 mw_hist = reader.table("wmf.mediawiki_history")
@@ -72,5 +72,5 @@ label_editors = label_editors.drop("is_newcomer")
 label_editors = label_editors.withColumnRenamed("is_newcomer_2", "is_newcomer")
 
 pddf = label_editors.toPandas()
-pddf.to_pickle("labeled_newcomers_anons.pickle")
-pddf.to_csv("labeled_newcomers_anons.tsv", sep='\t')
+pddf.to_pickle("data/labeled_newcomers_anons.pickle")
+pddf.to_csv("data/labeled_newcomers_anons.tsv", sep='\t')

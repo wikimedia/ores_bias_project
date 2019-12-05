@@ -7,6 +7,8 @@ import pandas as pd
 import pyarrow.parquet as pq
 from get_labels import load_labels
 import json 
+import pickle
+siteList = dict(pickle.load(open("data/wikimedia_sites.pickle",'rb')))
 
 def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
@@ -19,22 +21,27 @@ def get_editor_traits(labels, context, out_schema):
     rev_ids = [json.loads(label)['rev_id'] for label in labels]
     # special case for wikidata, esbooks
 
+    host = siteList[context]
+
     if context == "wikidatawiki":
         host= "https://wikidata.org".format(context.replace("wiki",""))
     elif context == "eswikibooks":
         host= "https://es.wikibooks.org".format(context.replace("wiki",""))
     elif context == "eswikiquote":
         host= "https://es.wikiquote.org".format(context.replace("wiki",""))
-    else:
-        host= "https://{0}.wikipedia.org".format(context.replace("wiki",""))
+        ##simple wiki uses the same model as enwiki
 
     user_agent="Ores bias analysis project by Nate TeBlunthuis <groceryheist@uw.edu>"
+
     session = mwapi.Session(host,user_agent)
 
     batches = grouper(rev_ids, 50)
 
     def table_results(batch, context):
-        resultset = batch['query']['pages']
+        resultset = batch['query'].get('pages', [])
+        if resultset == []:
+            print("no pages found in batch for {0}".format(context))
+            import pdb; pdb.set_trace()
         for _, page_id in enumerate(resultset):
             row = {}
             result = resultset[page_id]
@@ -77,14 +84,14 @@ def move_labels_to_datalake(label_files, wikis):
 
     fs = pa.hdfs.connect(host='an-coord1001.eqiad.wmnet', port=10000)
     fs = fs.connect()
-    parquet_path = "/user/nathante/ores_bias_data/nathante.ores_label_editors"
+    parquet_path = "/user/nathante/ores_bias_data/ores_label_editors"
     if fs.exists(parquet_path):
         fs.rm(parquet_path, recursive=True)
 
     out_schema = ['wiki', 'ns','pageid','title','revid','parentid','user','userid']
     print("collecting userids")
 
-    for label_file, context in zip(label_files,wikis):
+    for label_file, context in zip(label_files, wikis):
         if label_file is not None:
 
             labels = load_labels(label_file)

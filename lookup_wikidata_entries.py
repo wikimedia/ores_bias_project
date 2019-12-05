@@ -16,9 +16,9 @@ spark = SparkSession(sc)
 # spark = SparkSession.builder.config(conf=conf).getOrCreate()
 
 reader = spark.read
-ores_labels = "/user/nathante/ores_bias/nathante.ores_label_editors"
-wikidata_parquet = "/user/joal/wmf/data/wmf/mediawiki/wikidata_parquet/20190204"
-mapping_parquet = "/user/joal/wmf/data/wmf/wikidata/item_page_link/20190204"
+ores_labels = "/user/nathante/ores_bias_data/ores_label_editors"
+wikidata_parquet = "/user/joal/wmf/data/wmf/mediawiki/wikidata_parquet/20191202"
+mapping_parquet = "/user/joal/wmf/data/wmf/wikidata/item_page_link/20191202"
 
 labels = reader.parquet(ores_labels)
 
@@ -73,4 +73,4 @@ values = values.filter( (f.col("valueid")=="Q5") | (f.col("property")=="P21") | 
 
 pddf = values.toPandas()
 
-pddf.to_pickle("page_wikidata_properties.pickle")
+pddf.to_pickle("data/page_wikidata_properties.pickle")
