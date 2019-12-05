@@ -23,7 +23,7 @@ def _score_labels(label_file_wikis, mock_date=default_mock_date):
         tmpfilename = "temp_files/{0}_label_revids.tmp".format(wiki)
         with open(tmpfilename,'w') as of:
             of.write("rev_id\n")
-            of.writelines('\n'.join(str(id) for id in revids[0:10]))
+            of.writelines('\n'.join(str(id) for id in revids))
 
         wiki_db = wiki
         date = mock_date
