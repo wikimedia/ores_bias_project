@@ -43,4 +43,4 @@ defaults = {    "damaging_likelygood_min": dmg_likelygood_threshold['min'],
     "goodfaith_verylikelybad_min": None,
     "goodfaith_verylikelybad_max": None}
 
-json.dump(defaults,open("./data/default_threshholds.json",'w'))
+json.dump(defaults,open("./data/default_thresholds.json",'w'))
