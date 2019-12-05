@@ -45,7 +45,7 @@ pivoted.loc[with_latlong,"reverse_geocode"] = pivoted.loc[with_latlong,['latitud
 
 pivoted.loc[with_latlong,"country_code"] = pivoted.loc[with_latlong,:].apply(lambda r: r.reverse_geocode[0]['country_code'], axis=1)
 
-canonical_countries = pd.read_feather("canonical_data.countries.feather")
+canonical_countries = pd.read_feather("data/canonical_data.countries.feather")
 
 df = pd.merge(pivoted, canonical_countries, left_on="country_code", right_on='iso_code', how='left')
 
