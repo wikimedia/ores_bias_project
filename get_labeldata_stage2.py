@@ -4,7 +4,7 @@ import pandas as pd
 import reverse_geocode
 import feather
 
-pddf2 = pd.read_pickle("page_wikidata_properties.pickle")
+pddf2 = pd.read_pickle("data/page_wikidata_properties.pickle")
 
 pivoted = pddf2.pivot_table(index=['entityid','wiki','pageid','title','user','userid','title_namespace_localized','revid'],
                           columns='property',
