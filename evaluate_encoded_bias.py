@@ -19,39 +19,34 @@ theme_set(theme_bw())
 wikis = load_wikis()
 makefile = load_makefile()
 label_files = list(map(lambda x: grep_labelfile(x, makefile), wikis))
+scored_labels = dict(pickle.load(open("data/scored_labels.pickle",'rb')))
 
 def load_scored_labels(label_file, context):
-
-    filename = "data/scored_labels/{0}".format(
-        os.path.split(label_file)[1])
-
-    if not os.path.exists(filename):
-        os.chdir('editquality')
-        subprocess.call(['make', label_file])
-        os.chdir("..")
-
-    labels = (json.loads(l) for l in open(filename, 'r'))
+    
     missing_revs = open("missing_revisions.txt", 'w')
-    for label in labels:
-        row = {}
-        if "score" not in label:
-            import pdb; pdb.set_trace();
-            
-        score = label['score']
+    wiki_scored_labels = scored_labels.get(context,None)
+    row = {}
+    if wiki_scored_labels is None:
+        return None
 
-        if 'damaging' in label:
-            row['true_damaging'] = label['damaging']
-        else:
-            row['true_damaging'] = None
+    for record in wiki_scored_labels:
+        label = record['label']
 
-        if 'goodfaith' in label:
-            row['true_goodfaith'] = label['goodfaith']
-        else:
-            row['true_goodfaith'] = None
+        row['true_damaging'] = label.get('damaging', None)
+        row['true_goodfaith'] = label.get('goodfaith', None)
 
-        if 'score' in score['damaging']:
-            row['prob_damaging'] = score['damaging']['score']['probability']['true']
-            row['prob_goodfaith'] = score['goodfaith']['score']['probability']['true']
+
+        damaging = record.get('damaging',{})
+        if isinstance(damaging,str):
+            damaging = json.loads(damaging)
+
+        goodfaith = record.get('goodfaith',{})
+        if isinstance(goodfaith,str):
+            goodfaith = json.loads(goodfaith)
+
+        row['prob_damaging'] = damaging.get('probability',{}).get('true',None)
+        row['prob_goodfaith'] = goodfaith.get('probability',{}).get('true',None)
+
             # These are the labels based on the default threshholds
             # But for fair comparison between the different wikis
             # I chose to choose threshholds with fpr ~= fnr
@@ -66,7 +61,9 @@ def load_scored_labels(label_file, context):
 rows = itertools.chain(* [load_scored_labels(label_file, context)
                           for label_file, context in zip(label_files, wikis)])
 
-df_labels = pd.DataFrame(list(rows))
+rows = [r for r in rows if r is not None]
+
+df_labels = pd.DataFrame(rows)
 df_labels = df_labels.set_index("rev_id")
 
 df_editors = pd.read_pickle(os.path.join('data',"labeled_newcomers_anons.pickle"))
