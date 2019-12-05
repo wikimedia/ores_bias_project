@@ -8,16 +8,6 @@ repo = git.Repo("../mediawiki-extensions-ORES")
 repo.git.checkout("-f","master")
 # we only use the last commit
 commit = list(repo.iter_commits(paths="extension.json", until=datetime.datetime(2019,12,1)))[0]
-found_maybebad_thresholds = set()
-found_likelybad_thresholds = set()
-found_verylikelybad_thresholds = set()
-dates = []
-damaging_maybebad_min = []
-damaging_maybebad_max = []
-damaging_likelybad_min = []
-damaging_likelybad_max = []
-damaging_verylikelybad_min = []
-damaging_verylikelybad_max = []
 
 repo.git.checkout('-f',commit)
 config = json.load(open("../mediawiki-extensions-ORES/extension.json",'r'))
