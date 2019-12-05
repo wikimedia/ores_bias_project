@@ -18,7 +18,7 @@ call_log = "syscalls.sh"
 # loop here sleep before we check for a hang.
 def tryWaitKill(proc):
     try:
-        proc.wait(5)
+        proc.wait(30)
     except psutil.TimeoutExpired as e:
         
         if proc.status() == psutil.STATUS_ZOMBIE:
@@ -67,11 +67,11 @@ def reap_children(proc, timeout=3):
             for p in alive:
                 print("process {} survived SIGKILL; giving up".format(p))
 
-def tryparsefloat(s):
+def tryparsefloat(s, default = None):
     try:
         return float(s)
-    except ValueError as e:
-        return None
+    except (ValueError, TypeError) as e:
+        return default
     
 class Ores_Archaeologist(object):
 
@@ -170,17 +170,20 @@ class Ores_Archaeologist(object):
         default_thresholds = json.load(open("data/default_thresholds.json",'r'))
 
         def lookup_threshold(key, threshold):
+
             value = tryparsefloat(threshold)
-            if value is not None:
+            if value is not None and not pd.isna(value):
                 return value
+
             if pd.isna(value) or len(threshold)==0:
                 # pre_cutoff_thresholds = default_thresholds.loc[default_thresholds.date<=row.deploy_dt]
                 # min_dt = pre_cutoff_thresholds.date.max()
                 # threshold = list(pre_cutoff_thresholds.loc[pre_cutoff_thresholds.date==min_dt,key])[0]
-                threshold = default_thresholds.get(key,np.nan)
+                default = default_thresholds.get(key,np.nan)
+                threshold = tryparsefloat(default, default)
                 if isinstance(threshold, float):
                     return threshold
-
+            
             if key.startswith('goodfaith'):
                 model_type = 'goodfaith'
             else:

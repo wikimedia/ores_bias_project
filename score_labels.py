@@ -1,14 +1,12 @@
 
-
 import json
 import os
 from get_labels import load_labels
-from ores.utilities.score_revisions import run as call_ores
 from ores_archaeologist import Ores_Archaeologist
-from helper import SiteList
 from datetime import datetime
 import pandas as pd
-siteList = dict(SiteList.from_api())
+import pickle
+siteList = dict(pickle.load(open("data/wikimedia_sites.pickle",'rb')))
 
 default_mock_date = datetime(2019,12,1)
 # instead of ores we want to use ores_archaeologist to score the revisions so we can them for a
@@ -86,7 +84,7 @@ def get_thresholds(wikis, mock_date = default_mock_date, load_environment = True
     cutoffs = pd.merge(cutoffs, last_deploy, on=['wiki_db','deploy_dt'])
     
     load_environment = False
-    thresholds = [oa.get_all_thresholds(cutoffs["wiki_db"] == wiki_db], wiki_db, mock_date, load_environment]
+    thresholds = [oa.get_all_thresholds(cutoffs[cutoffs["wiki_db"] == wiki_db], wiki_db, mock_date, load_environment) for wiki_db in wikis]
     return pd.concat(thresholds, sort=True)
 
 
