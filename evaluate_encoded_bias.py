@@ -11,25 +11,23 @@ import subprocess
 from confidence_levels import ORESConfidenceLevel, dmg_levels, gf_levels
 import pickle
 
-# rpy2 doesn't work on wmf machines, so we'll pickle it here and then run rpy2 on my laptop. 
-remember = {}
+from pyRemembeR import Remember
+remember = Remember("paper/evaluate_encoded_bias.RDS")
 
 theme_set(theme_bw())
 
 wikis = load_wikis()
 makefile = load_makefile()
-label_files = list(map(lambda x: grep_labelfile(x, makefile), wikis))
-scored_labels = dict(pickle.load(open("data/scored_labels.pickle",'rb')))
 
 def load_scored_labels(label_file, context):
-    
     missing_revs = open("missing_revisions.txt", 'w')
     wiki_scored_labels = scored_labels.get(context,None)
-    row = {}
+
     if wiki_scored_labels is None:
-        return None
+        wiki_scored_labels = []
 
     for record in wiki_scored_labels:
+        row = {}
         label = record['label']
 
         row['true_damaging'] = label.get('damaging', None)
@@ -42,7 +40,20 @@ def load_scored_labels(label_file, context):
 
         goodfaith = record.get('goodfaith',{})
         if isinstance(goodfaith,str):
-            goodfaith = json.loads(goodfaith)
+            try:
+                goodfaith = json.loads(goodfaith)
+            except json.JSONDecodeError as e:
+                print(goodfaith)
+                missing_revs.write(goodfaith+"\n")
+                continue
+
+        if isinstance(damaging,str):
+            try:
+                damaging = json.loads(damaging)
+            except json.JSONDecodeError as e:
+                print(damaging)
+                missing_revs.write(damaging+"\n")
+                continue
 
         row['prob_damaging'] = damaging.get('probability',{}).get('true',None)
         row['prob_goodfaith'] = goodfaith.get('probability',{}).get('true',None)
@@ -57,6 +68,11 @@ def load_scored_labels(label_file, context):
         row['wiki'] = context
 
         yield row
+
+    missing_revs.close()
+
+label_files = list(map(lambda x: grep_labelfile(x, makefile), wikis))
+scored_labels = dict(pickle.load(open("data/scored_labels.pickle",'rb')))
 
 rows = itertools.chain(* [load_scored_labels(label_file, context)
                           for label_file, context in zip(label_files, wikis)])
@@ -169,7 +185,7 @@ def build_plot_dataset(rates, prefix):
 
 def make_plots(rates, suffix1, suffix2):
     fp_rates_damaging = build_plot_dataset(rates, 'fp_dmg')
-    remember['fp_rates_damaging_{0}_{1}'.format(suffix1, suffix2)] = fp_rates_damaging
+    remember(fp_rates_damaging,'fp_rates_damaging_{0}_{1}'.format(suffix1, suffix2))
     
     fp_rates_damaging.variable.cat.reorder_categories(['fp_dmg_unlikely', 'fp_dmg_maybe','fp_dmg_likely','fp_dmg_very_likely'],ordered=True,inplace=True)
 
@@ -181,11 +197,11 @@ def make_plots(rates, suffix1, suffix2):
     p = p + ggtitle("Bias of damaging model against {0}".format(suffix1))
     p = p + theme(legend_position='right')
     p = p + theme(legend_title=element_blank())
-    p.save("Damaging_fpr_{0}.png".format(suffix2),width=18, height=8,units='in')
+    p.save("bias_plots/Damaging_fpr_{0}.png".format(suffix2),width=18, height=8,units='in')
 
     fn_rates_damaging = build_plot_dataset(rates, 'fn_dmg')
 
-    remember['fn_rates_damaging_{0}_{1}'.format(suffix1, suffix2)] = fn_rates_damaging
+    remember(fn_rates_damaging,'fn_rates_damaging_{0}_{1}'.format(suffix1, suffix2))
 
     fn_rates_damaging.variable.cat.reorder_categories(['fn_dmg_unlikely', 'fn_dmg_maybe','fn_dmg_likely','fn_dmg_very_likely'],ordered=True,inplace=True)
 
@@ -197,10 +213,10 @@ def make_plots(rates, suffix1, suffix2):
     p = p + ggtitle("Bias of damaging model against {0}".format(suffix1))
     p = p + theme(legend_position='right')
     p = p + theme(legend_title=element_blank())
-    p.save("Damaging_fnr_{0}.png".format(suffix2),width=18, height=8,units='in')
+    p.save("bias_plots/Damaging_fnr_{0}.png".format(suffix2),width=18, height=8,units='in')
 
     fp_rates_goodfaith = build_plot_dataset(rates, 'fp_gf')
-    remember['fp_rates_goodfaith_{0}_{1}'.format(suffix1, suffix2)] = fp_rates_goodfaith
+    remember(fp_rates_goodfaith, 'fp_rates_goodfaith_{0}_{1}'.format(suffix1, suffix2))
 
     fp_rates_goodfaith.variable.cat.reorder_categories(['fp_gf_very_likely', 'fp_gf_likely','fp_gf_unlikely','fp_gf_very_unlikely'],ordered=True,inplace=True)
 
@@ -212,10 +228,10 @@ def make_plots(rates, suffix1, suffix2):
     p = p + ggtitle("Bias of goodfaith model against {0}".format(suffix1))
     p = p + theme(legend_position='right')
     p = p + theme(legend_title=element_blank())
-    p.save("Goodfaith_fpr_{0}.png".format(suffix2),width=18, height=8,units='in')
+    p.save("bias_plots/Goodfaith_fpr_{0}.png".format(suffix2),width=18, height=8,units='in')
 
-    fn_rates_goodfaith = build_plot_dataset(rates, 'fn_gfa')
-    remember['fn_rates_goodfaith_{0}_{1}'.format(suffix1, suffix2)] = fn_rates_goodfaith
+    fn_rates_goodfaith = build_plot_dataset(rates, 'fn_gf')
+    remember(fn_rates_goodfaith,'fn_rates_goodfaith_{0}_{1}'.format(suffix1, suffix2))
 
     fn_rates_goodfaith.variable.cat.reorder_categories(['fn_gf_very_likely', 'fn_gf_likely','fn_gf_unlikely','fn_gf_very_unlikely'],ordered=True,inplace=True)
 
@@ -227,7 +243,7 @@ def make_plots(rates, suffix1, suffix2):
     p = p + ggtitle("Bias of goodfaith model against {0}".format(suffix1))
     p = p + theme(legend_position='right')
     p = p + theme(legend_title=element_blank())
-    p.save("Goodfaith_fnr_{0}.png".format(suffix2),width=18, height=8,units='in')
+    p.save("bias_plots/Goodfaith_fnr_{0}.png".format(suffix2),width=18, height=8,units='in')
 
     p = ggplot(rates, aes(x='wiki', y='dmg_miscalibration_mean',ymax='dmg_miscalibration_upper',ymin='dmg_miscalibration_lower',
                           group='group', color='group', fill='group'))
@@ -235,7 +251,7 @@ def make_plots(rates, suffix1, suffix2):
     p = p + ylab("P_model(damaging) - P(damaging)")
     p = p + ggtitle("Calibration of ORES damaging model for {0}".format(suffix1))
     p = p + theme(legend_title = element_blank())
-    p.save("damaging_miscalibration_{0}.png".format(suffix2), width=12, height=8, unit='cm')
+    p.save("bias_plots/damaging_miscalibration_{0}.png".format(suffix2), width=12, height=8, unit='cm')
 
     p = ggplot(rates, aes(x='wiki', y='gf_miscalibration_mean',ymax='gf_miscalibration_upper',ymin='gf_miscalibration_lower',
                           group='group', color='group', fill='group'))
@@ -243,11 +259,11 @@ def make_plots(rates, suffix1, suffix2):
     p = p + ylab("P_model(goodfaith) - P(goodfaith)")
     p = p + ggtitle("Calibration of ORES goodfaith model on {0}".format(suffix1))
     p = p + theme(legend_title = element_blank())
-    p.save("goodfaith_miscalibration_{0}.png".format(suffix2), width=12, height=8, unit='cm')
+    p.save("bias_plots/goodfaith_miscalibration_{0}.png".format(suffix2), width=12, height=8, unit='cm')
 
 
 rates = build_rates(df, dmg_levels, gf_levels)
-remember['newanon_bias_rates'] = rates
+remember(rates, 'newanon_bias_rates')
 
 make_plots(rates, "newcomers and anons", "newanon")
 
@@ -271,7 +287,7 @@ df.loc[df.sexorgender == 'male', 'group'] = 'men'
 df.loc[df.sexorgender == 'female', 'group'] = 'women'
 
 rates = build_rates(df, dmg_levels, gf_levels)
-remember['gender_bias_rates'] = rates
+remember(rates,'gender_bias_rates')
 
 make_plots(rates, "revisions to articles on women", "gender")
 
@@ -296,8 +312,5 @@ df.loc[df.economic_region == 'Global North', 'group'] = 'Global North'
 df.loc[df.economic_region == 'Global South', 'group'] = 'Global South'
 
 rates = build_rates(df, dmg_levels, gf_levels)
-remember['global_north_bias_rates'] = rates
+remember(rates,'global_north_bias_rates')
 make_plots(rates, "articles on the Global South", "geo") 
-
-with open("bias_remember.pickle",'wb') as of:
-    pickle.dump(remember, of)
