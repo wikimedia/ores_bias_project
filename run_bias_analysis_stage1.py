@@ -5,7 +5,7 @@ from score_labels import score_labels, get_thresholds
 import pickle
 import subprocess
 
-ignore_wikis = ['test2wiki','euwiki','testwiki','mediawikiwiki']
+ignore_wikis = ['test2wiki','euwiki','testwiki','mediawikiwiki','simplewiki']
 wikis = [wiki for wiki in load_wikis() if wiki not in ignore_wikis]
 
 makefile = load_makefile()
