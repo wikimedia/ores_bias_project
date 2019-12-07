@@ -13,6 +13,7 @@ import shutil
 from functools import partial
 import psutil
 
+siteList = dict(pickle.load(open("data/wikimedia_sites.pickle",'rb')))
 call_log = "syscalls.sh"
 
 # loop here sleep before we check for a hang.
@@ -280,25 +281,27 @@ class Ores_Archaeologist(object):
         if preprocess:
             cutoff_revisions = self.preprocess_cutoff_history(cutoff_revisions)
 
+
         # for period 1 use the latest model
         period_1 = cutoff_revisions.loc[cutoff_revisions.period=='period1']
         period_2 = cutoff_revisions.loc[cutoff_revisions.period=='period2']
         time_last_commit = period_2.groupby('wiki_db').event_timestamp.max().reset_index()
+
         last_commit = pd.merge(period_2, time_last_commit, on=['wiki_db','event_timestamp']).reset_index()
         last_commit = last_commit.loc[:,['wiki_db','commit']]
         period_1 = period_1.drop('commit', 1)
-        period_1 = pd.merge(period_1, last_commit, on=['wiki_db'])
-        cutoff_revisions = pd.concat([period_1, period_2], sort=True)
-
+        period_1 = pd.merge(period_1, last_commit, on=['wiki_db'], how='outer')
+        cutoff_revisions = pd.concat([period_1, period_2], sort=False)
         parts = []
         for commit in set(cutoff_revisions.commit):
             scored_revisions = self.score_commit_revisions(commit, cutoff_revisions, preprocess=False, load_environment=True, use_cache=use_cache, add_thresholds=add_thresholds)
             parts.append(scored_revisions)
 
         result =  pd.concat(parts,
-                         sort=False,
-                         ignore_index=True)
-        
+                            sort=False,
+                            ignore_index=True)
+
+
         scored_revids = result.loc[:,["wiki_db", "revision_id", "prob_damaging"]]
         scored_revids.to_pickle(self.cache_file)
 
@@ -335,12 +338,16 @@ class Ores_Archaeologist(object):
         if load_environment:
             load_model_environment(commit=commit, wiki_db=wiki_db)
 
-
+        all_revisions['prob_damaging'] = pd.np.nan
+        all_revisions['revscoring_error'] = ""
         if use_cache is True:
             if os.path.exists(self.cache_file):
                 cached_scores = pd.read_pickle(self.cache_file)
+                cached_scores = cached_scores.loc[~cached_scores.revision_id.isna()]
+                cached_scores.set_index(['wiki_db','revision_id'],inplace=True, verify_integrity=True)
+                all_revisions.set_index(['wiki_db','revision_id'],inplace=True, verify_integrity=True)
+                all_revisions.update(cached_scores, join='left', overwrite=True)
 
-        all_revisions = pd.merge(all_revisions,cached_scores, on=['wiki_db','revision_id'])
 
         # don't score revisions we have already scored
         if 'prob_damaging' in all_revisions.columns and not all_revisions.prob_damaging.isna().any():
@@ -348,10 +355,14 @@ class Ores_Archaeologist(object):
 
         uri = siteList[wiki_db]
 
+        all_revisions.reset_index(inplace=True)
+
         if use_cache is False:
-            wiki_db_revisions = all_revisions.loc[(all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit)]
+            scored_idx = (all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit)
         else:
-            wiki_db_revisions = all_revisions.loc[(all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit) & (all_revisions.prob_damaging.isna())]
+            scored_idx = (all_revisions.wiki_db == wiki_db) & (all_revisions.commit==commit) & (all_revisions.prob_damaging.isna())
+
+        wiki_db_revisions = all_revisions.loc[scored_idx]
 
         revids = list(wiki_db_revisions.revision_id)
         # write revids to a temporary file
@@ -403,12 +414,18 @@ class Ores_Archaeologist(object):
 
         if len(scores) > 0:
             scores = pd.DataFrame.from_records(scores)
-            all_revisions = pd.merge(all_revisions, scores, on=['revision_id'], how='left')
+            all_revisions.set_index(['revision_id'], inplace=True)
+
+            scores.set_index(['revision_id'], inplace=True)
+                        
+            all_revisions.update(scores, join='left', overwrite=True)
 
         else:
             all_revisions.loc[:, 'prob_damaging'] = np.NaN
             all_revisions.loc[:, "revscoring_error"] = "Unknown error. Check log. Process died?"
 
+
+        all_revisions.reset_index(inplace=True)
 
         if add_thresholds is True:
             all_revisions = self.lookup_revision_thresholds(all_revisions)
@@ -454,12 +471,12 @@ class Ores_Archaeologist(object):
                           'goodfaith_verylikelybad_min']
                                         
         cutoffs = cutoffs.loc[cutoffs.deploy_dt == deploy_dt].reset_index()
-                
-        thresholds = self.get_all_thresholds(cutoffs)
+
+        thresholds = self.get_all_thresholds(cutoffs, wiki_db=wiki_db, date=deploy_dt)
 
         value_names = [s+'_value' for s in threshold_names]
 
-        revisions = pd.concat([revisions, thresholds.loc[:,value_names + threshold_names]])
+        revisions = pd.concat([revisions, thresholds.loc[:,value_names + threshold_names]], sort=False)
         return revisions
             
         
@@ -490,6 +507,7 @@ class Ores_Archaeologist(object):
         cutoff_revisions = cutoff_revisions.loc[cutoff_revisions.wiki_db.isin(wikis_with_models),:]
 
         commits = cutoff_revisions.apply(lambda row: lookup_commit_from_wiki_date(row.wiki_db, row.event_timestamp), axis=1)
+
 
         cutoff_revisions['commit'] = commits
 
