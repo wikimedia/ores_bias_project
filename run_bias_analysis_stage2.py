@@ -22,4 +22,4 @@ subprocess.call(["/usr/lib/spark2/bin/spark-submit", "--name","lookup wikidata e
 
 subprocess.call(["/usr/lib/spark2/bin/spark-submit", "--name","get labeldata stage2", "--master", "yarn", "--conf", "spark.driver.memory=4g","--conf", "spark.executor.memory=8g","--conf", "spark.executor.memoryOverhead=2g",  "get_labeldata_stage2.py"])
 
-subprocess.call("./evaluate_encoded_bias.py")
+## Next run evaluate_encoded_bias on my laptop :)
