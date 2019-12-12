@@ -490,6 +490,30 @@ class Ores_Archaeologist(object):
 
         # merge and return.
         
+    def build_thresholds_table(self):
+        chunks = []
+        commit_wikis = {}
+        for wiki_db, dc in wiki_date_commits.items():
+            for date, commit in dc.items():
+                if commit in commit_wikis:
+                    commit_wikis[commit].append((wiki, date))
+                else:
+                    commit_wikis[commit] = [(wiki, date)]
+
+        for commit, (wiki, date) in commit_wikis.items():
+            first = True
+            for wiki in wikis:
+                fake_cutoffs = pd.DataFrame({"wiki_db":[wiki],
+                                             "date":date,
+                                             "commit":[commit],
+                                             "deploy_dt":date}
+                )
+                
+                wiki_thresholds = self.get_all_thresholds(fake_cutoffs, wiki_db, None, load_environment=first)
+                first=False
+                chunks.append(wiki_thresholds)
+        return(pd.concat(chunks, 0, sort=False))
+                
 
     def preprocess_cutoff_history(self, cutoff_revisions):
         
