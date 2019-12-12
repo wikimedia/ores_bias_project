@@ -338,6 +338,9 @@ class Ores_Archaeologist(object):
         if load_environment:
             load_model_environment(commit=commit, wiki_db=wiki_db)
 
+        if add_thresholds is True:
+            all_revisions = self.lookup_revision_thresholds(all_revisions)
+
         all_revisions['prob_damaging'] = pd.np.nan
         all_revisions['revscoring_error'] = ""
         if use_cache is True:
@@ -426,9 +429,6 @@ class Ores_Archaeologist(object):
 
 
         all_revisions.reset_index(inplace=True)
-
-        if add_thresholds is True:
-            all_revisions = self.lookup_revision_thresholds(all_revisions)
             
         return all_revisions
         
@@ -440,6 +440,7 @@ class Ores_Archaeologist(object):
         # find the correct threshold strings for these revisions
         cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv", parse_dates=['deploy_dt'])
 
+        revisions = revisions.reset_index()
         wiki_db = revisions.wiki_db[0]
         cutoffs = cutoffs.loc[cutoffs.wiki_db == wiki_db]
         cutoffs = cutoffs.sort_values('deploy_dt')
@@ -454,7 +455,7 @@ class Ores_Archaeologist(object):
         commit = revisions.commit[0]
 
         threshold_names =['damaging_likelybad_min', 
-                          'damaging_likelybad_max'
+                          'damaging_likelybad_max',
                           'damaging_likelygood_max',
                           'damaging_likelygood_min',
                           'damaging_maybebad_max',
@@ -476,7 +477,9 @@ class Ores_Archaeologist(object):
 
         value_names = [s+'_value' for s in threshold_names]
 
-        revisions = pd.concat([revisions, thresholds.loc[:,value_names + threshold_names]], sort=False)
+        revisions.assign(**dict(thresholds.loc[:,value_names + threshold_names].iloc[0]))
+
+#        revisions = pd.concat([revisions, thresholds.loc[:,value_names + threshold_names]], axis=1, sort=False)
         return revisions
             
         
