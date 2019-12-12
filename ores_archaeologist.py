@@ -192,6 +192,7 @@ class Ores_Archaeologist(object):
                 
 
             res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=(first & load_environment))
+
             if res is not None:
                 value = res.split('\t')[1]
                 return tryparsefloat(value)
@@ -229,6 +230,7 @@ class Ores_Archaeologist(object):
                 threshold = row[key]
                 value = lookup_threshold(key, threshold)
                 row[string_value_dict[key]] = value
+                first = False
             output_rows.append(row)
 
         result = pd.DataFrame.from_records(output_rows)
@@ -491,27 +493,39 @@ class Ores_Archaeologist(object):
         # merge and return.
         
     def build_thresholds_table(self):
+        cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv",parse_dates=['deploy_dt'])
+        cutoffs = cutoffs.sort_values(['deploy_dt'])
+        max = 2
         chunks = []
         commit_wikis = {}
-        for wiki_db, dc in wiki_date_commits.items():
+        for wiki, dc in wiki_date_commits.items():
             for date, commit in dc.items():
                 if commit in commit_wikis:
                     commit_wikis[commit].append((wiki, date))
                 else:
                     commit_wikis[commit] = [(wiki, date)]
 
-        for commit, (wiki, date) in commit_wikis.items():
+        for commit, wiki_date in commit_wikis.items():
             first = True
-            for wiki in wikis:
+            for wiki, date in wiki_date:
                 fake_cutoffs = pd.DataFrame({"wiki_db":[wiki],
                                              "date":date,
                                              "commit":[commit],
                                              "deploy_dt":date}
                 )
+
+                # find the nearest true cutoff
+                fake_cutoffs = pd.merge_asof(fake_cutoffs, cutoffs, left_on="date", right_on="deploy_dt", left_by="wiki_db", right_by="wiki_db",direction='backward')
+
+                fake_cutoffs = fake_cutoffs.rename(columns={"deploy_dt_x":"deploy_dt"})
+
                 
-                wiki_thresholds = self.get_all_thresholds(fake_cutoffs, wiki_db, None, load_environment=first)
+                wiki_thresholds = self.get_all_thresholds(fake_cutoffs, wiki, None, load_environment=first)
                 first=False
                 chunks.append(wiki_thresholds)
+            max = max - 1
+            if max < 0:
+                break
         return(pd.concat(chunks, 0, sort=False))
                 
 
@@ -562,6 +576,10 @@ class Ores_Archaeologist_Api():
             with open(output,'w') as of:
                 of.write(csv)
         return csv
+
+    def build_thresholds_table(self, output=None):
+        cls = Ores_Archaeologist()
+        return self._wrap(cls.build_thresholds_table, output)
 
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=False, wrap=False, output=None):
 
