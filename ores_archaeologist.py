@@ -12,6 +12,7 @@ import numpy as np
 import shutil
 from functools import partial
 import psutil
+import datetime
 
 siteList = dict(pickle.load(open("data/wikimedia_sites.pickle",'rb')))
 call_log = "syscalls.sh"
@@ -495,18 +496,18 @@ class Ores_Archaeologist(object):
     def build_thresholds_table(self):
         cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv",parse_dates=['deploy_dt'])
         cutoffs = cutoffs.sort_values(['deploy_dt'])
-        max = 2
         chunks = []
         commit_wikis = {}
         for wiki, dc in wiki_date_commits.items():
             for date, commit in dc.items():
-                if commit in commit_wikis:
-                    commit_wikis[commit].append((wiki, date))
-                else:
-                    commit_wikis[commit] = [(wiki, date)]
+                if date > datetime.datetime(2017,5,1):
+                    if commit in commit_wikis:
+                        commit_wikis[commit].append((wiki, date))
+                    else:
+                        commit_wikis[commit] = [(wiki, date)]
 
         for commit, wiki_date in commit_wikis.items():
-            first = True
+            load_model_environment(date=None, commit=commit)
             for wiki, date in wiki_date:
                 fake_cutoffs = pd.DataFrame({"wiki_db":[wiki],
                                              "date":date,
@@ -520,12 +521,8 @@ class Ores_Archaeologist(object):
                 fake_cutoffs = fake_cutoffs.rename(columns={"deploy_dt_x":"deploy_dt"})
 
                 
-                wiki_thresholds = self.get_all_thresholds(fake_cutoffs, wiki, None, load_environment=first)
-                first=False
+                wiki_thresholds = self.get_all_thresholds(fake_cutoffs, wiki, None, load_environment=False)
                 chunks.append(wiki_thresholds)
-            max = max - 1
-            if max < 0:
-                break
         return(pd.concat(chunks, 0, sort=False))
                 
 
