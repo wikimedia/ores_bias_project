@@ -44,11 +44,16 @@ def add_has_user_page(wmhist, page_history, remember_dict):
     user_pages = user_pages.select([f.col("wiki_db").alias("up_wiki_db"),
                                     f.col("page_id").alias("user_page_id"),
                                     f.col("page_title").alias("user_page_title"),
-                                    f.col("page_first_edit_timestamp").alias("user_page_first_edit")])
+                                    f.col("page_first_edit_timestamp").alias("user_page_first_edit"),
+                                    f.col("start_timestamp").alias("user_page_start_timestamp"),
+                                    f.col("end_timestamp").alias("user_page_end_timestamp")
+])
     join_cond = [wmhist.wiki_db == user_pages.up_wiki_db,
-                 wmhist.page_id == user_pages.user_page_id,
                  wmhist.event_user_text == user_pages.user_page_title,
-                 wmhist.event_timestamp > user_pages.user_page_first_edit]
+                 wmhist.event_timestamp > user_pages.user_page_first_edit,
+                 whmist.event_timestamp >= user_pages.user_page_start_timestamp,
+                 wmhist.event_timestamp < user_pages.user_page_end_timestamp]
+
 
     wmhist = wmhist.join(user_pages, on = join_cond, how="left_outer")
 
@@ -110,6 +115,7 @@ def add_user_roles(wmhist, remember_dict):
     return (wmhist, remember_dict)
 
 def build_wmhist_step1(wmhist, remember_dict):
+    wmhist = wmhist.withColumn("week", f.date_trunc("week", wmhist.event_timestamp))
     wmhist, remember_dict = add_is_newcomer(wmhist, remember_dict)
     wmhist, remember_dict = add_user_roles(wmhist, remember_dict)
     return (wmhist, remember_dict)
