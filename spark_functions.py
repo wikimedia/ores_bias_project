@@ -32,12 +32,30 @@ def add_revert_types(wmhist, comment_column='event_comment'):
     tool_priority = ['huggle','twinkle','fastbuttons','LiveRC','rollback','undo']
     tool_column_names = ["revert_tool_{0}".format(tool) for tool in tool_priority]
     for tool, tool_column_name in zip(tool_priority, tool_column_names):
-            wmhist = wmhist.withColumn(tool_column_name, f.when(f.array_contains(f.col("revert_tools_match"),tool),tool).otherwise(None))
+        wmhist = wmhist.withColumn(tool_column_name, f.when(f.array_contains(f.col("revert_tools_match"),tool),tool).otherwise(None))
 
-    wmhist = wmhist.withColumn("revert_tool",f.coalesce(*tool_column_names))
-    wmhist = wmhist.fillna('otherTool',subset=['revert_tool'])
+        wmhist = wmhist.withColumn("revert_tool",f.coalesce(*tool_column_names))
+        wmhist = wmhist.fillna('otherTool',subset=['revert_tool'])
 
-    return wmhist
+        return wmhist
+
+def add_has_user_page(wmhist, page_history, remember_dict):
+    user_pages = page_history.filter(f.col("page_namespace")==2)
+    user_pages = user_pages.select([f.col("wiki_db").alias("up_wiki_db"),
+                                    f.col("page_id").alias("user_page_id"),
+                                    f.col("page_title").alias("user_page_title"),
+                                    f.col("page_first_edit_timestamp").alias("user_page_first_edit")])
+    join_cond = [wmhist.wiki_db == user_pages.up_wiki_db,
+                 wmhist.page_id == user_pages.user_page_id,
+                 wmhist.event_user_text == user_pages.user_page_title,
+                 wmhist.event_timestamp > user_pages.user_page_first_edit]
+
+    wmhist = wmhist.join(user_pages, on = join_cond, how="left_outer")
+
+    whmist = wmhist.withColumn("has_user_page", f.isnull(wmhist.user_page_id) == False)
+
+    return((wmhist, remember_dict))
+                                   
 
 def add_is_newcomer(wmhist, remember_dict):
 
@@ -171,10 +189,13 @@ def process_reverts(wmhist, spark, remember_dict):
     reverts = reverts.withColumn("rr_ttr",
                                  (f.unix_timestamp(reverts.revert_timestamp) - f.unix_timestamp(reverts.rr_timestamp)) / 1000)
 
+    reverts = reverts.withColumn("is_controversial", f.isnull(f.col("rr_ttr")) == False)
+
     reverts = reverts.withColumn("is_damage",f.when(f.isnull(f.col("rr_ttr")), True).otherwise(f.col("rr_ttr") >= 48*60*60))
 
     # we only want to look at the damaging reverts for measuring our vandalism fighting outcomes
-    reverts = reverts.filter(f.col("is_damage") == True)
+
+
     # convert time to revert into seconds
     reverts = reverts.withColumn("time_to_revert",(f.unix_timestamp(f.col("revert_timestamp")) - f.unix_timestamp(f.col("reverted_timestamp"))) / 1000)
     # let's use median ttr as the metric
