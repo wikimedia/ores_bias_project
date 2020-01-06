@@ -40,24 +40,29 @@ def add_revert_types(wmhist, comment_column='event_comment'):
         return wmhist
 
 def add_has_user_page(wmhist, page_history, remember_dict):
-    user_pages = page_history.filter(f.col("page_namespace")==2)
+    user_pages = page_history.filter(f.col("page_namespace_historical")==2)
     user_pages = user_pages.select([f.col("wiki_db").alias("up_wiki_db"),
                                     f.col("page_id").alias("user_page_id"),
-                                    f.col("page_title").alias("user_page_title"),
+                                    f.col("page_title_historical").alias("user_page_title"),
                                     f.col("page_first_edit_timestamp").alias("user_page_first_edit"),
                                     f.col("start_timestamp").alias("user_page_start_timestamp"),
                                     f.col("end_timestamp").alias("user_page_end_timestamp")
 ])
+
+    user_pages = user_pages.filter( (f.col("page_is_redirect") == False)
+                                    & (f.col("page_is_deleted") == False))
+
     join_cond = [wmhist.wiki_db == user_pages.up_wiki_db,
-                 wmhist.event_user_text == user_pages.user_page_title,
+                 wmhist.event_user_text_historical == user_pages.user_page_title,
                  wmhist.event_timestamp > user_pages.user_page_first_edit,
-                 whmist.event_timestamp >= user_pages.user_page_start_timestamp,
+                 wmhist.event_timestamp >= user_pages.user_page_start_timestamp,
                  wmhist.event_timestamp < user_pages.user_page_end_timestamp]
 
+    
 
     wmhist = wmhist.join(user_pages, on = join_cond, how="left_outer")
 
-    whmist = wmhist.withColumn("has_user_page", f.isnull(wmhist.user_page_id) == False)
+    wmhist = wmhist.withColumn("has_user_page", f.isnull(wmhist.user_page_id) == False)
 
     return((wmhist, remember_dict))
                                    
@@ -121,46 +126,43 @@ def build_wmhist_step1(wmhist, remember_dict):
     return (wmhist, remember_dict)
 
 def process_reverts(wmhist, spark, remember_dict):
-    # next lets look at time to revert
     reverteds = wmhist.filter((wmhist.page_namespace==0) & (wmhist.revision_is_identity_reverted == True))
     reverteds = reverteds.select(['wiki_db',
-                                  'event_user_text',
+                                  'event_user_text_historical',
                                   'revision_id',
                                   'event_timestamp',
                                   'revision_first_identity_reverting_revision_id',
                                   'anon_new_established',
-                                  'week'])
+                                  'week',
+                                  'event_user_id'])
 
     reverteds = reverteds.withColumnRenamed("event_timestamp","reverted_timestamp")
     reverteds = reverteds.withColumnRenamed("revision_id","reverted_revision_id")
-    reverteds = reverteds.withColumnRenamed("event_user_text","reverted_user_text")
+    reverteds = reverteds.withColumnRenamed("event_user_text_historical","reverted_user_text_historical")
+    reverteds = reverteds.withColumnRenamed("event_user_id","reverted_user_id")
 
     reverts = wmhist.filter((wmhist.page_namespace==0)&(wmhist.revision_is_identity_revert == True))
 
     reverts = reverts.select(['wiki_db',
                               'event_user_id',
-                              'event_user_text',
+                              'event_user_text_historical',
                               'event_timestamp',
                               'role_type',
                               'revision_id',
                               'revision_is_identity_reverted',
                               'revision_first_identity_reverting_revision_id',
                               f.col('event_comment').alias('revert_comment')
-                              ])
-
+    ])
 
     reverts = reverts.withColumnRenamed("event_user_id","revert_user_id")
-    reverts = reverts.withColumnRenamed("event_user_text","revert_user_text")
+    reverts = reverts.withColumnRenamed("event_user_text_historical","revert_user_text_historical")
     reverts = reverts.withColumnRenamed("event_timestamp","revert_timestamp")
     reverts = reverts.withColumnRenamed("revision_id","revert_revision_id")
     reverts = reverts.withColumnRenamed("wiki_db","wiki_db_l")
     reverts = reverts.withColumnRenamed("revision_is_identity_reverted","revert_is_identity_reverted")
     reverts = reverts.withColumnRenamed("revision_first_identity_reverting_revision_id","revert_first_identity_reverting_revision_id")
-
-
-
-    ## DataFrame doesn't support window functions by date range in spark 2.3 
-    ## https://stackoverflow.com/questions/33207164/spark-window-functions-rangebetween-dates
+    
+    ## DataFrame doesn't support window functions by date range in spark 2.3                                                                                                                                                     ## https://stackoverflow.com/questions/33207164/spark-window-functions-rangebetween-dates                 
     reverts.createOrReplaceTempView("reverts")
     reverts = spark.sql(
             """SELECT *, count(revert_revision_id) OVER (
@@ -169,29 +171,34 @@ def process_reverts(wmhist, spark, remember_dict):
             RANGE BETWEEN INTERVAL 30 DAYS PRECEDING AND CURRENT ROW)
             AS revert_user_Nreverts_past_month from reverts""")
 
-    # use a window function to count the number of reverts in a given timespan
-
-
+    # use a window function to count the number of reverts in a given timespan                                 
     remember_dict['n_reverts_past_month_window'] = 30
-
-    # exclude self-reverts
+        
+    # exclude self-reverts                                                                                                                                                                                                                                                                                                   
     reverts = reverts.join(reverteds,
                            on=[reverts.wiki_db_l == reverteds.wiki_db,
                                reverts.revert_revision_id == reverteds.revision_first_identity_reverting_revision_id,
-                               reverts.revert_user_text != reverteds.reverted_user_text],
+                               reverts.revert_user_id!= reverteds.reverted_user_id],
                            how='inner')
 
     reverted_reverts = reverts.filter(f.col('revert_is_identity_reverted')==True)
+    #reverted_reverts = wmhist.filter( (f.col('revert_is_identity_reverted')==True) & (f.col())
     reverted_reverts = reverted_reverts.withColumnRenamed("revert_timestamp","rr_timestamp")
     reverted_reverts = reverted_reverts.withColumnRenamed("revert_revision_id","rr_revision_id")
+    reverted_reverts = reverted_reverts.withColumnRenamed("reverted_revision_id","rr_reverted_revision_id")
+    reverted_reverts = reverted_reverts.withColumnRenamed("revert_user_id","rr_user_id")
     reverted_reverts = reverted_reverts.withColumnRenamed("revert_first_identity_reverting_revision_id","rr_reverting_revision_id")
     reverted_reverts = reverted_reverts.withColumnRenamed("wiki_db",'rr_wiki_db')
-    reverted_reverts = reverted_reverts.select(['rr_wiki_db','rr_timestamp','rr_revision_id','rr_reverting_revision_id'])
+    reverted_reverts = reverted_reverts.select(['rr_wiki_db','rr_timestamp','rr_revision_id','rr_reverting_revision_id', 'rr_user_id','rr_reverted_revision_id'])
+        
     reverts = reverts.join(reverted_reverts,
-                           on=[reverts.reverted_revision_id == reverted_reverts.rr_revision_id,
-                               reverts.wiki_db == reverted_reverts.rr_wiki_db],
+                           on=[reverts.reverted_revision_id == reverted_reverts.rr_reverted_revision_id,
+                               reverts.revert_revision_id == reverted_reverts.rr_reverting_revision_id,
+                               reverts.wiki_db == reverted_reverts.rr_wiki_db,
+                               reverts.revert_user_id != reverted_reverts.rr_user_id],
                            how='left_outer')
 
+    # next lets look at time to revert
     reverts = reverts.withColumn("rr_ttr",
                                  (f.unix_timestamp(reverts.revert_timestamp) - f.unix_timestamp(reverts.rr_timestamp)) / 1000)
 
@@ -206,3 +213,4 @@ def process_reverts(wmhist, spark, remember_dict):
     reverts = reverts.withColumn("time_to_revert",(f.unix_timestamp(f.col("revert_timestamp")) - f.unix_timestamp(f.col("reverted_timestamp"))) / 1000)
     # let's use median ttr as the metric
     return (reverts, remember_dict)
+
