@@ -1,7 +1,6 @@
 parse.date.tz <- function(s) as.POSIXct(s, format="%Y-%m-%dT%T.000Z",tz='UTC')
 parse.date.iso <- function(s) as.POSIXct(s, format="%Y-%m-%d %T",tz='UTC')
 
-
 equal.sample <- function(df.left, df.right){
     sample.size <- min(nrow(df.left),nrow(df.right))
     new.left <- df.left[sample(nrow(df.left),sample.size,replace=F)]
