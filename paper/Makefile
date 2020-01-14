@@ -2,14 +2,26 @@
 all: $(patsubst %.Rtex,%.pdf,$(wildcard *.Rtex)) 
 
 refs.bib:
-	wget -r -q -O OresAudit.bib http://127.0.0.1:23119/better-bibtex/collection?/3/OresAudit.bibtex
+	wget -r -q -O OresAudit.bib http://127.0.0.1:23119/better-bibtex/collection?/4/OresAudit.bibtex
+
+sync: sync.remember sync.figures
+
+sync.remember:
+	scp hyak:/gscratch/comdata/users/nathante/ores_bias_project/remembr.RDS remembr_hyak.RDS
+	cp remembr_hyak.RDS dropbox/resources
+	mv remembr_hyak.RDS resources
+
+sync.figures:
+	scp hyak:/gscratch/comdata/users/nathante/ores_bias_project/plots/user_page_controversial_plot.png .
+	cp user_page_controversial_plot.png figures
+	mv user_page_controversial_plot.png figures
 
 copy.to.dropbox:
 	cp OresAudit.bib dropbox
 	cp *.RDS dropbox
+	cp figures/* dropbox/figures/
 
 %.tex: %.Rtex refs.bib
-	./sync_remember.sh
 	Rscript -e "library(knitr); knit('$<')"
 
 
@@ -17,7 +29,7 @@ copy.to.dropbox:
 	latexmk -xelatex -f -pdf $<
 
 clean: 
-	latexmk -C *.tex 
+	latexmk -C *.tex
 	rm -f *.tex
 	rm -f *.bbl
 	rm -f *.run.xml
@@ -30,5 +42,5 @@ spell:
 
 pdf: all
 
-.PHONY: clean all refs.bib copy.to.dropbox
+.PHONY: clean all refs.bib copy.to.dropbox sync.remember sync.figures
 .PRECIOUS: %.tex
