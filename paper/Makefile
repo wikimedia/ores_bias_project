@@ -2,21 +2,22 @@
 all: $(patsubst %.Rtex,%.pdf,$(wildcard *.Rtex)) 
 
 refs.bib:
-	wget -r -q -O OresAudit.bib http://127.0.0.1:23119/better-bibtex/collection?/4/OresAudit.biblatex
+	wget -r -q -O OresAudit.bib http://127.0.0.1:23119/better-bibtex/collection?/3/OresAudit.bibtex
 
 copy.to.dropbox:
 	cp OresAudit.bib dropbox
 	cp *.RDS dropbox
 
 %.tex: %.Rtex refs.bib
+	./sync_remember.sh
 	Rscript -e "library(knitr); knit('$<')"
 
 
 %.pdf: %.tex
-	latexmk -f -pdf $<
+	latexmk -xelatex -f -pdf $<
 
 clean: 
-	latexmk -C *.tex
+	latexmk -C *.tex 
 	rm -f *.tex
 	rm -f *.bbl
 	rm -f *.run.xml
