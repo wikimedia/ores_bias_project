@@ -279,7 +279,7 @@ class Ores_Archaeologist(object):
         print("--commit={0}".format(commit))
         return output
 
-    def score_history(self, cutoff_revisions, preprocess=True, use_cache=True, add_thresholds=True):
+    def score_history(self, cutoff_revisions, preprocess=True, use_cache=True, add_thresholds=False):
         
         if preprocess:
             cutoff_revisions = self.preprocess_cutoff_history(cutoff_revisions)
@@ -334,7 +334,7 @@ class Ores_Archaeologist(object):
                          sort=False,
                          ignore_index=True)
             
-    def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = True):
+    def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = False):
         if preprocess:
             all_revisions = self.preprocess_cutoff_history(all_revisions)
 
@@ -448,6 +448,7 @@ class Ores_Archaeologist(object):
         cutoffs = cutoffs.loc[cutoffs.wiki_db == wiki_db]
         cutoffs = cutoffs.sort_values('deploy_dt')
         revisions = revisions.sort_values('event_timestamp')
+
         revisions = pd.merge_asof(revisions, cutoffs, left_on='event_timestamp', right_on='deploy_dt', by='wiki_db', direction='backward')
 
         deploy_dt = cutoffs.loc[cutoffs.deploy_dt <= revisions.event_timestamp.min(), 'deploy_dt'].max()
@@ -476,11 +477,11 @@ class Ores_Archaeologist(object):
                                         
         cutoffs = cutoffs.loc[cutoffs.deploy_dt == deploy_dt].reset_index()
 
-        thresholds = self.get_all_thresholds(cutoffs, wiki_db=wiki_db, date=deploy_dt)
+        # thresholds = self.get_all_thresholds(cutoffs, wiki_db=wiki_db, date=deploy_dt)
 
-        value_names = [s+'_value' for s in threshold_names]
+        # value_names = [s+'_value' for s in threshold_names]
 
-        revisions.assign(**dict(thresholds.loc[:,value_names + threshold_names].iloc[0]))
+        # revisions.assign(**dict(thresholds.loc[:,value_names + threshold_names].iloc[0]))
 
 #        revisions = pd.concat([revisions, thresholds.loc[:,value_names + threshold_names]], axis=1, sort=False)
         return revisions
