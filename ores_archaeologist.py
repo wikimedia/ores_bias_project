@@ -304,19 +304,25 @@ class Ores_Archaeologist(object):
         for commit in set(cutoff_revisions.commit):
             self.score_commit_revisions(commit, cutoff_revisions, preprocess=False, load_environment=True, use_cache=use_cache, add_thresholds=add_thresholds)
 
-        scores = pd.read_csv(tmp_scores_file, quotechar='\"', escapechar="\\")
+        scores = pd.read_csv(tmp_scores_file, quotechar='\"', escapechar="\\", dtype={'revision_id':str})
+        cutoff_revisions.loc[:,"revision_id"] = cutoff_revisions.revision_id.astype(str)
+        # scores.set_index(['wiki_db','revision_id'],inplace=True, verify_integrity=True)
+        # cutoff_revisions.set_index(['wiki_db','revision_id'],inplace=True, verify_integrity=True)
+        # cutoff_revisions.update(scores, join='left', overwrite=True)
+        # cutoff_revisions.reset_index(inplace=True)
 
-        all_revisions.update(scores, join='left', overwrite=True)
+        cutoff_revisions = pd.merge(cutoff_revisions, scores, on=['wiki_db','revision_id'], how='left')
 
-        scored_revids = all_revisions.loc[all_revisions.revscoring_error.isna(),["wiki_db", "revision_id", "prob_d
-amaging"]]
+        scored_revids = cutoff_revisions.loc[cutoff_revisions.revscoring_error.isna(),["wiki_db", "revision_id", "prob_damaging"]]
         scored_revids.to_pickle(self.cache_file)
 
-        return all_revisions
+        return cutoff_revisions
 
     def save_scores(self, all_revisions):
-        scored_revisions = all_revisions.loc[:,['wiki_db','revision_id','prob_damaging','revscoring_error']]
-        with open(tmp_scores_file, 'a'):
+
+        scored_revisions = all_revisions.loc[~ all_revisions.revision_id.isna(),['wiki_db','revision_id','prob_damaging','revscoring_error']]
+
+        with open(tmp_scores_file, 'a') as f:
             scored_revisions.to_csv(f, header=f.tell() == 0, index=False, quotechar='\"',escapechar="\\")
 
     def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = True):
@@ -348,8 +354,9 @@ amaging"]]
         if add_thresholds is True:
             all_revisions = self.lookup_revision_thresholds(all_revisions)
 
-        all_revisions['prob_damaging'] = pd.np.nan
-        all_revisions['revscoring_error'] = ""
+        all_revisions.loc[:,'prob_damaging'] = pd.np.nan
+        all_revisions.loc[:,'revscoring_error'] = ""
+
         if use_cache is True:
             if os.path.exists(self.cache_file):
                 cached_scores = pd.read_pickle(self.cache_file)
@@ -361,6 +368,7 @@ amaging"]]
 
         # don't score revisions we have already scored
         if 'prob_damaging' in all_revisions.columns and not all_revisions.prob_damaging.isna().any():
+            all_revisions.reset_index(inplace=True)
             self.save_scores(all_revisions)
 
         uri = siteList[wiki_db]
@@ -434,6 +442,7 @@ amaging"]]
             all_revisions.loc[:, 'prob_damaging'] = np.NaN
             all_revisions.loc[:, "revscoring_error"] = "Unknown error. Check log. Process died?"
 
+        all_revisions.reset_index(inplace=True)
         self.save_scores(all_revisions)
 
     # there's only ever one wikidb here
@@ -491,7 +500,6 @@ amaging"]]
     # if we are pre-cutoff then use scores from the latest model
         
         # call get_thresholds
-        
 
         # merge and return.
         
@@ -534,7 +542,7 @@ amaging"]]
             cutoff_revisions = pd.read_csv(cutoff_revisions, sep=',',parse_dates=['event_timestamp','period1_start','period2_end','date_first','date_last'],quotechar='\"',infer_datetime_format=True,error_bad_lines=False,escapechar='\\')
 
 
-        cutoff_revisions.revision_id = cutoff_revisions.revision_id.astype(str)
+        cutoff_revisions.loc[:,"revision_id"] = cutoff_revisions.revision_id.astype(str)
         # cutoff_revisions.date = pd.to_datetime(cutoff_revisions.date)
         # cutoff_revisions.event_timestamp = pd.to_datetime(cutoff_revisions.event_timestamp)
         # cutoff_revisions.period_start = pd.to_datetime(cutoff_revisions.period_start)
@@ -549,7 +557,7 @@ amaging"]]
         commits = cutoff_revisions.apply(lambda row: lookup_commit_from_wiki_date(row.wiki_db, row.event_timestamp), axis=1)
 
 
-        cutoff_revisions['commit'] = commits
+        cutoff_revisions.loc[:,'commit'] = commits
 
         cutoff_revisions = cutoff_revisions.sort_values(by=['commit','wiki_db'],axis=0)
 
