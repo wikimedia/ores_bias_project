@@ -14,6 +14,11 @@ from functools import partial
 import psutil
 import datetime
 
+tmp_scores_file = 'tmp_revision_scores.csv'
+
+if os.path.exists(tmp_scores_file):
+    os.remove(tmp_scores_file)
+
 siteList = dict(pickle.load(open("data/wikimedia_sites.pickle",'rb')))
 call_log = "syscalls.sh"
 
@@ -295,20 +300,24 @@ class Ores_Archaeologist(object):
         period_1 = period_1.drop('commit', 1)
         period_1 = pd.merge(period_1, last_commit, on=['wiki_db'], how='outer')
         cutoff_revisions = pd.concat([period_1, period_2], sort=False)
-        parts = []
+
         for commit in set(cutoff_revisions.commit):
-            scored_revisions = self.score_commit_revisions(commit, cutoff_revisions, preprocess=False, load_environment=True, use_cache=use_cache, add_thresholds=add_thresholds)
-            parts.append(scored_revisions)
+            self.score_commit_revisions(commit, cutoff_revisions, preprocess=False, load_environment=True, use_cache=use_cache, add_thresholds=add_thresholds)
 
-        result =  pd.concat(parts,
-                            sort=False,
-                            ignore_index=True)
+        scores = pd.read_csv(tmp_scores_file, quotechar='\"', escapechar="\\")
 
+        all_revisions.update(scores, join='left', overwrite=True)
 
-        scored_revids = result.loc[:,["wiki_db", "revision_id", "prob_damaging"]]
+        scored_revids = all_revisions.loc[all_revisions.revscoring_error.isna(),["wiki_db", "revision_id", "prob_d
+amaging"]]
         scored_revids.to_pickle(self.cache_file)
 
-        return result
+        return all_revisions
+
+    def save_scores(self, all_revisions):
+        scored_revisions = all_revisions.loc[:,['wiki_db','revision_id','prob_damaging','revscoring_error']]
+        with open(tmp_scores_file, 'a'):
+            scored_revisions.to_csv(f, header=f.tell() == 0, index=False, quotechar='\"',escapechar="\\")
 
     def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = True):
 
@@ -325,15 +334,10 @@ class Ores_Archaeologist(object):
         parts = []
 
         for wiki_db in set(commit_revisions.wiki_db):
-
             wiki_commit_revisions = commit_revisions.loc[ (commit_revisions.wiki_db == wiki_db)]
-            scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, wiki_commit_revisions, preprocess=False, load_environment=False, use_cache=use_cache, add_thresholds=add_thresholds)
-            parts.append(scored_revisions)
+            self.score_wiki_commit_revisions(commit, wiki_db, wiki_commit_revisions, preprocess=False, load_environment=False, use_cache=use_cache, add_thresholds=add_thresholds)
 
-        return pd.concat(parts,
-                         sort=False,
-                         ignore_index=True)
-            
+    # We no longer pass data back up the stack. Instead we save it to a file and then do one big join at the end.
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = False):
         if preprocess:
             all_revisions = self.preprocess_cutoff_history(all_revisions)
@@ -357,7 +361,7 @@ class Ores_Archaeologist(object):
 
         # don't score revisions we have already scored
         if 'prob_damaging' in all_revisions.columns and not all_revisions.prob_damaging.isna().any():
-            return all_revisions
+            self.save_scores(all_revisions)
 
         uri = siteList[wiki_db]
 
@@ -430,11 +434,8 @@ class Ores_Archaeologist(object):
             all_revisions.loc[:, 'prob_damaging'] = np.NaN
             all_revisions.loc[:, "revscoring_error"] = "Unknown error. Check log. Process died?"
 
+        self.save_scores(all_revisions)
 
-        all_revisions.reset_index(inplace=True)
-            
-        return all_revisions
-        
     # there's only ever one wikidb here
     # all the revisions must be from the same commit
     # the revscoring environment must be already built
@@ -568,7 +569,7 @@ class Ores_Archaeologist_Api():
         
         buf = io.StringIO()
         
-        res.to_csv(buf, index=False,quotechar='\"',escapechar="\\")
+        res.to_csv(buf, index=False, quotechar='\"',escapechar="\\")
         csv = buf.getvalue()
         if output is not None:
             with open(output,'w') as of:
