@@ -94,7 +94,7 @@ def process_commit(commit):
 full_table_pickle = os.path.join(data_dir, "full_config_history.pickle")
 
 if not os.path.exists(full_table_pickle):
-    repo = git.Repo(path="operations-mediawiki-config")
+    repo = git.Repo(path="../operations-mediawiki-config")
     repo.git.checkout('-f',"master")
     commits = repo.iter_commits(paths=['wmf-config/InitialiseSettings.php'],since="2016-06-21")
 
@@ -144,7 +144,7 @@ def dedup_chronological(df, distinct_cols):
     df = df.sort_values(['wiki_db','date'])
     bywiki = df.groupby('wiki_db')[distinct_cols]
     # d.shift(1) == d if the previous entry is the same as the current entry
-    identical = bywiki.apply(lambda d: ((d.shift(1) == d) | (d.shift(1).isna() & d.isna()))).all(1)
+    identical = bywiki.apply(lambda d: ((d.shift(-1) == d) | (d.shift(-1).isna() & d.isna()))).all(1)
     return (df[~identical])
 
 
@@ -214,7 +214,7 @@ table.to_csv(os.path.join(data_dir, "mw_config_history.csv"),index=False,)
 cutoffs = dedup_chronological(table, ['has_ores','has_rcfilters','has_rcfilters_watchlist'])
 
 # get more precise cutoffs from the server admin log on wikitech
-sal_pages = ["Server_admin_log/Archive_29","Server_admin_log/Archive_30","Server_admin_log/Archive_31","Server_admin_log/Archive_32","Server_admin_log/Archive_33","Server_admin_log/Archive_34","Server_admin_log/Archive_35", "Server_admin_log/Archive_36","Server_admin_log/Archive_37","Server_Admin_Log"]
+sal_pages = ["Server_admin_log/Archive_29","Server_admin_log/Archive_30","Server_admin_log/Archive_31","Server_admin_log/Archive_32","Server_admin_log/Archive_33","Server_admin_log/Archive_34","Server_admin_log/Archive_35", "Server_admin_log/Archive_36","Server_admin_log/Archive_37","Server_admin_log/Archive_38","Server_admin_log/Archive_39","Server_Admin_Log"]
 
 import mwapi
 
@@ -249,7 +249,7 @@ def find_deploy_time(commit_time):
 cutoffs['commit_dt'] = cutoffs.date
 
 cutoffs['deploy_dt'] = cutoffs.commit_dt.apply(find_deploy_time)
-cutoffs['deploy_gap'] = cutoffs.deploy_dt - cutoffs.commit_dt  
+cutoffs['deploy_gap'] = cutoffs.deploy_dt - cutoffs.commit_dt 
 cutoffs = cutoffs.drop('date',1)
 cutoffs = cutoffs[["commitsha","damaging_hard","damaging_likelybad_max","damaging_likelybad_min","damaging_likelygood_max","damaging_likelygood_min","damaging_maybebad_max","damaging_maybebad_min","damaging_soft","damaging_softest","damaging_verylikelybad_max","damaging_verylikelybad_min","extension_status","goodfaith_bad_max","goodfaith_bad_min","goodfaith_good_max","goodfaith_good_min","goodfaith_likelybad_max","goodfaith_likelybad_min","goodfaith_likelygood_max","goodfaith_likelygood_min","goodfaith_maybebad_max","goodfaith_maybebad_min","goodfaith_verylikelybad_max","goodfaith_verylikelybad_min","rcfilters_enabled","rcfilters_watchlist_enabled","useOres","useOresUi","wiki_db","has_ores","rcfilters_enabled_default","extension_status_default","rcfilters_watchlist_enabled_default","commitsha_default","has_extension","has_beta_extension","has_rcfilters","has_rcfilters_watchlist","commit_dt","deploy_dt","deploy_gap"]]
 
