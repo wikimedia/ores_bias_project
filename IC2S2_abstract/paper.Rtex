@@ -12,12 +12,12 @@
 \pagestyle{fancy}
 \chead{%
   $5$$^{th}$ International Conference on Computational Social Science IC$^{2}$S$^{2}$\\
-  July 17-20, 2019, University of Amsterdam, The Netherlands%
+  July 17-20, 2020, MIT Media Lab, Boston, MA, United States%
 }
 
 \usepackage[utf8]{inputenc}
 \usepackage{wrapfig}
-
+\usepackage{csquotes}
 \usepackage{graphicx}
 \usepackage{enumerate}
 
@@ -134,7 +134,7 @@ rename.thresholds <- function(df){
 ## me.data.df.1 <- anon.reverted.me.data.df
 ## bins.df.1 <- anon.reverted.bins.df
 ## label.1 <- 'IP'
-## me.data.df.2 <- non.anon.reverted.me.data.df
+## me.data.df.2 <- mod.non.anon.reverted.me.data.df
 ## bins.df.2 <- non.anon.reverted.bins.df
 ## label.2 <- 'Not IP'
 ## me.data.df.3 <- no.user.page.reverted.me.data.df
@@ -270,6 +270,7 @@ make.comparison.me.plot <- function(me.data.df.1,
 
   return(grid.arrange(textGrob("Prob. reverted",rot=90,x=0.6), p.main,  textGrob(""), textGrob("Distance from threshold",x=0.455,y=0.7, just=c('bottom')), ncol=2, widths=c(0.02,1), heights=c(1,0.018)))
 }
+
 make.comparison.2.me.plot <- function(me.data.df.1,
                                       bins.df.1,
                                       label.1,
@@ -316,7 +317,6 @@ make.comparison.2.me.plot <- function(me.data.df.1,
   i <- length(plot.parts)
   first.col <- TRUE
   n.rows <- 3
-  n.cols <- 2
 
   for(threshold in unique(me.data.df$nearest.threshold)){
 #   xo i <- i + 1
@@ -563,7 +563,7 @@ make.overall.regtab.row <- function(samples, name, coef.name){
                        'Mean'=mean(samples),
                        'SD'=sd(samples),
                        "\\(\\widehat{R}\\)"=NA,
-                       'Marginal Posterior'=paste0("\\raisebox{-0.4\\totalheight}{\\includegraphics[height=1.4em]{",sparkplot.files[[sparkplot.name]],"}}")
+                       'Marginal Posterior'=paste0("\\raisebox{-0.3\\totalheight}{\\includegraphics[height=1.4em]{",sparkplot.files[[sparkplot.name]],"}}")
 )
 
   return (append(row, quant))
@@ -598,6 +598,7 @@ tau.3.non.anon <- mod.non.anon.reverted.draws[["$\\tau_3$"]]
 tau.1.anon <- mod.anon.reverted.draws[["$\\tau_1$"]]
 tau.2.anon <- mod.anon.reverted.draws[["$\\tau_2$"]]
 tau.3.anon <- mod.anon.reverted.draws[["$\\tau_3$"]]
+
 @ 
 
 
@@ -614,7 +615,7 @@ tau.3.anon <- mod.anon.reverted.draws[["$\\tau_3$"]]
 
 \section*{Extended Abstract}
 
-Governance in online communities and platforms faces a ``problem of scale'' in the challenge of sifting the great mass of comments, posts, or encyclopedia edits to identify objectionable content or behavior \citep{gillespie_custodians_2018}. With growing attention to problems of disinformation and hate speech online, commercial platforms are expanding their pools of paid human moderators, but the work of paid moderators can be exploitative, difficult, traumatizing, and expensive.  Moderation is stressful work involving a large number of judgment calls, often ambiguous, that must be made quickly. 
+Governance in online communities and platforms faces a ``problem of scale'' in sifting the great mass of comments, posts, or encyclopedia edits to detect objectionable content or behavior \citep{gillespie_custodians_2018}. With growing attention to problems of disinformation and hate speech online, commercial platforms are expanding their pools of paid human moderators, but the work of paid moderators can be exploitative, difficult, traumatizing, and expensive.  Moderation is stressful work involving a large number of judgment calls, often ambiguous, that must be made quickly. 
 
 
 \begin{figure}[h]
@@ -629,20 +630,20 @@ make.comparison.2.me.plot(anon.reverted.me.data.df,
                         )
 
 @ 
-  \caption{Marginal effects plot for H1, showing our model's sanctioning behavior around cutoffs that cause actions to be flagged to moderators.    \label{fig:h1.me}}
+  \caption{Marginal effects plot for H1, showing our model's sanctioning behavior around cutoffs that cause actions to be flagged to moderators. Points with error bars show proportions of edits reverted in 10 bins with 95\% confidence intervals. \label{fig:h1.me}}
 \end{figure}
 
 Instead of reviewing every action or searching randomly, moderators may direct their attention according to ``identity-based signals:'' characteristics such as reputation, experience, or registration status associated with quality.  But reliance on such signals may lead to ``over-profiling'' if moderators concentrate their attention on the activities on a narrow range of users. 
 
-Increasingly, online platforms adopt \emph{algorithmic triage}, to predict which content is damaging and surface it to human moderators \citep{gillespie_custodians_2018}. Can algorithmic triage replace reliance on identity-based signals in community and platform governance?  Advocates of algorithmic risk prediction in criminal justice settings argue that algorithmic predictions can improve upon the discriminatory and inaccurate decisions of human judges \citep{kleinberg_discrimination_2019}.  Yet when moderators or judges can still see identity-based signals, they may still use them in decision making.  We propose that:
+Increasingly, online platforms adopt \emph{algorithmic triage}, to predict which content is damaging and surface it to human moderators \citep{gillespie_custodians_2018}. Can algorithmic triage replace reliance on identity-based signals in community and platform governance?  Advocates of algorithmic risk prediction in criminal justice settings argue that algorithmic predictions can improve upon the discriminatory and inaccurate decisions of human judges \citep{kleinberg_discrimination_2018}.  Yet when moderators or judges can still see identity-based signals, they may still use them in decision making.  We propose that:
 
 \textbf{H1:} Flagging an action causes a greater increase in the likelihood the action is sanctioned when the action is made by an under-profiled individual than when it is made by an over-profiled individual.
 
-In addition to \textbf{H1} we test two additional hypotheses about how flagging shapes the quality of moderators sanctions depending on whether users are ``under-profiled'' or ``over-profiled,'' but we lack room to discuss them further.
+In addition to \textbf{H1} we test two additional hypotheses about how flagging shapes the accuracy of moderators' sanctions depending on whether users are ``under-profiled'' or ``over-profiled,'' but we lack room to discuss them further.
 
-We use a regression discontinuity design (RDD) to estimate the causal effect of being flagged on moderation actions and test our hypotheses by comparing our estimates for ``over-profiled'' and ``under-profiled'' classes of editors. RDDs support causal inference because they resemble a randomized control trial for data points in the neighborhood of a discontinuity.  RDDs model an outcome $Y$, as a function of a continuous ``forcing variable'' $Z$, other covariates $X$, and a cutoff $c$ such that $Z>c$ determines treatment assignment.  The goal is to estimate $\tau$, which can be interpreted as the local average treatment effect in the neighborhood of $c$. We fit Bayesian logistic regression models using rstanarm. 
+We use a regression discontinuity design (RDD) to estimate the causal effect of being flagged on moderation actions and test our hypotheses by comparing our estimates for ``over-profiled'' and ``under-profiled'' classes of editors. Given some assumptions, RDDs resemble a randomized control trial for data near to a discontinuity.  RDDs model an outcome $Y$, as a function of a continuous ``forcing variable'' $Z$, other covariates $X$, and a cutoff $c$ such that $Z>c$ determines treatment assignment.  The goal is to estimate $\tau$, which can be interpreted as the local average treatment effect in the neighborhood of $c$.  We use logistic regression models fit with rstanarm and weakly informative priors that shrink our estimates slightly towards 0.
 
-We analyze data on moderator behavior from many language editions of Wikipedia that have adopted the ORES algorithm for edit quality prediction and the RCfilters flagging and filtering user-interface that it powers.  This system flags edits at three different levels (``maybe bad'', ``likely bad'', ``very likely bad'')  when the ORES model's predicted probability that an edit is damaging (our forcing variable) exceeds arbitrary thresholds. The moderation interfaces present information about category memberships associated with damaging behavior, specifically whether an edit is attributed to an IP address (a sign of low quality) or not.  Our outcome is a commonly used measure of sanctioning on Wikipedia, whether or not an edit is``identity reverted,'' which restores an encyclopedia article to a previous state.
+We analyze data on moderator behavior from several language editions of Wikipedia that have adopted the ORES algorithm for edit quality prediction and the RCfilters flagging and filtering user-interface that it powers.  This system flags edits at three different levels  (``maybe bad'', ``likely bad'', ``very likely bad'')  when the ORES model's score (our forcing variable) exceeds arbitrary thresholds. The moderation interfaces present information about category memberships associated with damaging behavior, specifically whether an edit is attributed to an IP address or not.  Our outcome is whether an edit is ``identity reverted,'' a measure of sanctioning commonly used in Wikipedia research.
 
 \begin{table}[t]
   \centering
@@ -672,29 +673,28 @@ row.tau.anon <- make.overall.regtab.row(tau.anon, 'tau_sum_anon_reverted', '$\\t
 
 row.tau.non.anon <- make.overall.regtab.row(tau.non.anon, 'tau_sum_non_anon_reverted', '$\\tau^\\mathrm{not~IP}$')
 
-row.diff <- make.overall.regtab.row(tau.non.anon.sub.anon, 'tau_non_anon_sub_anon', '$\\ \\sum{\\tau^{\\mathrm{not~IP}}} - \\sum{\\tau^{\\mathrm{IP}}}$')
+row.diff <- make.overall.regtab.row(tau.non.anon.sub.anon, 'tau_non_anon_sub_anon', '$\\ \\tau^{\\mathrm{not~IP}} - \\tau^{\\mathrm{IP}}$')
 
 table.data <- rbind(table.anon, table.non.anon, row.tau.anon, row.tau.non.anon, row.diff)
 table.data <- table.data[7:9]
 table.data[["\\(\\widehat{R}\\)"]] <- NULL
 xtab <- format.regtable(table.data)
 print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,2,3))
-@ 
+#print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.#style.negative=TRUE,hline.after=c(-1,0,7,8))
+@
 
-\caption{ Partial results from RDD analysis showing estimated overall causal effect of flagging on sanctioning behavior for IP editors, and non-IP editors.  The effect is greater for non-IP editors compared to IP-editors.}
+\caption{ Partial results from RDD analysis showing estimated causal effect of flagging on sanctioning behavior for IP editors, and non-IP editors.  The effect is probably greater for non-IP editors compared to IP-editors. Marginal Posterior plots show the distributions of coefficients in our posterior samples. Solid black lines indicate the position of 0, blue dashed lines indicate the mean, and dotted purple lines indicate the boundaries of the 95\% credible intervals.}
 \label{tab:anon.revert}
 \end{footnotesize}
 \end{table}
 
+Table \ref{tab:anon.revert} shows marginal posteriors for the effects of algorithmic flagging on reversion for each editor class and the difference in the estimates between editor classes. Figure \ref{fig:h1.me} shows marginal effects plots for the relationship between ORES scores and the probability of reversion around each threshold. We find support for \textbf{H1}, but given the low number edits with low ORES scores made by registered users with in the sample, there is about a 25\% chance that the effect for non-IP editors is no greater than for IP editors. Our models predict that an IP edit that scores right below the threshold has \Sexpr{signif(exp(mean(tau.anon)),2)} times the odds of being reverted as an edit that scores right above the thresholds compared to an odds ratio of \Sexpr{signif(exp(mean(tau.non.anon)),2)} for non-IP editors.  We are working on results using a much larger sample for the conference. We tentatively conclude that Wikipedia moderators continued using IP-attribution as a sign of dubious quality as algorithmic flags have a stronger effect for non-IP edits than for IP edits. 
 
-Table \ref{tab:anon.revert} shows marginal posteriors for the effects of algorithmic flagging on reversion for each editor class and the difference in the estimates between editor classes. Figure \ref{fig:h1.me} shows marginal effects plots for the relationship between ORES scores and the probability of reversion around each threshold. We find support for \textbf{H1}.  Our logistic regression models predict that an IP edit that scores right below the threshold has \Sexpr{signif(exp(mean(tau.anon)),2)} times the odds of being reverted as an edit that scores right above the thresholds compared to an odds ratio of \Sexpr{signif(exp(mean(tau.non.anon)),2)} for non-IP editors.  We conclude that moderators on Wikipedia continued using IP-attribution as a sign of dubious quality as algorithmic flags have a stronger effect for non-IP edits than for IP edits. 
-
-
-%(see \cite{chancellor_thyghgapp:_2016} for an example of evading content moderation through lexical variation in social media) we do not think this will be wide-spread or successful on Wikipedia. 
 \footnotesize
 \setcounter{biburlnumpenalty}{9001}
 \printbibliography
 
 \end{document}
+
 
 % LOCAL_WORDS: decile
