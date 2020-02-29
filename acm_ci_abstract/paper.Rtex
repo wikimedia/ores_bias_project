@@ -1,0 +1,743 @@
+\documentclass[prodmode,acmtap]{ci2018}
+
+%  <<preinit, echo=FALSE>>=
+% knit_hooks$set(document = function(x) {
+%   sub('\\usepackage[]{color}', '\\usepackage[usenames,dvipsnames]{color}', x, fixed = TRUE)})
+% @ 
+
+% turned on caching here
+<<init, echo=FALSE>>=
+knit_hooks$set(document = function(x) {
+  sub('\\usepackage[]{color}',
+'\\usepackage[]{color}', x, fixed = TRUE)
+})
+opts_chunk$set(fig.path="figures/knitr-")
+
+source("resources/preamble.R",local=TRUE)
+overwrite <- FALSE
+
+library(grid)
+library(gridExtra)
+sparkplot.files <<- list()
+cutoff.var.names <- c(
+  "nearest.thresholdmaybebad:gt.nearest.thresholdTRUE",
+  "nearest.thresholdlikelybad:gt.nearest.thresholdTRUE",
+  "nearest.thresholdverylikelybad:gt.nearest.thresholdTRUE")
+cutoff.var.symbols <- c("$\\tau_1$", "$\\tau_2$", "$\\tau_3$") 
+names(cutoff.var.symbols) <- cutoff.var.names
+
+models.draws.list <- list("mod_adoption" = mod.adoption.draws,
+                          "mod_anon_reverted" = mod.anon.reverted.draws,
+                          "mod_non_anon_reverted" = mod.non.anon.reverted.draws,
+                          "mod_no_user_page_reverted" = mod.no.user.page.reverted.draws,
+                          "mod_user_page_reverted" = mod.user.page.reverted.draws,
+                          'mod_non_anon_controversial' = mod.non.anon.controversial.draws,
+                          'mod_anon_controversial' =  mod.anon.controversial.draws,
+                          'mod_all_controversial' = mod.all.controversial.draws,
+                          'mod_no_user_page_controversial' = mod.no.user.page.controversial.draws,
+                          'mod_user_page_controversial' = mod.user.page.controversial.draws)
+
+
+format.regtable <- function(table.data){
+
+  xtab <- xtable(table.data, auto=TRUE, digits=2, caption=c("Posterior statistics and hpercentiles for model predicting signature counts."))
+                                        #align(xtab) <- xalign(xtab)
+  align(xtab)['Marginal Posterior'] <- 'c'
+  return(xtab)
+}
+
+plot.threshold.cutoffs <- function(df, wiki,  partial.plot=NULL){
+    if(is.null(partial.plot)){
+        p <- ggplot()
+    } else {
+        p <- partial.plot
+    }
+
+    df <- df[d.nearest.threshold != 0]
+    df <- df[, ':='(pre.cutoff = d.nearest.threshold < 0)]
+    
+    seg.df <- df[,':='(max.x.pre.cutoff=max(.SD[(pre.cutoff==TRUE)]$d.nearest.threshold),
+                      min.x.post.cutoff=min(.SD[(pre.cutoff==FALSE)]$d.nearest.threshold)),
+                   by=.(nearest.threshold)]
+
+    seg.df <- seg.df[,.(y=.SD[d.nearest.threshold==min.x.post.cutoff]$linpred,
+                        yend=.SD[d.nearest.threshold==max.x.pre.cutoff]$linpred),
+                     by=.(nearest.threshold)
+                     ]
+
+    
+    p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold), alpha=0.5, data=df[pre.cutoff==FALSE],  color="grey30", fill='grey30')
+
+    p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold), alpha=0.5, data=df[pre.cutoff==TRUE],  color="grey30", fill='grey30')
+
+    p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), data=df[pre.cutoff==FALSE], color="grey30")
+
+    p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), data=df[pre.cutoff==TRUE], color="grey30")
+
+    p <- p + geom_segment(aes(x=0,xend=0,y=y,yend=yend),data=seg.df, linetype='solid', color='black')
+    p <- p + scale_x_continuous(breaks = signif(c(min(df$d.nearest.threshold), 0, max(df$d.nearest.threshold)),2))
+    p <- p + facet_wrap(. ~ nearest.threshold, scales="free") 
+    p <- p + ggtitle(wiki) + xlab("Distance from threshold") + ylab("Prob. reverted")
+    p <- p + theme(legend.position="none")
+    return(p)
+}
+
+plot.bins <- function(data.plot, partial.plot = NULL){
+    if (is.null(partial.plot)){
+        partial.plot <- ggplot()
+    }
+    data.plot <- data.plot[,pre.cutoff := bin.mid <0]
+    p <- partial.plot + geom_point(aes(x=bin.mid,y=prob.outcome), color="grey30", data=data.plot, alpha=0.8,size=0.8) + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*sd.outcome/sqrt(N),ymin=prob.outcome-1.96*sd.outcome/sqrt(N)), color="grey30" ,data=data.plot, alpha=0.7, size=0.7)
+
+    return(p)
+}
+
+rename.thresholds <- function(df){
+    df <- df[nearest.threshold == 'maybebad', nearest.threshold:='maybe bad']
+    df <- df[nearest.threshold == 'likelybad', nearest.threshold:='likely bad']
+    df <- df[nearest.threshold == 'verylikelybad', nearest.threshold:='very likely bad']    
+    return(df)
+}
+
+## me.data.df.1 <- anon.reverted.me.data.df
+## bins.df.1 <- anon.reverted.bins.df
+## label.1 <- 'IP'
+## me.data.df.2 <- mod.non.anon.reverted.me.data.df
+## bins.df.2 <- non.anon.reverted.bins.df
+## label.2 <- 'Not IP'
+## me.data.df.3 <- no.user.page.reverted.me.data.df
+## bins.df.3 <- no.user.page.reverted.bins.df                     
+## label.3 <- "No user page"
+## me.data.df.4 <- user.page.reverted.me.data.df
+## bins.df.4 <- user.page.reverted.bins.df
+## label.4 <- "User page"
+
+make.comparison.me.plot <- function(me.data.df.1,
+                                    bins.df.1,
+                                    label.1,
+                                    me.data.df.2,
+                                    bins.df.2,
+                                    label.2,
+                                    me.data.df.3,
+                                    bins.df.3,
+                                    label.3,
+                                    me.data.df.4,
+                                    bins.df.4,
+                                    label.4){
+
+    me.data.df.1 <- rename.thresholds(me.data.df.1)
+    bins.df.1 <- rename.thresholds(bins.df.1)
+
+    me.data.df.2 <- rename.thresholds(me.data.df.2)
+    bins.df.2 <- rename.thresholds(bins.df.2)
+
+    me.data.df.3 <- rename.thresholds(me.data.df.3)
+    bins.df.3 <- rename.thresholds(bins.df.3)
+
+    me.data.df.4 <- rename.thresholds(me.data.df.4)
+    bins.df.4 <- rename.thresholds(bins.df.4)
+
+
+    me.data.df.1 <- me.data.df.1[,label:=label.1]
+    me.data.df.2 <- me.data.df.2[,label:=label.2]
+    me.data.df.3 <- me.data.df.3[,label:=label.3]
+    me.data.df.4 <- me.data.df.4[,label:=label.4]
+
+    me.data.df <- rbind(me.data.df.1, me.data.df.2, me.data.df.3, me.data.df.4)
+    me.data.df <- me.data.df[,label := factor(label, c(label.1, label.2, label.3, label.4))]
+
+    me.data.df <- me.data.df[, ':='(pre.cutoff = d.nearest.threshold < 0)]
+
+  me.data.df <- me.data.df[d.nearest.threshold != 0]
+    me.data.df <- me.data.df[,nearest.threshold := factor(nearest.threshold, c('very likely bad','likely bad', 'maybe bad'))]
+    
+    seg.df <- me.data.df[,':='(max.x.pre.cutoff=max(.SD[(pre.cutoff==TRUE)]$d.nearest.threshold),
+                               min.x.post.cutoff=min(.SD[(pre.cutoff==FALSE)]$d.nearest.threshold)),
+                         by=.(label, nearest.threshold)]
+
+    seg.df <- seg.df[,.(y=.SD[d.nearest.threshold==min.x.post.cutoff]$linpred,
+                        yend=.SD[d.nearest.threshold==max.x.pre.cutoff]$linpred),
+                     by=.(label, nearest.threshold)
+                     ]
+
+    bins.df.1 <- bins.df.1[,label:=label.1]
+    bins.df.2 <- bins.df.2[,label:=label.2]
+    bins.df.3 <- bins.df.3[,label:=label.3]
+    bins.df.4 <- bins.df.4[,label:=label.4]
+
+    bins.df <- rbind(bins.df.1, bins.df.2, bins.df.3, bins.df.4)
+    bins.df <- bins.df[,label := factor(label, c(label.1, label.2, label.3, label.4))]
+    bins.df <- bins.df[,nearest.threshold := factor(nearest.threshold, c('very likely bad','likely bad', 'maybe bad'))]
+
+    bins.df <- bins.df[, ':='(pre.cutoff = bin.mid < 0)]
+
+  plot.parts <- list()
+
+  i <- length(plot.parts)
+  first.col <- TRUE
+  n.rows <- 4
+  n.cols <- 3
+
+  for(threshold in unique(me.data.df$nearest.threshold)){
+#   xo i <- i + 1
+    t.str <- paste0(toupper(substr(threshold,1,1)), substr(threshold,2,nchar(threshold)))
+
+#    plot.parts[[i]] <- textGrob(t.str, x=unit(0.65, 'npc'))
+    for(label.t in levels(me.data.df$label)){
+      bins.df.t <- bins.df[(nearest.threshold == threshold) & (label==label.t)]
+      me.data.df.t <- me.data.df[(nearest.threshold == threshold) & (label==label.t)]
+      seg.df.t <- seg.df[(nearest.threshold == threshold) & (label==label.t)]
+
+      p <- ggplot() + geom_point(aes(x=bin.mid,y=prob.outcome), data=bins.df.t, alpha=0.7,size=0.7, color='grey30')
+      p <- p + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*sd.outcome/sqrt(N),ymin=prob.outcome-1.96*sd.outcome/sqrt(N), ),data=bins.df.t, alpha=0.7, size=0.7, color='grey30')
+
+      p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold, group=pre.cutoff), alpha=0.5, data=me.data.df.t[pre.cutoff==FALSE], color='grey30', fill='grey30')
+
+      p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold, group=pre.cutoff), alpha=0.5, data=me.data.df.t[pre.cutoff==TRUE], color='grey30', fill='grey30')
+
+      p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), color='grey30', data=me.data.df.t[pre.cutoff==FALSE])
+      p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), color='grey30', data=me.data.df.t[pre.cutoff==TRUE])
+      p <- p + geom_segment(aes(x=0,xend=0,y=y,yend=yend),data=seg.df.t, linetype='solid', color='black',size=0.8)
+      p <- p + xlab("") + ylab("")
+
+      p <- p + scale_y_continuous(breaks=seq(ceiling(min(me.data.df.t$linpred.lower)*100)/100, floor(max(me.data.df.t$linpred.upper)*100)/100,length.out=5))
+
+      if( (i %% n.rows) == 0){
+#        p <- p + scale_x_continuous(breaks = round(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold))*100)/100, t.str, position='top')
+        p <- p + scale_x_continuous(breaks = c(-0.05,0,0.05), labels=c(-0.05,0,0.05),t.str, position='bottom')
+      } else {
+        p <- p + scale_x_continuous(breaks = signif(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold)),2)) + theme(axis.title.x.top = element_blank()) 
+      }
+        
+      if( (i %% n.rows) == 3){
+
+      } else {
+        p <- p + theme(axis.text.x = element_blank()) + theme(axis.title.x.bottom = element_blank())
+      }
+#      p <- p + ggtitle(i)
+      i <- i + 1
+      
+      plot.parts[[i]] <- p
+    }
+    first.col <- FALSE
+  }
+
+  y.labels <- lapply(levels(me.data.df$label), function(...) gsub("user page", "user \n page", ...))
+
+  for(yl in y.labels){
+    yh <- 0.9 - (i == 12) * 0.1
+    i <- i + 1
+    plot.parts[[i]] <- textGrob(yl,
+                                just=c('left','top'),
+                                x=unit(0.15,'grobwidth',data = ggplotGrob(plot.parts[[length(plot.parts) - n.rows]])),
+                                y=unit(yh,'npc'),
+                                gp=gpar(fontsize=11))
+  }
+
+  p.main <- arrangeGrob(grobs = plot.parts, as.table = FALSE, ncol=4, widths=c(rep(1,3),0.5), heights=c(1.15,1,1,1.1))
+
+  return(grid.arrange(textGrob("Prob. reverted",rot=90,x=0.6), p.main,  textGrob(""), textGrob("Distance from threshold",x=0.455,y=0.7, just=c('bottom')), ncol=2, widths=c(0.02,1), heights=c(1,0.018)))
+}
+
+make.comparison.2.me.plot <- function(me.data.df.1,
+                                      bins.df.1,
+                                      label.1,
+                                      me.data.df.2,
+                                      bins.df.2,
+                                      label.2){
+
+    me.data.df.1 <- rename.thresholds(me.data.df.1)
+    bins.df.1 <- rename.thresholds(bins.df.1)
+
+    me.data.df.2 <- rename.thresholds(me.data.df.2)
+    bins.df.2 <- rename.thresholds(bins.df.2)
+
+    me.data.df.1 <- me.data.df.1[,label:=label.1]
+    me.data.df.2 <- me.data.df.2[,label:=label.2]
+
+    me.data.df <- rbind(me.data.df.1, me.data.df.2)
+    me.data.df <- me.data.df[,label := factor(label, c(label.1, label.2))]
+
+    me.data.df <- me.data.df[, ':='(pre.cutoff = d.nearest.threshold < 0)]
+    me.data.df <- me.data.df[d.nearest.threshold != 0]
+    me.data.df <- me.data.df[,nearest.threshold := factor(nearest.threshold, c('very likely bad','likely bad', 'maybe bad'))]
+    
+    seg.df <- me.data.df[,':='(max.x.pre.cutoff=max(.SD[(pre.cutoff==TRUE)]$d.nearest.threshold),
+                               min.x.post.cutoff=min(.SD[(pre.cutoff==FALSE)]$d.nearest.threshold)),
+                         by=.(label, nearest.threshold)]
+
+    seg.df <- seg.df[,.(y=.SD[d.nearest.threshold==min.x.post.cutoff]$linpred,
+                        yend=.SD[d.nearest.threshold==max.x.pre.cutoff]$linpred),
+                     by=.(label, nearest.threshold)
+                     ]
+
+    bins.df.1 <- bins.df.1[,label:=label.1]
+    bins.df.2 <- bins.df.2[,label:=label.2]
+
+    bins.df <- rbind(bins.df.1, bins.df.2)
+    bins.df <- bins.df[,label := factor(label, c(label.1, label.2))]
+    bins.df <- bins.df[,nearest.threshold := factor(nearest.threshold, c('very likely bad','likely bad', 'maybe bad'))]
+
+    bins.df <- bins.df[, ':='(pre.cutoff = bin.mid < 0)]
+
+  plot.parts <- list()
+
+  i <- length(plot.parts)
+  first.col <- TRUE
+  n.rows <- 3
+
+  for(threshold in unique(me.data.df$nearest.threshold)){
+#   xo i <- i + 1
+    t.str <- paste0(toupper(substr(as.character(threshold),1,1)), substr(as.character(threshold),2,nchar(as.character(threshold))))
+
+    i <- i + 1
+    plot.parts[[i]] <- textGrob(t.str, x=unit(0.65, 'npc'))
+
+    for(label.t in levels(me.data.df$label)){
+      bins.df.t <- bins.df[(nearest.threshold == threshold) & (label==label.t)]
+      me.data.df.t <- me.data.df[(nearest.threshold == threshold) & (label==label.t)]
+      seg.df.t <- seg.df[(nearest.threshold == threshold) & (label==label.t)]
+
+      p <- ggplot() + geom_point(aes(x=bin.mid,y=prob.outcome), data=bins.df.t, alpha=0.7,size=0.7, color='grey30')
+      p <- p + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*sd.outcome/sqrt(N),ymin=prob.outcome-1.96*sd.outcome/sqrt(N), ),data=bins.df.t, alpha=0.7, size=0.7, color='grey30')
+
+      p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold, group=pre.cutoff), alpha=0.5, data=me.data.df.t[pre.cutoff==FALSE], color='grey30', fill='grey30')
+
+      p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold, group=pre.cutoff), alpha=0.5, data=me.data.df.t[pre.cutoff==TRUE], color='grey30', fill='grey30')
+
+      p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), color='grey30', data=me.data.df.t[pre.cutoff==FALSE])
+      p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), color='grey30', data=me.data.df.t[pre.cutoff==TRUE])
+      p <- p + geom_segment(aes(x=0,xend=0,y=y,yend=yend),data=seg.df.t, linetype='solid', color='black',size=0.8)
+      p <- p + xlab("") + ylab("")
+
+      p <- p + scale_y_continuous(breaks=seq(ceiling(min(me.data.df.t$linpred.lower)*100)/100, floor(max(me.data.df.t$linpred.upper)*100)/100,length.out=3))
+
+      if( (i %% n.rows) == 0){
+#        p <- p + scale_x_continuous(breaks = round(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold))*100)/100, t.str, position='top')
+        
+        p <- p + scale_x_continuous(breaks = signif(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold)),2), t.str, position='bottom')
+      } else {
+        p <- p + scale_x_continuous(breaks = signif(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold)),2)) + theme(axis.title.x.top = element_blank()) 
+      }
+        
+      if( (i %% n.rows) == 2){
+      } else {
+        p <- p + theme(axis.text.x = element_blank()) + theme(axis.title.x.bottom = element_blank())
+      }
+#      p <- p + ggtitle(i)
+      i <- i + 1
+      
+      plot.parts[[i]] <- p
+    }
+    first.col <- FALSE
+  }
+
+  y.labels <- lapply(levels(me.data.df$label), function(...) gsub("user page", "user \n page", ...))
+
+  y.labels <- c("", y.labels)
+  for(yl in y.labels){
+    yh <- 0.9 - (i == 12) * 0.1
+    i <- i + 1
+    plot.parts[[i]] <- textGrob(yl,
+                                just=c('left','top'),
+                                x=unit(0.1,'npc'),
+                                y=unit(0.8,'npc'),
+                                gp=gpar(fontsize=11))
+  }
+
+  p.main <- arrangeGrob(grobs = plot.parts, as.table = FALSE, ncol=4, widths=c(rep(1,3),0.5), heights=c(0.15, 1, 1.3))
+
+  return(grid.arrange(textGrob("Prob. reverted",rot=90,x=0.6), p.main,  textGrob(""), textGrob("Distance from threshold",x=0.455,y=1, just=c('bottom')), ncol=2, widths=c(0.02,1), heights=c(1,0.018)))
+}
+
+make.rdd.plot <- function(me.data.df, bins.df, title){
+    me.data.df <- rename.thresholds(me.data.df)
+    bins.df <- rename.thresholds(bins.df)
+
+    p <- plot.bins(bins.df)
+
+    p <-  plot.threshold.cutoffs(me.data.df, '', partial.plot = p)
+
+    p <- p + ggtitle(title)
+
+    p <- p + theme(panel.spacing = unit(2, "lines"), plot.title = element_text(size=12))
+    return(p)
+}
+
+
+prep.regtable <- function(mod.xtable, name){
+
+  table.data <- as.data.table(mod.xtable)
+  table.data <- table.data[varname %in% cutoff.var.names]
+  tex.names <- cutoff.var.symbols
+  table.data[['varname']] = cutoff.var.symbols[table.data$varname]
+  table.data <- table.data[order(varname)]
+
+  for(i in 1:length(cutoff.var.symbols)){
+    var <- cutoff.var.symbols[[i]]
+    table.data[varname == var,"Marginal Posterior":= paste0("\\raisebox{-0.5\\totalheight}{\\includegraphics[height=1.4em]{",sparkplot.files[[paste(name,var,sep='.')]],"}}")]
+  }
+  
+#table.data[,Rhat:=NULL]
+
+  setnames(table.data,old=c("varname","mean","sd", "2.5%","25%","50%","75%","97.5%", "Rhat"),new=c("Coefficient", "Mean", "SD", "2.5\\%","25\\%","50\\%","75\\%","97.5\\%", "\\(\\widehat{R}\\)"))
+
+  xtab <- format.regtable(table.data)
+  return(xtab)
+}
+@
+<<make.sparklines, echo=FALSE, info=FALSE, warnings=FALSE>>=
+
+sparkplot <- function(samples){
+  # place lines (or maybe shading?) at the mean and credible interval
+  p <- qplot(samples, geom="density") + ggtitle("") + xlab("") + ylab("") + scale_y_continuous(breaks=c()) + theme_minimal() 
+  plot.data <- as.data.table(ggplot_build(p)[1]$data)
+  ci.95 <- quantile(samples,c(0.025, 0.975))
+  ci.region <- plot.data[(x>=ci.95[1]) & (x<=ci.95[2])]
+  x.min <- min(c(plot.data$x, 0))
+  x.max <- max(c(plot.data$x, 0))
+  
+  #  p <- p + geom_area(data=ci.region, aes(x=x,y=y), fill='grey30',alpha=0.6)
+  p <- p + geom_vline(xintercept=ci.95[1],color='purple',size=5,linetype='dotted')
+  p <- p + geom_vline(xintercept=ci.95[2], color='purple',size=5,linetype='dotted')
+  p <- p + geom_vline(xintercept=mean(samples), color='blue', linetype='dashed',size=3)
+  p <- p + geom_vline(xintercept=0, color='black',size=3)
+  breaks <- signif(c(x.min,x.max),2)
+  p <- p + scale_x_continuous(breaks=breaks, labels=as.character(breaks), limits=c(x.min, x.max))
+  ## panel.grid.major.x = element_blank(),
+  p <- p + theme(plot.margin=unit(c(0,10,0,10),'mm'),  axis.text.x=element_text(size=56))
+  return(p)
+}
+
+
+make.sparkplot <- function(samples, name, var){
+    fname <- paste0("figures/",name,'_',gsub('\\.','_',var),".pdf")
+    fname <- gsub('\\\\','',fname)
+    fname <- gsub('\\$','',fname)
+
+    sparkplot.name <- paste(name,var,sep='.')
+    sparkplot.files[[sparkplot.name]] <<- fname
+
+    if( (overwrite == TRUE) | (!file.exists(fname))){
+      p <- sparkplot(samples) 
+      cairo_pdf(fname,width=10,height=2.6)
+      print(p)
+      dev.off()
+      system2(command = "pdfcrop", 
+              args    = c(fname, 
+                          fname) 
+              )
+
+      ## system2(command = "gs", 
+      ##         args    = c('-o',
+      ##                     fname,
+      ##                     '-sDevice=pdfwrite',
+      ##                     '-dColorConversionStrategy=/sRGB',
+      ##                     '-dProcessColorModel=/DeviceRGB',
+      ##                     fname) 
+      ##         )
+    }
+    return(sparkplot.name)
+}
+
+make.overall.regtab.row <- function(samples, name, coef.name){
+
+  quant <- quantile(samples,probs=c(2.5,25,50,75,97.5)/100)
+  names(quant) <- c('2.5\\%','25\\%','50\\%','75\\%','97.5\\%')
+
+  sparkplot.name <- make.sparkplot(samples,name,'overall')
+
+  row <- list('Coefficient'=coef.name,
+                       'Mean'=mean(samples),
+                       'SD'=sd(samples),
+                       "\\(\\widehat{R}\\)"=NA,
+                       'Marginal Posterior'=paste0("\\raisebox{-0.3\\totalheight}{\\includegraphics[height=1.4em]{",sparkplot.files[[sparkplot.name]],"}}")
+)
+
+  return (append(row, quant))
+}
+
+make.sparklines <- function(model.draws, name){
+  draws <- setnames(model.draws,
+                    old=cutoff.var.names, 
+                    new=cutoff.var.symbols 
+                    )
+
+  for (var in cutoff.var.symbols){
+    make.sparkplot(draws[[var]], name, var)
+  }
+  
+}
+
+for(i in 1:length(models.draws.list)){
+  draws <- models.draws.list[[i]]
+  name <- names(models.draws.list)[[i]]
+  make.sparklines(draws,name)
+}
+
+@ 
+
+
+<<set.h1.vars, echo=FALSE>>=
+tau.1.non.anon <- mod.non.anon.reverted.draws[["$\\tau_1$"]]
+tau.2.non.anon <- mod.non.anon.reverted.draws[["$\\tau_2$"]]
+tau.3.non.anon <- mod.non.anon.reverted.draws[["$\\tau_3$"]]
+
+tau.1.anon <- mod.anon.reverted.draws[["$\\tau_1$"]]
+tau.2.anon <- mod.anon.reverted.draws[["$\\tau_2$"]]
+tau.3.anon <- mod.anon.reverted.draws[["$\\tau_3$"]]
+
+@ 
+
+% Metadata Information
+\acmVolume{2}
+\acmNumber{3}
+\acmArticle{1}
+\articleSeq{1}
+\acmYear{2020}
+\acmMonth{5}
+
+% Package to generate and customize Algorithm as per ACM style
+\usepackage{booktabs}
+\usepackage[ruled]{algorithm2e}
+\SetAlFnt{\algofont}
+\SetAlCapFnt{\algofont}
+\SetAlCapNameFnt{\algofont}
+\SetAlCapHSkip{0pt}
+\IncMargin{-\parindent}
+\renewcommand{\algorithmcfname}{ALGORITHM}
+
+% Page heads
+\markboth{N. TeBlunthuis, A. Shaw and BM. Hill}{The Population Ecology of Online Collective Action}
+
+% Title portion
+% NOTE! Affiliations placed here should be for the institution where the
+%       BULK of the research was done. If the author has gone to a new
+%       institution, before publication, the (above) affiliation should NOT be changed.
+%       The authors 'current' address may be given in the "Author's addresses:" block (below).
+%       So for example, Mr. Fogarty, the bulk of the research was done at UIUC, and he is
+%       currently affiliated with NASA.
+
+\usepackage[utf8]{inputenc}
+\usepackage[american]{babel}
+%\usepackage{graphicx}
+%\usepackage{mathptmx}
+
+% packages i use in many documents but leave off by default
+\usepackage{amsmath}%, amsthm} %, amssymb}
+
+% \usepackage[natbib=true, style=numeric, backend=biber]{biblatex} 
+% \DeclareLanguageMapping{american}{american-apa} 
+% \addbibresource{refs.bib}
+
+% \defbibheading{secbib}[\bibname]{%
+%   \section*{#1}%
+%   \markboth{#1}{#1}%
+%   \baselineskip 14.2pt%
+%   \prebibhook}
+
+\def\citepos#1{\citeauthor{#1}'s (\citeyear{#1})}
+\def\citespos#1{\citeauthor{#1}' (\citeyear{#1})}
+
+\usepackage{booktabs}
+
+% \usepackage[T1]{fontenc}
+% \usepackage{textcomp}
+% \usepackage[garamond]{mathdesign}
+
+% \usepackage[letterpaper,left=1.65in,right=1.65in,top=1.3in,bottom=1.2in]{geometry} 
+
+% packages i use in essentially every document
+\usepackage{graphicx}
+\usepackage{enumerate}
+
+% packages i use in many documents but leave off by default
+%\usepackage{amsmath, amsthm} %, amssymb}
+\usepackage{wrapfig}
+%\usepackage{caption}
+% \usepackage{dcolumn}
+% \usepackage{endfloat}
+
+% % import and customize urls
+% \usepackage[breaklinks]{hyperref}
+% \hypersetup{colorlinks=true, linkcolor=Black, citecolor=Black, filecolor=Blue,
+%     urlcolor=Blue, unicode=true}
+
+% list of footnote symbols for \thanks{}
+% \makeatletter
+% \renewcommand*{\@fnsymbol}[1]{\ensuremath{\ifcase#1\or *\or \dagger\or \ddagger\or
+%  \mathsection\or \mathparagraph\or \|\or **\or \dagger\dagger
+%   \or \ddagger\ddagger \else\@ctrerr\fi}}% \makeatother
+% \newcommand*\samethanks[1][\value{footnote}]{\footnotemark[#1]}
+
+% add bibliographic stuff 
+
+% \usepackage{csquotes}
+
+%\usepackage[natbib=true, style=apa, backend=biber]{biblatex} 
+%\DeclareLanguageMapping{american}{american-apa} 
+
+% \defbibheading{secbib}[\bibname]{%
+%   \section*{#1}%
+%   \markboth{#1}{#1}%
+%   \baselineskip 14.2pt%
+%   \prebibhook}
+
+% \def\citepos#1{\citeauthor{#1}'s (\citeyear{#1})}
+% \def\citespos#1{\citeauthor{#1}' (\citeyear{#1})}
+
+% memoir function to take out of the space out of the whitespace lists
+% \firmlists
+
+% LATEX NOTE: these lines will import vc stuff after running `make vc` which
+% will add version control information to the bottom of each page. This can be
+% useful for keeping track of which version of a document somebody has:
+% \input{vc}
+% \pagestyle{cdsc-page-git}
+
+% LATEX NOTE: this alternative line will just input a timestamp at the
+% build process, useful for sharelatex
+% \pagestyle{cdsc-page-sharelatex}
+
+
+\newcounter{figurestash}
+\newcounter{equationcount}
+\setcounter{equationcount}{0}
+
+\newcommand{\begineqfig}{\addtocounter{figurestash}{\value{figure}}
+\setcounter{figure}{\value{equationcount}}
+\renewcommand{\figurename}{Equation}}
+
+\newcommand{\eqfigend}{\setcounter{figure}{\value{figurestash}}
+\renewcommand{\figurename}{Figure}
+\addtocounter{equationcount}{1}}
+\hyphenation{Wiki-pedia Tray-von Bruns-wick alig-ned social-psy-cho-lo-gi-cal}
+%\newcommand{\oressource}{oresarchaeologist}
+\newcommand{\TODO}[1]{{\color{red} TODO: #1}}
+
+%\setlength{\parskip}{4.5pt}
+% LATEX NOTE: Ideal linespacing is usually said to be between 120-140% the
+% typeface size. So, for 12pt (default in this document, we're looking for
+% somewhere between a 14.4-17.4pt \baselineskip.  Single; 1.5 lines; and Double
+% in MSWord are equivalent to ~117%, 175%, and 233%.
+
+% \baselineskip 16pt
+
+\title{Algorithmic flags and identity-based signals in online community moderation}
+
+
+\author{Nathan TeBlunthuis \affil{University of Washington}  Benjamin Mako Hill \affil{University of Washington} Aaron Halfaker \affil{Wikimedia Foundation}
+}
+
+% \published{\textsc{\textcolor{BrickRed}{This document is an
+%   unpublished draft.\\ Please do not distribute or cite without
+%   permission.}}}
+
+\begin{abstract}
+Intentionally left blank.
+\end{abstract}
+
+\begin{document}
+
+\maketitle
+
+
+Moderators of online communities and social media platforms review an often large quantity of user generated content and actions to address violations of norms and rules. Upon finding a problematic action, they decide how to respond and whether to sanction the misbehavior.  Due to the ``problem of scale'' moderators may direct their attention according to identity-based signals of individual quality such as reputation, experience, or registration status instead of reviewing every action or searching randomly \cite{gillespie_custodians_2018,kraut_regulating_2012}. Increasingly, communities and platforms adopt algorithmic triage systems to direct moderators toward actions predicted to be problematic \cite{chandrasekharan_crossmod:_2019}. With growing attention to problems of disinformation and hate speech online, commercial platforms are expanding their pools of paid human moderators, but the work of paid moderators can be exploitative, difficult, traumatizing, and expensive \cite{roberts_commercial_2016}.  Moderation is stressful work involving a large number of judgment calls, often ambiguous, that must be made quickly. 
+
+
+\begin{figure}[h]
+<<reverted.me.plot, echo=FALSE, fig.height=2, dev='pdf',out.width='\\textwidth'>>=
+make.comparison.2.me.plot(anon.reverted.me.data.df,
+                        anon.reverted.bins.df,
+                        'IP',
+                        non.anon.reverted.me.data.df,
+                        non.anon.reverted.bins.df,
+                        'Not IP'
+                        )
+
+@ 
+  \caption{Marginal effects plot for H1, showing our model's sanctioning behavior around cutoffs that cause actions to be flagged to moderators. Points with error bars show proportions of edits reverted in 10 bins with 95\% confidence intervals. \label{fig:h1.me}}
+\end{figure}
+
+
+Drawing from legal philosopher Frederick Schauer's notion of ``profiling,'' ethicist Paul de Laat argues that characteristics like reputation and registration status become prone to ``overuse'' by moderators who may concentrate their attention on the activities on a narrow range of users \cite{de_laat_profiling_2016,de_laat_use_2015}. Instead of reviewing every action or searching randomly, moderators may direct their attention according to ``identity-based signals:'' characteristics such as reputation, experience, or registration status associated with quality.  But reliance on such signals may lead to ``over-profiling'' if moderators concentrate their attention on the activities on a narrow range of users.
+
+Similarly, economists describe ``statistical discrimination'' in which characteristics correlated with performance or deviance are used in making decisions \cite{bertrand_field_2016}.  Profiling based on identity based signals may lead to statistical discrimination on the basis of those signals. Economists of discrimination distinguish between   taste-based and statistical discrimination \cite{bertrand_field_2016}.  Discrimination is when authorities treat deferentially treat individuals based on membership in a group or identity. ``Taste-based'' discrimination is driven by preferences for members of one group or identity including ideological racism and implicit bias. But discrimination can also happen because identity-based signals are instrumental to improving the quality of decisions.  
+
+
+Increasingly, online platforms adopt \emph{algorithmic triage}, to predict which content is damaging and surface it to human moderators \cite{gillespie_custodians_2018}. Can algorithmic triage replace reliance on identity-based signals in community and platform governance?  Advocates of algorithmic risk prediction in criminal justice settings argue that algorithmic predictions can improve upon the discriminatory and inaccurate decisions of human judges \cite{kleinberg_discrimination_2018}.  Yet when moderators or judges can still see identity-based signals, they may still use them in decision making.  We hypothesize that algorithmic predictions will have less influence on outcomes for ``over-profiled'' individuals compared to ``under-profiled'' ones. In other words, our theory is that flagging an action by an algorithm will cause a greater increase in the likelihood of sanction for ``under-profiled'' individuals.  Similarly, we consider how algorithmic flags and identity-based signals may influence the consistency of sanctioning and theorize that flagging an action will cause an increase in the likelihood that a sanction is unfair, and thus controversial, more for ``under-profiled'' individuals. 
+
+We propose that:
+
+\textbf{H1:} Flagging an action causes a greater increase in the likelihood the action is sanctioned when the action is made by an under-profiled individual than when it is made by an over-profiled individual.
+
+We also consider how identity-based signals shape the consistency of sanctioning.  When moderators use aspects of user identity such as account age, registration, experience or reputation to choose what contributions to review or whether to sanction behavior, these attributes act as ``salient signals'': visible signs used in fast decision making.  When faced with many choices where the correct decision is uncertain or where finding and analyzing the information necessary to arrive at a correct decision is difficult, people tend to rely on salient signals  \cite{bordalo_salience_2012,kleinberg_human_2018,tversky_judgment_1974}.  
+
+% important term related to salient signal is "cue"
+We propose that algorithmic flags function as a salient signal and therefore that moderators may be more likely to issue controversial sanctions against flagged actions. When an action is flagged, a moderator will be suspicious of it and act conservatively to sanction even if the decision is uncertain. The flag suggests to the moderator that the action is problematic. We hypothesize that the increase in sanctioning caused by flagging an action will also lead to an increase in the proportion of sanctions that are controversial.
+
+\textbf{H2:} Within the set of sanctioned actions, flagging an action causes an increase in the likelihood that it receives a controversial sanction.
+
+Finally, we propose that, as with algorithmic flags, identity-based signals function as salient signals that can lead to controversial sanctioning.  Similar to \textbf{H1}, we hypothesize that using algorithmic flagging alongside identity-based signals will partly, but not entirely, reduce reliance on identity-based signals. Actions by under-profiled individuals will be moderated more conservatively when they are flagged, but more liberally when not flagged. Yet actions by over-profiled individuals will still be moderated conservatively when not flagged. This implies that the increase in controversial sanctions among flagged actions will be smaller for over-profiled individuals compared to under-profiled individuals.
+
+\textbf{H3:} Within the set of sanctioned actions, flagging an action causes a greater increase in the likelihood that the sanction is controversial when the action is by an under-profiled individuals than when it is by an over-profiled individual.
+
+We use a regression discontinuity design (RDD) to estimate the causal effect of being flagged on moderation actions and test our hypotheses by comparing our estimates for ``over-profiled'' and ``under-profiled'' classes of editors. Given some assumptions, RDDs resemble a randomized control trial for data near to a discontinuity.  RDDs model an outcome $Y$, as a function of a continuous ``forcing variable'' $Z$, other covariates $X$, and a cutoff $c$ such that $Z>c$ determines treatment assignment.  The goal is to estimate $\tau$, which can be interpreted as the local average treatment effect in the neighborhood of $c$.  We use logistic regression models fit with rstanarm and weakly informative priors that shrink our estimates slightly towards 0.  
+
+
+We analyze data on moderator behavior from several language editions of Wikipedia that have adopted the ORES algorithm for edit quality prediction and the RCfilters flagging and filtering user-interface that it powers.  This system flags edits at three different levels  (``maybe bad'', ``likely bad'', ``very likely bad'')  when the ORES model's score (our forcing variable) exceeds arbitrary thresholds. The moderation interfaces present information about category memberships associated with damaging behavior, specifically whether an edit is attributed to an IP address or not.  Our outcome for \textbf{H1} is whether an edit is ``identity reverted,'' a measure of sanctioning commonly used in Wikipedia research and our outcome for \textbf{H2} and \textbf{H3} is whether a revert is un-reverted by a third party. 
+
+\begin{table}[hp]
+\tbl{ Partial results from RDD analysis showing estimated causal effect of flagging on sanctioning behavior for IP editors, and non-IP editors.  The effect is probably greater for non-IP editors compared to IP-editors. Marginal Posterior plots show the distributions of coefficients in our posterior samples. Solid black lines indicate the position of 0, blue dashed lines indicate the mean, and dotted purple lines indicate the boundaries of the 95\% credible intervals. \label{tab:anon.revert}}{
+
+<<regtable.H1.anon, echo=FALSE, results='asis'>>=
+
+xreg.anon <- prep.regtable(mod.anon.reverted.xtable, 'mod_anon_reverted')
+
+xreg.non.anon <- prep.regtable(mod.non.anon.reverted.xtable,'mod_non_anon_reverted')
+
+table.anon <- as.data.table(xreg.anon)
+
+table.anon <- table.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{IP}}$')]
+table.anon <- table.anon[order(Coefficient)]
+
+table.non.anon <- as.data.table(xreg.non.anon)
+table.non.anon <- table.non.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{not~IP}}$')]
+table.non.anon <- table.non.anon[order(Coefficient)]
+
+tau.anon <- apply(matrix(c(tau.1.anon,tau.2.anon,tau.3.anon),ncol=3,byrow=FALSE),1,sum)
+tau.non.anon <- apply(matrix(c(tau.1.non.anon,tau.2.non.anon,tau.3.non.anon),ncol=3,byrow=FALSE),1,sum)
+
+tau.non.anon.sub.anon <- apply(matrix(c(tau.non.anon, -1*tau.anon),ncol=2,byrow=FALSE),1,sum)
+
+row.tau.anon <- make.overall.regtab.row(tau.anon, 'tau_sum_anon_reverted', '$\\tau^{\\mathrm{IP}}$')
+
+row.tau.non.anon <- make.overall.regtab.row(tau.non.anon, 'tau_sum_non_anon_reverted', '$\\tau^\\mathrm{not~IP}$')
+
+row.diff <- make.overall.regtab.row(tau.non.anon.sub.anon, 'tau_non_anon_sub_anon', '$ \\tau^{\\mathrm{not~IP}} -  \\tau^{\\mathrm{IP}}$')
+
+table.data <- rbind(table.anon, table.non.anon, row.tau.anon, row.tau.non.anon, row.diff)
+table.data <- table.data[7:9]
+table.data[["\\(\\widehat{R}\\)"]] <- NULL
+xtab <- format.regtable(table.data)
+
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,2,3))
+#print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,6,8))
+@
+}
+p
+\end{table}
+
+Table \ref{tab:anon.revert} shows marginal posteriors for the effects of algorithmic flagging on reversion for each editor class and the difference in the estimates between editor classes. Figure \ref{fig:h1.me} shows marginal effects plots for the relationship between ORES scores and the probability of reversion around each threshold. We find support for \textbf{H1}, but given the low number edits with low ORES scores made by registered users with in the sample, there is about a 25\% chance that the effect for non-IP editors is no greater than for IP editors. Our models predict that an IP edit that scores right below the threshold has \Sexpr{signif(exp(mean(tau.anon)),2)} times the odds of being reverted as an edit that scores right above the thresholds compared to an odds ratio of \Sexpr{signif(exp(mean(tau.non.anon)),2)} for non-IP editors.  We are working on results using a much larger sample for the conference. We tentatively conclude that Wikipedia moderators continued using IP-attribution as a sign of dubious quality as algorithmic flags have a stronger effect for non-IP edits than for IP edits. 
+
+We find little support for \textbf{H2} or \textbf{H3}, that flagging increases controversial sanctioning or that any such increase falls disproportionately on over-profiled editors.  Our analysis of these hypotheses is limited in power by the relative scarcity of controversial sanctions made against registered editors. 
+
+
+\newpage
+% Bibliography
+\bibliographystyle{ci-format}
+\bibliography{OresAudit.bib}
+
+\end{document}
+
+% LOCAL_WORDS: decile
