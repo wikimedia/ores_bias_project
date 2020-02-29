@@ -623,7 +623,7 @@ tau.3.anon <- mod.anon.reverted.draws[["$\\tau_3$"]]
 
 % \baselineskip 16pt
 
-\title{Algorithmic flags and identity-based signals in online community moderation}
+\title{Algorithmic Flags and Identity-Based Signals in Online Community Moderation}
 
 
 \author{Nathan TeBlunthuis \affil{University of Washington}  Benjamin Mako Hill \affil{University of Washington} Aaron Halfaker \affil{Wikimedia Foundation}
