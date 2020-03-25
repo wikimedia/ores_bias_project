@@ -1,0 +1,1144 @@
+\documentclass[format=acmsmall, natbib=true, review=true, screen=true]{acmart}
+\citestyle{acmauthoryear}
+
+%\usepackage{cdsc-memoir}        
+% \usepackage{pdflscape}          %
+% \usepackage{tikz}
+% \usetikzlibrary{arrows}
+% \usetikzlibrary{positioning}
+% \usetikzlibrary{shapes}
+%\usepackage{pgfgantt}
+
+% there are two chapter styles: cdsc-article and cdsc-memo
+
+% memo assumes that you remove the "\\" and the email address from the
+% \author field below as well as that you will comment out the
+% \published tag
+%\chapterstyle{cdsc-article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{wrapfig}
+\usepackage{booktabs}
+<<init, echo=FALSE>>=
+knit_hooks$set(document = function(x) {
+  sub('\\usepackage[]{color}',
+'\\usepackage[]{color}', x, fixed = TRUE)
+})
+opts_chunk$set(fig.path="figures/knitr-")
+
+source("resources/preamble.R",local=TRUE)
+overwrite <- FALSE
+
+library(grid)
+library(gridExtra)
+sparkplot.files <<- list()
+cutoff.var.names <- c(
+  "nearest.thresholdmaybebad:gt.nearest.thresholdTRUE",
+  "nearest.thresholdlikelybad:gt.nearest.thresholdTRUE",
+  "nearest.thresholdverylikelybad:gt.nearest.thresholdTRUE")
+cutoff.var.symbols <- c("$\\tau_1$", "$\\tau_2$", "$\\tau_3$") 
+names(cutoff.var.symbols) <- cutoff.var.names
+
+models.draws.list <- list("mod_adoption" = mod.adoption.draws,
+                          "mod_anon_reverted" = mod.anon.reverted.draws,
+                          "mod_non_anon_reverted" = mod.non.anon.reverted.draws,
+                          "mod_no_user_page_reverted" = mod.no.user.page.reverted.draws,
+                          "mod_user_page_reverted" = mod.user.page.reverted.draws,
+                          'mod_non_anon_controversial' = mod.non.anon.controversial.draws,
+                          'mod_anon_controversial' =  mod.anon.controversial.draws,
+                          'mod_all_controversial' = mod.all.controversial.draws,
+                          'mod_no_user_page_controversial' = mod.no.user.page.controversial.draws,
+                          'mod_user_page_controversial' = mod.user.page.controversial.draws)
+
+
+format.regtable <- function(table.data){
+
+  xtab <- xtable(table.data, auto=TRUE, digits=2, caption=c("Posterior statistics and hpercentiles for model predicting signature counts."))
+                                        #align(xtab) <- xalign(xtab)
+  align(xtab)['Marginal Posterior'] <- 'c'
+  return(xtab)
+}
+
+sparkplot <- function(samples){
+  # place lines (or maybe shading?) at the mean and credible interval
+  p <- qplot(samples, geom="density") + ggtitle("") + xlab("") + ylab("") + scale_y_continuous(breaks=c()) + theme_minimal() + scale_x_continuous(breaks=c())
+  plot.data <- as.data.table(ggplot_build(p)[1]$data)
+  ci.95 <- quantile(samples,c(0.025, 0.975))
+  ci.region <- plot.data[(x>=ci.95[1]) & (x<=ci.95[2])]
+  #  p <- p + geom_area(data=ci.region, aes(x=x,y=y), fill='grey30',alpha=0.6)
+  p <- p + geom_vline(xintercept=ci.95[1],color='purple',size=5,linetype='dotted')
+  p <- p + geom_vline(xintercept=ci.95[2], color='purple',size=5,linetype='dotted')
+  p <- p + geom_vline(xintercept=mean(samples), color='blue', linetype='dashed',size=3)
+  p <- p + geom_vline(xintercept=0, color='black',size=3)
+  return(p)
+}
+
+
+plot.threshold.cutoffs <- function(df, wiki,  partial.plot=NULL){
+    if(is.null(partial.plot)){
+        p <- ggplot()
+    } else {
+        p <- partial.plot
+    }
+
+    df <- df[d.nearest.threshold != 0]
+    df <- df[, ':='(pre.cutoff = d.nearest.threshold < 0)]
+    
+    seg.df <- df[,':='(max.x.pre.cutoff=max(.SD[(pre.cutoff==TRUE)]$d.nearest.threshold),
+                      min.x.post.cutoff=min(.SD[(pre.cutoff==FALSE)]$d.nearest.threshold)),
+                   by=.(nearest.threshold)]
+
+    seg.df <- seg.df[,.(y=.SD[d.nearest.threshold==min.x.post.cutoff]$linpred,
+                        yend=.SD[d.nearest.threshold==max.x.pre.cutoff]$linpred),
+                     by=.(nearest.threshold)
+                     ]
+
+    
+    p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold), alpha=0.5, data=df[pre.cutoff==FALSE],  color="grey30", fill='grey30')
+
+    p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold), alpha=0.5, data=df[pre.cutoff==TRUE],  color="grey30", fill='grey30')
+
+    p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), data=df[pre.cutoff==FALSE], color="grey30")
+
+    p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), data=df[pre.cutoff==TRUE], color="grey30")
+
+    p <- p + geom_segment(aes(x=0,xend=0,y=y,yend=yend),data=seg.df, linetype='solid', color='black')
+    p <- p + scale_x_continuous(breaks = signif(c(min(df$d.nearest.threshold), 0, max(df$d.nearest.threshold)),2))
+    p <- p + facet_wrap(. ~ nearest.threshold, scales="free") 
+    p <- p + ggtitle(wiki) + xlab("Distance from threshold") + ylab("Prob. reverted")
+    p <- p + theme(legend.position="none")
+    return(p)
+}
+
+plot.bins <- function(data.plot, partial.plot = NULL){
+    if (is.null(partial.plot)){
+        partial.plot <- ggplot()
+    }
+    data.plot <- data.plot[,pre.cutoff := bin.mid <0]
+    p <- partial.plot + geom_point(aes(x=bin.mid,y=prob.outcome), color="grey30", data=data.plot, alpha=0.8,size=0.8) + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*sd.outcome/sqrt(N),ymin=prob.outcome-1.96*sd.outcome/sqrt(N)), color="grey30" ,data=data.plot, alpha=0.7, size=0.7)
+
+    return(p)
+}
+
+rename.thresholds <- function(df){
+    df <- df[nearest.threshold == 'maybebad', nearest.threshold:='maybe bad']
+    df <- df[nearest.threshold == 'likelybad', nearest.threshold:='likely bad']
+    df <- df[nearest.threshold == 'verylikelybad', nearest.threshold:='very likely bad']    
+    return(df)
+}
+
+## me.data.df.1 <- anon.reverted.me.data.df
+## bins.df.1 <- anon.reverted.bins.df
+## label.1 <- 'IP'
+## me.data.df.2 <- non.anon.reverted.me.data.df
+## bins.df.2 <- non.anon.reverted.bins.df
+## label.2 <- 'Not IP'
+## me.data.df.3 <- no.user.page.reverted.me.data.df
+## bins.df.3 <- no.user.page.reverted.bins.df                     
+## label.3 <- "No user page"
+## me.data.df.4 <- user.page.reverted.me.data.df
+## bins.df.4 <- user.page.reverted.bins.df
+## label.4 <- "User page"
+
+make.comparison.me.plot <- function(me.data.df.1,
+                                    bins.df.1,
+                                    label.1,
+                                    me.data.df.2,
+                                    bins.df.2,
+                                    label.2,
+                                    me.data.df.3,
+                                    bins.df.3,
+                                    label.3,
+                                    me.data.df.4,
+                                    bins.df.4,
+                                    label.4){
+
+    me.data.df.1 <- rename.thresholds(me.data.df.1)
+    bins.df.1 <- rename.thresholds(bins.df.1)
+
+    me.data.df.2 <- rename.thresholds(me.data.df.2)
+    bins.df.2 <- rename.thresholds(bins.df.2)
+
+    me.data.df.3 <- rename.thresholds(me.data.df.3)
+    bins.df.3 <- rename.thresholds(bins.df.3)
+
+    me.data.df.4 <- rename.thresholds(me.data.df.4)
+    bins.df.4 <- rename.thresholds(bins.df.4)
+
+
+    me.data.df.1 <- me.data.df.1[,label:=label.1]
+    me.data.df.2 <- me.data.df.2[,label:=label.2]
+    me.data.df.3 <- me.data.df.3[,label:=label.3]
+    me.data.df.4 <- me.data.df.4[,label:=label.4]
+
+    me.data.df <- rbind(me.data.df.1, me.data.df.2, me.data.df.3, me.data.df.4)
+    me.data.df <- me.data.df[,label := factor(label, c(label.1, label.2, label.3, label.4))]
+
+    me.data.df <- me.data.df[, ':='(pre.cutoff = d.nearest.threshold < 0)]
+
+  me.data.df <- me.data.df[d.nearest.threshold != 0]
+    me.data.df <- me.data.df[,nearest.threshold := factor(nearest.threshold, c('very likely bad','likely bad', 'maybe bad'))]
+    
+    seg.df <- me.data.df[,':='(max.x.pre.cutoff=max(.SD[(pre.cutoff==TRUE)]$d.nearest.threshold),
+                               min.x.post.cutoff=min(.SD[(pre.cutoff==FALSE)]$d.nearest.threshold)),
+                         by=.(label, nearest.threshold)]
+
+    seg.df <- seg.df[,.(y=.SD[d.nearest.threshold==min.x.post.cutoff]$linpred,
+                        yend=.SD[d.nearest.threshold==max.x.pre.cutoff]$linpred),
+                     by=.(label, nearest.threshold)
+                     ]
+
+    bins.df.1 <- bins.df.1[,label:=label.1]
+    bins.df.2 <- bins.df.2[,label:=label.2]
+    bins.df.3 <- bins.df.3[,label:=label.3]
+    bins.df.4 <- bins.df.4[,label:=label.4]
+
+    bins.df <- rbind(bins.df.1, bins.df.2, bins.df.3, bins.df.4)
+    bins.df <- bins.df[,label := factor(label, c(label.1, label.2, label.3, label.4))]
+    bins.df <- bins.df[,nearest.threshold := factor(nearest.threshold, c('very likely bad','likely bad', 'maybe bad'))]
+
+    bins.df <- bins.df[, ':='(pre.cutoff = bin.mid < 0)]
+
+  plot.parts <- list()
+
+  i <- length(plot.parts)
+  first.col <- TRUE
+  n.rows <- 4
+  n.cols <- 3
+
+  for(threshold in unique(me.data.df$nearest.threshold)){
+#   xo i <- i + 1
+    t.str <- paste0(toupper(substr(threshold,1,1)), substr(threshold,2,nchar(threshold)))
+
+    #plot.parts[[i]] <- textGrob(t.str, x=unit(0.65, 'npc'))
+    for(label.t in levels(me.data.df$label)){
+      bins.df.t <- bins.df[(nearest.threshold == threshold) & (label==label.t)]
+      me.data.df.t <- me.data.df[(nearest.threshold == threshold) & (label==label.t)]
+      seg.df.t <- seg.df[(nearest.threshold == threshold) & (label==label.t)]
+
+      p <- ggplot() + geom_point(aes(x=bin.mid,y=prob.outcome), data=bins.df.t, alpha=0.7,size=0.7, color='grey30')
+      p <- p + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*sd.outcome/sqrt(N),ymin=prob.outcome-1.96*sd.outcome/sqrt(N), ),data=bins.df.t, alpha=0.7, size=0.7, color='grey30')
+
+      p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold, group=pre.cutoff), alpha=0.5, data=me.data.df.t[pre.cutoff==FALSE], color='grey30', fill='grey30')
+
+      p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold, group=pre.cutoff), alpha=0.5, data=me.data.df.t[pre.cutoff==TRUE], color='grey30', fill='grey30')
+
+      p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), color='grey30', data=me.data.df.t[pre.cutoff==FALSE])
+      p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), color='grey30', data=me.data.df.t[pre.cutoff==TRUE])
+      p <- p + geom_segment(aes(x=0,xend=0,y=y,yend=yend),data=seg.df.t, linetype='solid', color='black',size=0.8)
+      p <- p + xlab("") + ylab("")
+
+      p <- p + scale_y_continuous(breaks=seq(ceiling(min(me.data.df.t$linpred.lower)*100)/100, floor(max(me.data.df.t$linpred.upper)*100)/100,length.out=5))
+
+      if( (i %% n.rows) == 0){
+#        p <- p + scale_x_continuous(breaks = round(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold))*100)/100, t.str, position='top')
+        p <- p + scale_x_continuous(breaks = c(-0.05,0,0.05), labels=c(-0.05,0,0.05),t.str, position='bottom')
+      } else {
+        p <- p + scale_x_continuous(breaks = signif(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold)),2)) + theme(axis.title.x.top = element_blank()) 
+      }
+        
+      if( (i %% n.rows) == 3){
+
+      } else {
+        p <- p + theme(axis.text.x = element_blank()) + theme(axis.title.x.bottom = element_blank())
+      }
+#      p <- p + ggtitle(i)
+      i <- i + 1
+      
+      plot.parts[[i]] <- p
+    }
+    first.col <- FALSE
+  }
+
+  y.labels <- lapply(levels(me.data.df$label), function(...) gsub("user page", "user \n page", ...))
+
+  for(yl in y.labels){
+    yh <- 0.9 - (i == 12) * 0.1
+    i <- i + 1
+    plot.parts[[i]] <- textGrob(yl,
+                                just=c('left','top'),
+                                x=unit(0.15,'grobwidth',data = ggplotGrob(plot.parts[[length(plot.parts) - n.rows]])),
+                                y=unit(yh,'npc'),
+                                gp=gpar(fontsize=11))
+  }
+
+  p.main <- arrangeGrob(grobs = plot.parts, as.table = FALSE, ncol=4, widths=c(rep(1,3),0.5), heights=c(1.15,1,1,1.1))
+
+  return(grid.arrange(textGrob("Prob. reverted",rot=90,x=0.6), p.main,  textGrob(""), textGrob("Distance from threshold",x=0.455,y=0.7, just=c('bottom')), ncol=2, widths=c(0.02,1), heights=c(1,0.018)))
+}
+
+make.rdd.plot <- function(me.data.df, bins.df, title){
+    me.data.df <- rename.thresholds(me.data.df)
+    bins.df <- rename.thresholds(bins.df)
+
+    p <- plot.bins(bins.df)
+
+    p <-  plot.threshold.cutoffs(me.data.df, '', partial.plot = p)
+
+    p <- p + ggtitle(title)
+
+    p <- p + theme(panel.spacing = unit(2, "lines"), plot.title = element_text(size=12))
+    return(p)
+}
+
+
+prep.regtable <- function(mod.xtable, name){
+
+  table.data <- as.data.table(mod.xtable)
+  table.data <- table.data[varname %in% cutoff.var.names]
+  tex.names <- cutoff.var.symbols
+  table.data[['varname']] = cutoff.var.symbols[table.data$varname]
+  table.data <- table.data[order(varname)]
+
+  for(i in 1:length(cutoff.var.symbols)){
+    var <- cutoff.var.symbols[[i]]
+    table.data[varname == var,"Marginal Posterior":= paste0("\\raisebox{-0.1\\totalheight}{\\includegraphics[height=1em]{",sparkplot.files[[paste(name,var,sep='.')]],"}}")]
+  }
+  
+#table.data[,Rhat:=NULL]
+
+  setnames(table.data,old=c("varname","mean","sd", "2.5%","25%","50%","75%","97.5%", "Rhat"),new=c("Coefficient", "Mean", "SD", "2.5\\%","25\\%","50\\%","75\\%","97.5\\%", "\\(\\widehat{R}\\)"))
+
+  xtab <- format.regtable(table.data)
+  return(xtab)
+}
+@
+% \usepackage[T1]{fontenc}
+% \usepackage{textcomp}
+% \usepackage[garamond]{mathdesign}
+
+% \usepackage[letterpaper,left=1.65in,right=1.65in,top=1.3in,bottom=1.2in]{geometry} 
+
+% packages i use in essentially every document
+\usepackage{graphicx}
+\usepackage{enumerate}
+
+% packages i use in many documents but leave off by default
+\usepackage{amsmath, amsthm} %, amssymb}
+%\usepackage{caption}
+% \usepackage{dcolumn}
+% \usepackage{endfloat}
+
+% % import and customize urls
+% \usepackage[breaklinks]{hyperref}
+% \hypersetup{colorlinks=true, linkcolor=Black, citecolor=Black, filecolor=Blue,
+%     urlcolor=Blue, unicode=true}
+
+% list of footnote symbols for \thanks{}
+% \makeatletter
+% \renewcommand*{\@fnsymbol}[1]{\ensuremath{\ifcase#1\or *\or \dagger\or \ddagger\or
+%  \mathsection\or \mathparagraph\or \|\or **\or \dagger\dagger
+%   \or \ddagger\ddagger \else\@ctrerr\fi}}% \makeatother
+% \newcommand*\samethanks[1][\value{footnote}]{\footnotemark[#1]}
+
+% add bibliographic stuff 
+\usepackage[american]{babel}
+% \usepackage{csquotes}
+
+%\usepackage[natbib=true, style=apa, backend=biber]{biblatex} 
+%\DeclareLanguageMapping{american}{american-apa} 
+
+% \defbibheading{secbib}[\bibname]{%
+%   \section*{#1}%
+%   \markboth{#1}{#1}%
+%   \baselineskip 14.2pt%
+%   \prebibhook}
+
+% \def\citepos#1{\citeauthor{#1}'s (\citeyear{#1})}
+% \def\citespos#1{\citeauthor{#1}' (\citeyear{#1})}
+
+% memoir function to take out of the space out of the whitespace lists
+% \firmlists
+
+% LATEX NOTE: these lines will import vc stuff after running `make vc` which
+% will add version control information to the bottom of each page. This can be
+% useful for keeping track of which version of a document somebody has:
+% \input{vc}
+% \pagestyle{cdsc-page-git}
+
+% LATEX NOTE: this alternative line will just input a timestamp at the
+% build process, useful for sharelatex
+% \pagestyle{cdsc-page-sharelatex}
+
+\hyphenation{social-psy-cho-lo-gi-cal}
+\newif\ifquarry
+\quarrytrue
+%\newcommand{\oressource}{oresarchaeologist}
+\newcommand{\TODO}[1]{{\color{red} TODO: #1}}
+\newcommand{\oressource}{\oresdatabase}
+\begin{document}
+
+\setlength{\parskip}{4.5pt}
+% LATEX NOTE: Ideal linespacing is usually said to be between 120-140% the
+% typeface size. So, for 12pt (default in this document, we're looking for
+% somewhere between a 14.4-17.4pt \baselineskip.  Single; 1.5 lines; and Double
+% in MSWord are equivalent to ~117%, 175%, and 233%.
+
+% \baselineskip 16pt
+
+\title{Algorithmic flagging does not replace identity-based signals in online community moderation}
+\author{Nate TeBlunthuis}
+
+\date{\today}
+
+% \published{\textsc{\textcolor{BrickRed}{This document is an
+%   unpublished draft.\\ Please do not distribute or cite without
+%   permission.}}}
+
+\begin{abstract}
+Algorithmic systems for enforcing rules are increasingly adopted by online communities, user generated content platforms, and peer production projects.  The large amount of activity in these spaces leads to a problem of scale due to the great human effort required to review and respond to violations of rules or norms.  Established approaches to community regulation include the use of identity-based signals such as reputation or experience, which moderators use to direct their attention.   Users lacking signals of quality, such as newcomers or unregistered participants, are both likely to cause problems and likely to be sanctioned, but may be ``over-profiled'' if moderators focus on them to the neglect of others. 
+  Community moderators increasingly use machine learning algorithms in automated triage systems to help scale up monitoring and enforcement of rules and norms.  These systems may be more accurate than identity-based signals and they make norm violations by all kinds of individuals more visible to moderators.  However, it is not clear how algorithmic and identity-based signals will influence moderation when both are available.  In this study, we explore the effects of the deployment of an algorithmic quality signal into a massive online community.
+
+  % that affords ``statistical discrimination,'' as users with visible signals of negative quality are more likely to be sanctioned. 
+  % We have to problematize identity-based signals.  What's wrong with them:
+  % Individuals who pass through the filters are hard to monitor (h1)
+  % They are inaccurate "salient signals" that can influence evaluation.
+  % A more accurate "salient signal" should improve evaluation (h1)
+
+Specifically, we analyze the RCfilters system on Wikipedia which displays algorithmic flags along side identity-based signals in interfaces for reviewing changes to the encyclopedia.  We use the thresholds that trigger flagging to estimate the causal effect of being flagged on sanctioning. \TODO{Put results here} We hypothesize that previous ``over-profiled'' individuals are less sensitive to being flagged because moderators will still scrutinize individuals with visible identity-based signals even when their actions are not flagged.  Similarly, under a hypothesis that identity-based signals and algorithmic flags function as ``salient signals'' that prime moderators to issue sanctions, we predict that flagging actions by ``over-profiled'' individuals will cause an increase in the proportion of sanctions that are controversial, but that this increase will be smaller than the corresponding increase for ``under-profiled'' individuals. 
+
+
+  % Recently communities and platforms are increasingly adopting automated triage systems that filter or flag  content to support governance work. These systems work by shifting moderator attention toward content and contributions predicted to be damaging. 
+%  We consider two mechanisms by which the design and use  of such technologies influences how participants are treated by governance workers.  First, automated triage systems direct attention toward problematic contributions by making them more visible and immediate in user interfaces. Second, these systems may nudge governance workers to see contributions as more dappmaging when they are flagged by an algorithm. 
+
+
+  % members of a salient class are less sensitive to being flagged and therefore still subject to scrutiny on the  has a disproportionate or 
+
+  % only routes attention or if it also nudges reviewer decisions. 
+
+% Before these models are introduced, change reviewers not using specialized tools had signals about editors available to help them identify problematic edits: for a given edit, they can see whether the editor was logged in or ``anonymous'' (in which case their IP address is shown). inherent such designs has consequences for governance by shaping what contributions are identity reverted.  Such reviewers could also see if an editor's user page and user-talk page exist, which may signal whether an editor is experienced or has been warned.
+% Scoring above the thresholds increases the chances an edit will be reverted. 
+\end{abstract}
+
+\maketitle
+
+%We believe that understanding the design of algorithmic governance systems requires accounting for how and to what extent the system serves both the surveillence and nudging functions. We analyze an algorithmic triage system in the wild
+
+% Too much emphasis on criminal justice and claiming that as a major part of the contribution is creating extra work. Don't do that unless you really need it.
+
+\section{Introduction}
+
+% Paragraph motivating the question: What are we concerned about why does it matter?% What's the CSCW problem we're working on? It's a popular topic right now. 
+
+% I need to develop / focus my concepts of enforcement or monitoring work. Use ostrom?
+
+% Bring in blackwell and bowker and star and mary douglas more here. Blackwell's important for signaling that this is CSCW work, not FAT*. 
+% Salient signals go in the introduction, but the point must be that they signal membership in suspicious categories.  
+% broaden the focus beyond online communities to broader questions of algorithmic governance --- including the criminal justice system.
+% Bring back surveillence/visibility and profiling in the intro.
+% don't make it about online communities!
+
+
+% Algorithms and the problem of scale
+Moderators of online communities and social media platforms review an often large quantity of user generated content and actions to address violations of norms and rules. Upon finding a problematic action, they decide how to respond and whether to sanction the misbehavior.  Due to the ``problem of scale'' moderators may direct their attention according to identity-based signals of individual quality such as reputation, experience, or registration status instead of reviewing every action or searching randomly \cite{gillespie_custodians_2018, kraut_regulating_2012}. Increasingly, communities and platforms adopt algorithmic triage systems to direct moderators toward actions predicted to be problematic \cite{chandrasekharan_crossmod:_2019}.
+
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{resources/RCfilters_flags.png}
+  \caption[Screenshot of edit metadata shown in RCfilters.]{Screenshot of Wikipedia edit metadata on Special:RecentChanges with RCfilters enabled.  Highlighted edits with a colored circle to the left other metadata are flagged by ORES.  Different circle colors (yellow and orange in the figure) correspond to different levels of confidence that the edit is damaging. Users can configure which colors are shown.   Visible identity-based characteristics of editors include registration status (i.e. whether a user name or an IP address is shown) and whether an editor's user page and user talk page exist.  RCfilters does not flag edits by new accounts, but does support filtering changes by newcomers.}
+  \label{fig:rcfilters}
+\end{figure}
+
+% cite something not about wikipedia in this paragraph?
+% Remember that algorithms can be profiling too 
+Drawing from legal philosopher Frederick Schauer's notion of ``profiling,'' ethicist Paul de Laat argues that characteristics like reputation and registration status become prone to ``overuse'' by moderators who may concentrate their attention on the activities on a narrow range of users \cite{de_laat_profiling_2016, de_laat_use_2015}. Similarly, economists describe ``statistical discrimination'' in which characteristics correlated with performance or deviance are used in making decisions \cite{bertrand_field_2016}.  To simplify language, we say that individuals with ``overused'' characteristics, who face statistical discrimination, are ``over-profiled'' and that other individuals are ``under-profiled.''  
+ 
+De Laat specifically criticizes ``overuse'' of anonymity on Wikipedia because it increases the hazard that anonymous contributors will have their valid contributions rejected. Such barriers to contribution may limit community growth and diversity, as users with vulnerable identities may seek anonymity and blocking contributions from unregistered contributors can decrease positive contributions to peer production projects \cite{hill_hidden_2019,forte_privacy_2017}. % Keep in mind why these systems are valuable to moderators 
+That said, overuse of identity-based characteristics such as experience levels, reputation, and registration status is instrumental for moderators to deal with the ``problem of scale'' and efficiently regulate online spaces \cite{gillespie_custodians_2018, de_laat_profiling_2016, smith_keeping_nodate}.  
+
+Another approach to the ``problem of scale''  is to use systems incorporating \emph{algorithmic triage} by using machine learning predictions to help support moderators sift through vast quantities of content \cite{gillespie_custodians_2018, chandrasekharan_crossmod:_2019}. Can such systems replace reliance on identity-based signals in community and platform governance?  Advocates of algorithmic risk prediction in criminal justice settings argue that algorithmic predictions can improve upon the discriminatory and inaccurate decisions of human judges \cite{kleinberg_discrimination_2019}.  Yet when moderators and judges can still see identity-based signals it is plausible that they will still use them in decision making.  We propose that algorithmic predictions will have less influence on outcomes for ``over-profiled'' individuals compared to ``under-profiled'' ones. In other words, our theory is that flagging an action by an algorithm will cause a greater increase in the likelihood of sanction for ``under-profiled'' individuals.  Similarly, we consider how algorithmic flags and identity-based signals may influence the consistency of sanctioning and theorize that flagging an action will cause an increase in the likelihood that a sanction is unfair, and thus controversial, more for ``under-profiled'' individuals. 
+
+% There are two ways that predictions from an algorithmic governance tool can interact with group membership in monitoring work at scale. First, an algorithmic tool can amplify bias or increase unfairness if its predictions are positively correlated with group membership and both signals are given weight in decision making. Information from the predictive algorithm and group membership will ``add up'' to increase scrutiny on group members when the algorithm predicts their behavior is damaging.  This would occur, for example, in cases where algorithmic predictions can be used to rationalize profiling. 
+
+% On the other hand, it is possible that algorithmic predictions \emph{substitute} for category memberships.  This will happen if the influence of an algorithmic prediction on decision making decreases the influence of a social category. In such cases, merely introducing algorithmic predictions can reduce systematic unfairness (assuming the algorithm is less biased than human decision makers).  
+
+%"cues are created, propogated, and interpreted to become signals"
+This paper reports our analysis of moderator behavior in the context of the ORES algorithm for edit quality prediction on Wikipedia and the RCfilters flagging and filtering user-interface that it powers \cite{halfaker_ores:_2019}.
+As shown in figure \ref{fig:rcfilters}, this system displays algorithmic predictions alongside visible indicators of membership in salient social categories for reviewing actions on the encyclopedia.  The flags are triggered when ORES' prediction confidence crosses arbitrary operating thresholds. This allows a systematic analysis of edits near to the threshold to provide causal inferences of the effect of algorithmic predictions on moderation decisions. In addition, because algorithmic flags are presented to moderators alongside information about membership in categories associated with objectionable contributions, we can test predictions of our theories about how algorithmic flags will differently effect individuals with or without visible identity-based signals. 
+
+\TODO{Improve high-level takeaways for designers and builders}
+We find evidence in support of our hypotheses.  While the system we analyze successfully makes rule and norm violations by ``under-profiled'' editors visible to moderators, it does not altogether eliminate ``over-profiling.''  Flagging an action makes it more likely to be controversially sanctioned, especially for ``under-profiled'' individuals.  Our results suggest that designers of sociotechnical systems for online community and platform governance should consider how moderators may use all available signals as they review user actions and make sanctioning decisions.  Identity-based signals shape moderator actions and algorithmic predictions do not necessarily replace reliance on them.
+
+% % we might have to do some more work to nail this. 
+% We find that moderator actions in this context were substantially more sensitive to the algorithmic classification tool when editors were not group members.  This suggests that moderators still used group membership as a signal that contributions may be damaging.  In other words, we reject a hypothesis of pure substitution. However, we also observe a substantial algorithmic influence for members of these classes. This shows that algorithmic predictions can substitute for salient category memberships in surveillance and enforcement work. 
+
+% We contribute to CSCW research on data surveillance and ethics \citep{chancellor_relationships_2019} by elaborating a theory of how algorithmic predictions interact with and salient social categories, providing a non-invasive methodology for identifying substitution between algorithmic predictions and salient social categories in naturalistic settings, which we use in a large-scale empirical test of our theory in a major online platform for cooperative work.
+
+%Are algorithmic tools that support governance work in online communities and social media platforms merely tools for efficient surveillance or do they also shape how content and communication are perceived by regulators?
+% Ask the thought provoking questions
+
+% In this paper, we analyze a case where the  %Will their adoption amplify scrutiny on users that resemble troublemakers or deviants or %of user that already %but shape the work that online  %, but will they harm or hurt newcomer retention, discrimination, but how will they  %experience of users who 
+
+% Build the case that we should be suspicious of algorithms. No do that more  in the background section. Here we want to focus on our BIG IDEA. 
+
+
+\section{Background}
+
+\subsection{Governance in online communities} 
+
+% Why regulate behavior? 
+% Comment from overleaf: De Laat might help us make a normative argument, but we can also make it ourselves. 
+Regulating behavior is a core task of online communities and social media platforms that requires moderation: ``governance mechanisms that structure participation in a community to facilitate cooperation and prevent abuse'' \cite{grimmelmann_virtues_2015, kraut_regulating_2012}.  Goals of regulation include preventing harassment, eliminating spam, combating misinformation, disinformation, and hateful ideologies,  compliance with requirements of the law or the platforms rules, keeping focus on the topic or purpose of the community, and maintaining the quality of content and outputs \cite{gillespie_custodians_2018}.  There are many possible devices by which communities pursue these goals including reputation systems, collaborative block lists \cite{blackwell_classification_2017}, documenting rules, or creating barriers to entry. 
+
+Moderators are users who take responsibility for moderation work and can be organized in a variety of arrangements. Communities and platforms might have official paid or volunteers moderators and who potentially have special privileges. On the other hand, broadening participation in moderation work can help mobilize more people to contribute to moderation work.  Many platforms allow any user to report content to official moderators by flagging it \cite{crawford_what_2016}.   Sites like Slashdot and Reddit use forms of distributed moderation that aggregate judgements from many users \cite{lampe_crowdsourcing_2014}.  Wikipedia for instance, combines elements of distributed has many different formal roles such as ``administrators'' who can ban users and  ``patrollers'' who can edit more frequently and use some special tools (i.e. Huggle) for reviewing a large number of edits, any and user can contribute to moderation work by reviewing and undoing changes. 
+
+% Governance mechanisms can be classified by whether they are proactive (i.e. systems that throttle activity, only publish approved content, or depend on privileges) or reactive (i.e. content is published and then moderated)  \cite{kraut_regulating_2012}.  We focus on reactive systems in this paper. Two common and interdependent reactive patterns in online community governance are sanctioning misbehavior and removing problematic content. 
+
+%Comments from Charlie:
+% Groomsman virtues of moderation for definition of moderation
+% what kind of moderation are we talking about here? There's volunteer moderation and there is paid moderation. Our theory might apply to both, but we study a context of volunteer moderation where any user can contribute.
+
+% % Define rules / normsg
+% \subsubsection{Rules and norms}
+
+\TODO{explain governance problems on Wikipedia in more depth.}
+\subsubsection{Sanctions}
+% Define norm enforcement
+
+Punishing and deterring bad behavior is a key task for community moderators.  Writing down rules does not imply that they will be followed.  The rules must be enforced through sanctions or acts that discourage misbehavior.  Removing content is a common form of sanctioning that communicates that a contribution was not wanted or appropriate.   \cite{halfaker_dont_2011} study practices of reverting changes on Wikipedia and found that people tend to make higher quality contributions after being reverted. Similarly, \cite{srinivasan_content_2019} found on Reddit that people whose comments were removed became less likely to violate norms. This further suggests that removing content can be an effective form of sanctioning.  
+
+However, sanctioning can also discourage participation, particularly by newcomers. 
+New participants are likely to violate rules and norms and therefore be subject to sanctions, but sanctioned newcomers are less likely to continue participating.
+This mechanism helps explain declines in Wikipedia participation and in many other online communities, and may be an obstacle to building a community that includes diverse participants  \cite{halfaker_rise_2013, teblunthuis_revisiting_2018, lam_wp:clubhouse?:_2011}.   Efforts to ameliorate this dynamic include better socialization of newcomers to help them learn community rules and norms, but these can be difficult to institute \cite{narayan_wikipedia_2017, morgan_evaluating_2018, halfaker_snuggle:_2014}. 
+
+% Creating barriers that slow participation is a second approach to maintaining order by intentionally limiting growth \cite{kiene_surviving_2016, lin_better_2017}. But in peer production communities like Wikipedia, barriers to growth may also constitute barriers to expanding the quality of diverse knowledge and knowledge-producers \cite{lam_wp:clubhouse?:_2011}. 
+
+%Charlie suggests citing Shagun in the intro.
+Sanctions can be controversial when norms are contested or when enforcement is inconsistent or unaccountable \cite{blackwell_classification_2017, crawford_what_2016}.   Improving fairness in sanctioning might help ameliorate the negative effects of sanctioning on community growth. 
+\cite{chang_trajectories_2019} study established Wikipedia editors who were  blocked and examined their communications for signs that they believed the block to be fair and found that they were more likely to return to regular participation and not receive another block when they seemed to believe the block was fair.
+Approaches to improving the quality of moderation actions include
+Slashdot's use of ``meta-moderators'' to review moderation decisions  \cite{lampe_slashdot_2004}. 
+
+% community development as online communities face a dilemma between regulating behavior and attracting participants \citep{teblunthuis_revisiting_2018, halfaker_rise_2013, halfaker_dont_2011}.  
+
+% \cite{halfaker_rise_2013} found that newcomers to Wikipedia were less likely to continue contributing to the encyclopedia after being sanctioned and \cite{teblunthuis_revisiting_2018} replicated this finding in a population of other Wikis.
+
+% This paper contributes to understanding how algorithmic and identity-based signals are related to the fairness of sanctioning by analyze how effects of algorithmic flagging on fair sanctioning differ between groups of users with varying identity-based signals. 
+
+\subsubsection{The problem of scale}
+% Problem of scale in norm enforcement
+Governance in online communities face a ``problem of scale'' in the challenge of sifting the great mass of comments, posts, or encyclopedia edits to identify objectionable content or behavior \citep{gillespie_custodians_2018}.   Distributed moderation can help communities scale and promote deliberation \citep{lampe_crowdsourcing_2014}, but the high levels of participation in such moderation work required to create orderly spaces can be difficult to sustain \citep{gilbert_widespread_2013}.  With growing attention to problems of disinformation and hate speech online, commercial platforms are expanding their pools of paid human moderators, but the work of paid moderators can be exploitative, difficult, traumatizing, and expensive \cite{roberts_commercial_2016}.  Moderation in contexts that face the problem of scale is likely to be stressful work involving a large number of judgment calls, often ambiguous, that must be made quickly. 
+
+Visibility is an important part of the problem of scale.  For moderators to sanction behavior, they must first observe it. Flagging provides a tool for users to report activities to official moderators and helps platforms defend their enforcement actions. Flagging helps solve the problem of scale because flagged actions are made visible to moderators and thereby directs attention to actions more likely to be problematic.    One disadvantage of flagging is that users can organize strategic to overwhelm moderators or to target opposing viewpoints \cite{crawford_what_2016}. Like other forms of distributed moderation, it depends on the collective efforts of volunteers to review content and report violations.  So community-driven flagging may not be sufficient to detect and sanction a large proportion of offenses. 
+
+Automatic triage systems that use predictions from a machine learning model to flag content may be less prone to strategic flagging, and may provide better coverage of problematic content.  Some systems use algorithms that automatically remove content like the PhotoDNA system which automatically removes child pornography \cite{gillespie_custodians_2018} and ClueBot on Wikipedia which uses a machine learning predictor to automatically remove obvious vandalism \cite{geiger_when_2013}.  However the accuracy of these systems on less clear-cut kinds of misbehavior remains insufficient to solve the problem of scale by automatically removing content \cite{gillespie_custodians_2018}. Furthermore, in user-organized communities, moderation decisions are an important part of building shared meeting, a task not easily left to a fully automated system \cite{seering_moderator_2019}.
+
+% Expand to include other designs of algorithms for detecting norm violations or misbehavior
+However, this study focuses on settings where an algorithm might flag content to make it visible to a human who can make an enforcement decision.  For example, Reddit allows moderators to define a system of rules based on regular expressions to automatically remove or flag content \cite{jhaver_human-machine_2019}. Applied machine learning research endeavors to predict deviant behavior in online communities such as \cite{wulczyn_ex_2017} who automatically classify harassing behavior on Wikipedia and \cite{liu_forecasting_2018} who predict when conversations on Instagram will turn hostile, but provides little guidance for deploying such systems in practice.  In constrast, \cite{chandrasekharan_crossmod:_2019} developed a practicable system for communities on Reddit to share information and collaborate on automatic flagging and account for differences between the rules of different communities.   Similarly, \cite{halfaker_ores:_2019} developed the Object Scoring Evaluation Service (ORES) system, which provides models to predict quality of contributions and content on Wikipedia.
+
+% Define flagging and filtering
+% This section needs more special attention. 
+\subsection{Discrimination and filtering}
+
+%Mako says "I think you should start with the bigger theory and explain how it's relevant to Wikipedia (via de Laat, e.g.).  He means starting broad and zooming in.
+Profiling based on identity based signals may lead to statistical discrimination on the basis of those signals. Economists of discrimination distinguish between   taste-based and statistical discrimination \citep{bertrand_field_2016}.  Discrimination is when authorities treat deferentially treat individuals based on membership in a group or identity. ``Taste-based'' discrimination is driven by preferences for members of one group or identity including ideological racism and implicit bias. But discrimination can also happen because identity-based signals are instrumental to improving the quality of decisions.  Such ``statistical discrimination'' may still lead to unequal outcomes, but might be justified in cases where differential treatment may be worth the price of expediency  \citep{bertrand_field_2016}. 
+
+%Taste-based and statistical discrimination can be difficult to tell apart in real-world empirical settings, but field experiments can help.  \citep{bertrand_field_2016}. \cite{bertrand_are_2004} conducted an audit study in a labor market. They applied for jobs using resumes of simulated job applicants with either high or low levels of  experience level and either white or black sounding names.  They observed racial discrimination as white applicants were much more likely to receive an interview invitation compared to black applicants.  Now, under a hypothesis of statistical discrimination, additional information about experience levels should reduce reliance on race as a signal of performance, and the gap between white and black applicants should decrease within the group of high quality resumes. However, \cite{bertrand_are_2004} found the opposite --- the gap between white and black sounding applicants was greater in the group of high-quality resumes.  Taste-based discrimination is a plausible mechanism for this finding as more information about applicants amplified rather than decreased the gap as predicted by statistical discrimination, but it is difficult to rule out alternative explanations. 
+
+Proponents of algorithmic governance systems in the legal system argue that such systems can reduce discrimination by replacing reliance on identity-based signals like race with algorithmic predictions that are more accurate than judicial decisions \cite{kleinberg_discrimination_2019}.  However, introducing algorithmic predictions to governance systems does not on its own obscure identity-based signals.  Thus it is important to consider how judges or moderators will use an algorithmic predictor along side identity-based signals in practice.  At one extreme, an algorithm might obviate the usefulness of statistical discrimination if relying on the algorithm is always more effective than looking to an identity-based signal.  On the other hand, introducing algorithmic predictions should be of little consequence to taste-based discrimination. 
+
+% Probably the degree to which algorithms substititute for identity is a function of the quality of the algorithm, how much users trust it, and how much discrimination is taste-based vs statistical. 
+
+% A group is discriminated against when a relevant For example, a judge discriminates against black defendants if they are less likely to be released on bail than apparently identical defendants of a different race. That said, there are multiple mechanisms that may lead to patterns of discrimination. ``Statistical discrimination'' would occur if the reason the judge discriminates is that the judge knows that, all else being equal, black defendants are less likely to appear in court.  In this case the judge is discriminating because doing so advances the judge's goal of carrying out an efficient and orderly judicial process.  However, the judge's discrimination might instead be attributable to ideological racism, or a ``taste'' disfavoring releasing black defendants \citep{bertrand_field_2016}. The distinction between taste-based and statistical discrimination is salient because statistical dissemination might be considered an acceptable form of differential treatment between groups, particularly if historical oppression is not a factor, as in discrimination against newcomers in regulating an online community.  Indeed we think that statistical, but not taste-based discrimination against new and anonymous contributors is likely in online communities.
+
+% consider deleting this paragraph entirely
+In the context of Wikipedia, \cite{de_laat_profiling_2016} adopts the concept of ``profiling'' from legal scholar Frederick Schauer to argue that displaying identity-based signals like registration status or experience levels in interfaces for reviewing changes or in algorithmic governance tools on Wikipedia may be unethical or at least inconsistent with Wikipedia's founding principles.  Similar to statistical discrimination, de Laat contends that such signals are prone to ``over-use''  as moderators are much more likely to scrutinize types of contributors who may have legitimate reasons for editing anonymously or editing through a new account. We modify de Laat's vocabulary to call such editors ``over-profiled.'' On the other hand other kinds of editors will be ``under-profiled'' as their contributions may be less likely to come under scrutiny.
+
+Assuming that community moderators are using an algorithmic flagging system to find actions that merit sanctioning, when the system flags an action, that will increase the likelihood that a moderator responds with a sanction.  However, the  magnitude of the increase will depend on the answer to the counterfactual question: ``what would have happened if the action had not been flagged?''  We think the answer will be different between over-profiled and under-profiled individuals. Mainly, actions 
+of over-profiled individuals are likely to face scrutiny even when not flagged by an algorithm, but actions of under-profiled individuals are only likely to face scrutiny when they are flagged.
+
+We think that statistical discrimination is very likely to occur against new or unregistered participants in online communities with cheap pseudonyms. Cheap pseudonyms make it easy for rule breakers to evade sanctions by creating new accounts \cite{friedman_social_2001}.  Therefore, new accounts are suspect and likely face more scrutiny.  Similarly,  when identity-based signals such as experience level, registration status, or reputation are visible and salient to moderators, such information will lead to over-profiling of editors whose values for such characteristics are associated with misbehavior.
+
+We propose that identity-based signals will still lead to over-profiling even alongside algorithmic flags.  Since actions of over-profiled individuals are likely to be scrutinized even when they are not flagged by an algorithm, we expect algorithmic flagging to play a relatively smaller role in moderation of their actions.  Therefore, when a piece of content is flagged by an algorithm, the increase in the likelihood that a moderator responds with a sanction will be smaller for actions made by over-profiled users compared to under-profiled users. Thus our first hypothesis is:
+% ISN'T the absence of a signal a signal of positive quality?
+
+\textbf{H1:} Flagging an action causes a greater increase in the likelihood the action is sanctioned when the action is by an under-profiled individual than when is by an over-profiled individual.
+ 
+Next we consider the relationship between identity-based signals and the consistency of sanctioning.  This means considering not just how moderators direct their attention, but also how they make decisions.  When moderators use aspects of user identity such as account age, registration, experience or reputation are to choose what contributions to review or whether to sanction behavior, these attributes are acting as ``salient signals'': visible signs used in fast decision making.  When people are faced with many choices where the correct decision is uncertain or where finding and analyzing the information necessary to arrive at a correct decision is difficult, they tend to rely on salient signals  \citep{bordalo_salience_2012, kleinberg_human_2018, tversky_judgment_1974}.  
+
+% important term related to salient signal is "cue"
+If algorithmic flagging functions as a salient signal that influences moderators making uncertain decisions then moderators may be more likely to issue controversial sanctions against flagged actions. When an action is flagged, a moderator will be suspicious of it and may act conservatively to sanction even if the decision is uncertain. The flag suggests to the moderator that the action is problematic. We hypothesize that the increase in sanctioning caused by flagging an action will also lead to an increase in the proportion of sanctions that are controversial.
+
+\textbf{H2:} Within the set of sanctioned actions, flagging an action causes an increase in the likelihood that it receives a controversial sanction.
+
+Finally, we propose that, as with algorithmic flags, identity-based signals function as salient signals that can lead to controversial sanctioning.  Similar to \textbf{H1}, we hypothesize that using algorithmic flagging alongside identity-based signals will partly, but not entirely, reduce reliance on identity-based signals. Actions by under-profiled individuals will be moderated more conservatively when they are flagged, but more liberally when not flagged, but actions by over-profiled individuals will still be moderated conservatively when not flagged. This implies that the increase in controversial sanctions among flagged actions will be smaller for over-profiled individuals compared to under-profiled individuals.
+
+\textbf{H3:} Within the set of sanctioned actions, flagging an action causes a greater increase in the likelihood that the sanction is controversial when the action is by an under-profiled individuals than when it is by an over-profiled individual.
+
+
+\section{Data and measures}
+
+%when was it introduced?
+The RCfilters system on Wikipedia is a relatively new tool for monitoring changes to Wikipedia (edits). It provides flagging and filtering according to algorithmic triage flags, a limited set of editor characteristics, and other metadata fields. RCfilters stands for ``Recent Changes filters,'' signaling the special page on Wikipedia for observing the latest edits, \footnote{\url{https://en.wikipedia.org/wiki/Special:RecentChanges}} but RCfiters flags and filters are also on users' watchlists, which show edits to pages the user has followed. 
+Figure \ref{fig:rcfilters} shows highlighting and flagging in the RCfilters interface.
+
+% 
+Algorithmic flagging in the RCfilters system is powered by the ORES edit quality models trained to predict whether edits are labeled ``damaging'' or ``not damaging.'' 
+The models are gradient boosted decision trees trained on a mixture of human labeled Wikipedia edits and other edits made by established editors that are assumed to be ``not damaging.''   It is important to note that ORES models do not merely reproduce profiling patterns typical of moderation on Wikipedia.  The interface for labeling training data obscures identity-based signals from the  volunteer Wikipedians doing labeling work and the models are predictive of damage from users that are not anonymous or newcomers. 
+For more information on the design and implementation of ORES see \cite{halfaker_ores:_2019}. 
+
+An edit is flagged by RCfilters flags if and only if the continuously valued risk score output by the ORES model exceeds a threshold, formally called an operating point.  RCfilters uses multiple operating points corresponding to green, yellow, orange, and red flags.  By default only orange and red flags are shown, but users can configure which colors to display in edit review tools. Green flags and filters are to help Wikipedia editors find good edits  As we are interested in flagging for the purposes of finding damaging edits we consider them no further.  Red, orange, and yellow correspond to thresholds making different trade-offs between precision (the proportion of flagged edits that are truly damaging) and recall (the proportion of truly damaging edits that are flagged).  Red corresponds to a high precision threshold and edits flagged in are labeled ``very likely damaging.'' Orange flags corresponds to a ``likely damaging'' label with greater recall, but less precision compared to red, and edits with yellow flags are ``maybe damaging'' with a high recall and lower precision.  A special page displays the thresholds and their corresponding levels of precision and recall.  Figure \ref{fig:ores_thresholds} shows this page for English Wikipedia \footnote{\url{https://en.wikipedia.org/wiki/Special:OresModels}}.
+  
+\begin{figure}[t]
+  \centering
+\includegraphics[width=0.7\textwidth]{resources/Ores_Thresholds.png}  
+  \caption[Screenshot showing RCfilters thresholds for English Wikipedia.]{Screenshot of Special:OresModels from English Wikipedia showing levels of precision and recall corresponding to different flags in RCfilters.}
+  \label{fig:ores_thresholds}
+\end{figure}
+
+It is not obvious that algorithmic filtering in RCfilters has any substantial influence on Wikipedia governance as algorithmic filtering features are not enabled by default and must be enabled in user preferences.  Therefore, we will present a preliminary analysis that shows that these tools were adopted by demonstrating an overall causal effect of flagging on sanctioning after presenting our methods.  First we will describe our other measures.
+
+\subsection{Sanctioning}
+
+% cite some more stuff that uses reverts and sanctioning.
+% Should we mention Twinkle?
+\emph{Identity reverts} are our measure of sanctioning.  Identity reverts are a common measure of contribution rejection on Wikipedia, entail undoing an edit to by restoring a page to an earlier state, and are straightforward to measure by comparing hashes of page revisions  \cite{halfaker_dont_2011}.  That said, identity reverts are an imperfect measure of sanctioning.  A type of vandalism called ``blanking'' removes all content on a page and therefore identity reverts all prior edits to the page. It is also possible for an individual to ``self-revert'' by undoing their own edit.  To help mitigate such issues, we only label revisions as \emph{reverted} if they were undone within 30 days and were not undone by self-reverts and we label revisions as \emph{not reverted}  otherwise.
+\subsection{Controversial Sanctioning}
+
+We follow \cite{piskorski_testing_2017} by considering identity reverts that are subsequently reverted by a third party as controversial sanctions.  Specifically, we label an sanction as \emph{controversial} if the sanction is undone by a third editor who was not the original editor or the reverting editor.  Such interactions likely correspond to cases in which a third part observes the initial revert, disagrees with the initial sanction, and then acts to reverse the sanction.
+
+\subsection{Identity-based signals}
+As shown in figure \ref{fig:rcfilters}, the RCfilters interface includes metadata with two key identity-based signals: whether the editor who made the change was logged into a registered account and whether or not the editor is new enough to have not yet created a "user page".  
+
+\emph{IP editors} are individuals editing Wikipedia without logging in. 
+IP editors are individuals who may not have a registered account, or may choose not to log in when making an edit for any reason.  Also called ``anonymous,'' such editors are associated with misbehavior have long had a controversial status on Wikipedia.  \cite{geiger_work_2010} describes how tools for moderators highlighed IP editors and how such edits are often scrutinized, and \cite{de_laat_profiling_2016} described such editor characteristics as prone to ``overuse.''  Online collaboration platforms understand that anonymous users are likely to violate norms and make low quality contributions \cite{mcdonald_privacy_2019}.  Recently, concerns about privacy and vandalism related to the use of IP addresses for edit attribution sparked discussions about alternatives, including proposals to ban anonymous editors from creating pages or even to eliminate anonymous editing entirely.\footnote{see \url{https://meta.wikimedia.org/wiki/Talk:IP_Editing:_Privacy\_Enhancement\_and\_Abuse\_Mitigation}}
+% https://en.wikipedia.org/wiki/Wikipedia:Editors_should_be_logged-in_users_(failed_proposal)
+% https://en.wikipedia.org/wiki/Wikipedia:Disabling_edits_by_unregistered_users_and_stricter_registration_requirement
+% https://en.wikipedia.org/wiki/Wikipedia:IPs_are_human_too
+
+That said, communities such as Wikipedia may wish to allow anonymous contributions due to the benefits anonymity may provide.  Anonymity may help diversify participation as those who face targeted harassment based on their identities are likely to seek anonymity \cite{forte_privacy_2017}. Anonymity may also increase productive contribution by removing the frictions of creating an account or logging in  \cite{mcdonald_privacy_2019}. Wikis on other platforms have disallowed unregistered editing, resulting in a decrease in norm and rule violation, but also a decrease in beneficial contributions \cite{hill_hidden_2019}.
+
+
+\emph{Newcomers without user pages} are a second class of editor with identity-based signals visible in the metadata in RCfilters.   De Laat uses the existence of a user page as an example of an indicator of vandalism that may be prone to overuse \cite{de_laat_profiling_2016}. User pages are places on Wikipedia for editors to create profiles and it is normal for experienced editors to create their user page, so lacking a user page is a good sign that an editor is inexperienced.   The metadata on edit reviewing interfaces links to the user page of the edit in the text of the editor's name.  For example in figure \ref{fig:rcfilters} edits by users ``Llavoro'' and ``MilovanPa'' are shown and their users names are colored red.  Red links are widely understood to link to wiki pages that do not exist, so seeing a red link account in Recent Changes metadata is a clue that the editor is new.
+
+We identify whether a user's user page exists by matching the titles of user pages against the editor's user name and checking if the creation of the user page was prior to the edit in question.  
+
+
+\subsection{Data: Wikimedia History}
+
+% 
+We build our dataset from two publicly available tables of Wikimedia history maintained by a team of data engineers at the Wikimedia foundation by running spark scripts on the Wikimedia analytics cluster.\footnote{Documented at \url{https://wikitech.wikimedia.org/wiki/Analytics/Data\_Lake/Edits/Mediawiki\_history}} \footnote{see \url{https://dumps.wikimedia.org/other/mediawiki\_history/readme.html}}  Although Wikipedia is published and collaborated on in many languages, the vast majority of knowledge about collaboration on Wikipedia is derived from studies of English Wikipedia alone.  Therefore, we aim to be inclusive by analyzing data from all 21 language editions of Wikipedia where edit quality flags are displayed in the RCfilters interface.  However, because we are limited by our scoring data to analyzing a single month of edit history, we do not include edits from all wikis in all our analyses.  
+
+For all of our analyses, our unit of analysis is the \emph{revision}, representing an edit to a page by a participant on Wikipedia.  Since we care about how algorithmic flagging and identity-based signals are used by human moderators, we limit our analysis to actions taken by humans by excluding revisions by bots.  We exclude wikis with less than \Sexpr{min.obs.per.wiki.threshold.cutoff} edits above and below each threshold.  This means that different wikis may be included in different models. For each model we report the quantity of edits from each wiki and how many fall on either side of the thresholds. 
+
+We analyze a stratified sample to allows us to keep the total size of our dataset manageable while providing adequate statistical power from the diversity of Wikis and editor types we wish to analyze. We stratify by Wiki, by whether the editor is an IP editor or not, by whether the editor has a user page or not, by whether an edit was reverted and by whether the revert was controversial. We sample up to \Sexpr{'a number'} edits from within each strata.  Stratified sampling introduces a known bias in our sample and we correct for this bias using sample weights throughout our analysis.
+
+% Paragraph summarizing how ores was trained and routing people to halfak's preprint.
+
+% briefly describe the release of the feature and what it takes to turn it on. 
+%Prior to the development and release of RCfilters,  tools with features such as algorithmic flagging or filtering by user characteristics were available in special interfaces such as huggle.  None of the above  
+
+\subsection{ORES edit classifier damaging scores}
+
+To know whether an edit was flagged in RCfilters, we need to obtain the ORES score that was assigned to the edit and the thresholds that were active at the time.
+\ifquarry
+We obtain historical ORES scores for each wiki from the public mirror of the ORES scores database hosted by the Wikimedia foundation's quarry service.  Thus we analyze edits from \Sexpr{'december'}. 
+\else
+Inconveniently, the ORES system only stores scores for 30 days.  This was not adequate to obtain large enough samples for the smallest Wikis we analyze. Furthermore, we wish to sample from a longer period of time to guard against seasonal confounding. Fortunately, the ORES models and the code to run them are open source, and the exact time that changes are deployed is published at the Wikimedia foundation's server admin log.\footnote{\url{https://wikitech.wikimedia.org/wiki/Server_Admin_Log}}
+
+ We build a system that scrapes the server admin log to identify deployments of the ORES service and identify timespans between deployments.  Then, the system collects edits made during each timespan and checks out the version of the models and python modules to run them that were deployed.  Obtaining correct scores from the correct model version also requires running the models in as close of a computing environment as possible to that which was active on Wikipedia.  Therefore, our system also installing the correct versions of the python dependencies in a python virtual environment.  
+\fi
+
+\subsection{RCfilters thresholds}
+
+The thresholds that trigger RCfilters flagging are not constant, but depend on the precision and recall of deployed ORES models, and have also been changed in response to community feedback.  Since new models were deployed during our study period, scraping the page where the active thresholds are displayed would not provide the correct thresholds that were in use when an edit was made or that moderators reviewing changes would observe.
+
+\ifquarry
+Fortunately, the configuration determining the thresholds, the trained ORES models, the code to run them are open source, and the exact time that changes are deployed is published at the Wikimedia foundation's server admin log.  So we wrote a script to combine this information to determine the precise thresholds that were active for each edit.
+\else
+Fortunately, the configuration needed to determine the threshold is available in a public git repository.  The revscoring system for running ores models provides the correct threshold from the configuration string.  So we reuse our system for loading the correct model version for each edit to extract the active thresholds when the edit was made.
+\fi
+
+\section{Analytic plan}
+
+We test our hypotheses using a regression discontinuity design (RDD) for causal estimation of the effect of flagging an action on sanctioning (for \textbf{H1}) and controversial sanctioning (for \textbf{H2} and \textbf{H3}).
+
+RDDs are an increasingly popular approach for causal inference in natural settings in economics because they resemble a randomized control trial for data points in the neighborhood of a discontinuity \cite{lee_regression_2010}.  RDDs model an outcome $Y$, as a function of a continuous ``forcing variable'' $Z$, other covariates $X$, and a cutoff $c$ such that $Z>c$ determines treatment assignment.  In principle treatment assignment conditional on $Y$ is ``as good as random'' under two assumptions: (1) that agents have at most limited control over $Z>c$ and (2) that the relationship between $Y$ and $Z$ is smooth.   If the assumptions hold then causal inference is simplified to the problem of statistically conditioning on the forcing variable $Z$ using a linear regression in the neighborhood of the cutoff $c$ (defined by $[c-\rho,c+\rho]$, for a ``bandwidth'', $\rho$) \cite{lee_regression_2010}.  
+
+In the social computing,  \cite{narayanan_all_2019} and \cite{hill_hidden_nodate} use within-subjects designs similar to RDDs to analyze sociotechnical consequences of policy and design interventions for online communities.  Both studies use time as a forcing variable which threatens validity as the timing of intervention may be influenced by unobserved factors, which would violate assumption (1).  Our treatment, being flagged in RCfilters, is a good candidate for an RDD from the perspective of assumption (1).  Editors are unlikely to have much control over the scores that their edits receive.  While attempts to evade sanction by specially crafting edits to evade algorithmic detection may be possible,  we do not think they will be wide-spread.
+
+Assumption (2) would be violated if unobserved treatments effecting our outcomes occur at discrete levels of ORES scores.  For example, if another moderation tool is triggered by the ORES damaging scores, the effects of usage of that tool on our outcomes would confound our analysis of RCfilters.  This is a realistic scenario that is part of the design of the ORES system which makes scores available via API so that community members can use them to power their own tools.  We are aware of bots that automatically revert edits and are triggered by the ``very damaging'' threshold on some of the Wikis in our sample. Since we exclude reverts by bots from our analysis these bots are not a threat.  We are also aware that Huggle, a tool for reviewing encyclopedia edits incorporates ORES scores as a feature in it's own models for detecting damage.  However, since the ORES scores are not the only feature in the Huggle models, it is unlikely that thresholds in Huggle will constitute discontinuities in the relationship between ORES scores and our outcomes.  As a robustness check against threats to assumption (2) we conduct ``placebo tests'' by running our analysis at artificial cutoffs not equal to the real thresholds.  We present results of this robustness check in the supplementary material.
+
+%(see \cite{chancellor_thyghgapp:_2016} for an example of evading content moderation through lexical variation in social media) we do not think this will be wide-spread or successful on Wikipedia. 
+
+% 3 * 2 * 2 = 12 
+\newcounter{equationcnt}
+\newcounter{figuretmp}
+\setcounter{figuretmp}{\thefigure}
+\setcounter{figure}{0}
+
+We present results from a total of 9 logistic regression models.  For \textbf{H1} and
+\textbf{H3} we fit separate models for IP editors, non-IP editors, editors with user pages and editors without user pagers and for \textbf{H2} we model all editors. 
+We incorporate the three RCfilters thresholds that we analyze in each model following the example of \cite{litschig_impact_2013}.  Our goal is to estimate ($\tau_j$) the causal effect of being flagged at level $j$ where $j \in \{1,2,3\}$ corresponding to labels of ``maybe damaging'', ``likely damaging'' and ``very likely damaging''.  
+For each cutoff $(c_{jw})$, we select all revisions $r$ to wiki $w$ that fall within radius $p$ such that $c_{wj}- p < score_{r} < c_{jw} + p$ where $score_r$ is the output from the ORES classifier.  Following established approaches to RDD, we fit ``kink'' models that have a change in slope at the discontinuity \cite{lee_regression_2010,litschig_impact_2013}. Equation \eqref{eq:rdd_reverted} shows our specification for our models (the only differences between our models are the dependent variables, $Y$ and the type of editor whose edits are modeled.
+
+\begin{figure}
+\renewcommand\figurename{Eq.}
+%\begin{small}
+\begin{equation*}
+    \begin{split}
+            P(Y_{rw}) & = \left[ \tau_1 \mathbf{1} [score_{r} > c_{1w}] + \alpha_{10}(score_{r} - c_1) + \alpha_{11}\left(score_{r}-c_{1w}\right) \mathbf{1} [score_{r} > c_{1w}]\right]\mathbf{1_{1p}}  \\
+        & + \left[ \tau_2\mathbf{1}[score_{r} > c_{2w}] + \alpha_{20}(score_{r} - c_2) + \alpha_{21}\left(score_{r}-c_{2w}\right)\mathbf{1}[score_{r} > c_{2w}]\right]\mathbf{1_{2p}}  \\
+        & + \left[ \tau_3\mathbf{1}[score_{r} > c_{3w}] + \alpha_{30}(score_{r} - c_3) + \alpha_{31}\left(score_{r}-c_{3w}\right)\mathbf{1}[score_{r} > c_{3w}]\right]\mathbf{1_{3p}} \\
+        & + \sum_{j=1}^3B_j\mathbf{1}[seg_{j-1} < score
+        \le  seg_{j}]\mathbf{1}_{jp} + \alpha_w + \mu_{rw}
+    \end{split} 
+\end{equation*}
+\begin{equation*}
+    \begin{split}
+     \mathbf{1_{jp}} & =  \mathbf{1}[c_{wj}(1-p) < score_{rw} < c_{jw}(1+p)]  \\ 
+     j=1,2,3; &  ~~p=0.05
+    \end{split}
+\end{equation*}
+%\end{small}
+\caption{Specification of locally linear logistic regression model for a regression discontinuity design with three cutoffs.  $\mathbf{1}$ is the indicator function. \label{eq:rdd_reverted}}
+\end{figure}    
+
+\setcounter{equationcnt}{\thefigure}
+\setcounter{figure}{\thefiguretmp}
+% % We conduct placebo tests to 
+
+We use Bayesian inference to estimate our models for two reasons.  First, within some of the wikis we analyze virtually all edits above the ``very damaging'' level are reverted.  This ``separation'' is a problem for classical estimation approaches as coefficients head to infinity \cite{allison_convergence_2004}. Preferred solutions in the classical framework include penalized likelihood methods that introduce bias.  Our Bayesian approach uses weakly-informative priors that pull our estimates slightly toward zero, but does not have the problem of separation.  We fit our models using the rstanarm package (version 2.19.2) and the default priors which are chosen to be weakly informative and which we provide for reference in the supplementary material. 
+
+The second reason we choose to use Bayesian inference is that it considerably simplifies our analysis.  Our hypotheses compare effects of flagging between different types of editors.  Testing them in a classical framework can be done by fitting a joint model including all editor types and conducting a Wald test.  In a Bayesian framework, we can sample parameter estimates from the posterior distribution and test our hypotheses using statistical tests for differences between these samples \cite{morey_fallacy_2016}. Prior work in \cite{gan_gender_2018} makes a similar rationale for a Bayesian approach. 
+
+We consider that our analysis supports \textbf{H1} if the total effect of being flagged on controversial reversion is less for actions by IP-editors and editors without a user page than for actions by others, formally:
+
+$$\tau^{\mathbf{H1},not\_IP}_{1} + \tau^{\mathbf{H1},not\_IP}_{2} + \tau^{\textbf{H1}, not\_IP}_{3} > \tau^{\textbf{H1}, IP}_{1} + \tau^{\textbf{H1}, IP}_{2} + \tau^{\textbf{H1}, IP}_{3}$$ and $$\tau^{\textbf{H1}, user\_page}_{1} + \tau^{\textbf{H1},user\_page}_{2} + \tau^{\textbf{H1},user\_page}_{3} > \tau^{\textbf{H1},no\_user\_page}_{1} + \tau^{\textbf{H1},no\_user\_page}_{2} + \tau^{\textbf{H1}, no\_user\_page}_{3}$$. 
+
+We consider that our analysis supports \textbf{H2} if the total effect of being flagged on controversial reversion is greater than 0.
+
+$$\tau^{\mathbf{H2}}_{1} + \tau^{\mathbf{H2}}_{2} + \tau^{\textbf{H2}}_{3} > 0 $$
+
+Similarly to \textbf{H1}, we consider \textbf{H3} supported if the total effect of being flagged on controversial reversion is less for actions by IP\_editors and editors without a user page than for actions by others, formally
+
+$$\tau^{\mathbf{H3},not\_IP}_{1} + \tau^{\mathbf{H3},not\_IP}_{2} + \tau^{\textbf{H3}, not\_IP}_{3} > \tau^{\textbf{H3}, IP}_{1} + \tau^{\textbf{H3}, IP}_{2} + \tau^{\textbf{H3}, IP}_{3}$$ and $$\tau^{\textbf{H3}, user\_page}_{1} + \tau^{\textbf{H3},user\_page}_{2} + \tau^{\textbf{H3},user\_page}_{3} > \tau^{\textbf{H3},no\_user\_page}_{1} + \tau^{\textbf{H3},no\_user\_page}_{2} + \tau^{\textbf{H3}, no\_user\_page}_{3}$$.
+
+
+\section{Adoption Check} 
+
+Before reporting the results of our hypothesis we first present findings from our test that the RCFilters system is adopted by community moderators on Wikipedia. We fit a model using the same formula as our models for \textbf{H1}, but for all types of editors.  Observing discontinuous increases in the probability of reversion at the thresholds constitutes evidence that flags in RCFilters have a causal effect on moderation actions on Wikipedia. 
+
+<<set.adoption.check.vars, echo=FALSE>>=
+tau.1 <- mod.adoption.draws[["nearest.thresholdmaybebad:gt.nearest.thresholdTRUE"]]
+tau.2 <- mod.adoption.draws[["nearest.thresholdlikelybad:gt.nearest.thresholdTRUE"]]
+tau.3 <- mod.adoption.draws[["nearest.thresholdverylikelybad:gt.nearest.thresholdTRUE"]]
+@ 
+
+We first present findings from our test that the RCFilters system is adopted by community moderators on Wikipedia before turning to results for our hypotheses. To demonstrate that RCfilters flags are being used by Wikipedia moderators, we look for evidence that flagging has a causal effect on sanctioning. We fit a model with the same formula as our models for \textbf{H1}, but on a dataset consisting of all types of editors.  As shown in table \ref{tab:adoption.check}, we observe discontinuous increases in the likelihood of reversion at the thresholds.
+
+
+In our Bayesian analysis, we obtain samples from a \emph{posterior distribution} of our model coefficients which constitutes a probability distribution of our coefficients conditional on our model, data, and priors.  
+We observe the greatest effect for the second threshold, which corresponds to the orange flag indicating that an edit is ``likely damaging''  ($\bar{\tau_2} = \Sexpr{mean(tau.2)}$, $\mathbf{sd}(\tau_2)=\Sexpr{sd(tau.2)}$).  Our estimate indicates that flagging an edit at the ``likely damaging'' level increases it's odds of being reverted by a factor of \Sexpr{exp(mean(tau.2))}.  For comparison, being flagged at the red, or ``very likely damaging'' level ($\bar{\tau_3} = \Sexpr{mean(tau.3)}$, $\mathbf{sd}(tau_3)=\Sexpr{sd(tau.3)}$) causes an increase in the odds of being reverted by a factor of \Sexpr{exp(mean(tau.3))} and for the yellow, or ``maybe damaging'' level  ($\bar{\tau_3} = \Sexpr{mean(tau.3)}$, $\mathbf{sd}(\tau_1)=\Sexpr{sd(tau.3)}$) we only estimate an odds ratio of \Sexpr{exp(mean(tau.1))}.  All of these increases are stastically significant as the 95\% credible intervals for the estimates do not overlap with zero, as shown in table \ref{tab:adoption.check}.
+
+\TODO{Add x axis scale to sparkplots}
+<<make.sparklines, echo=FALSE>>=
+make.sparkplot <- function(samples, name, var){
+    fname <- paste0("figures/",name,'_',gsub('\\.','_',var),".pdf")
+    fname <- gsub('\\\\','',fname)
+    fname <- gsub('\\$','',fname)
+
+    sparkplot.name <- paste(name,var,sep='.')
+    sparkplot.files[[sparkplot.name]] <<- fname
+
+    if( (overwrite == TRUE) | (!file.exists(fname))){
+      p <- sparkplot(samples) + theme(plot.margin=unit(c(0,0,0,0),'mm'), axis.text.x=element_text())
+      cairo_pdf(fname,width=10,height=2)
+      print(p)
+      dev.off()
+      system2(command = "pdfcrop", 
+              args    = c(fname, 
+                          fname) 
+              )
+
+      ## system2(command = "gs", 
+      ##         args    = c('-o',
+      ##                     fname,
+      ##                     '-sDevice=pdfwrite',
+      ##                     '-dColorConversionStrategy=/sRGB',
+      ##                     '-dProcessColorModel=/DeviceRGB',
+      ##                     fname) 
+      ##         )
+    }
+    return(sparkplot.name)
+}
+
+make.overall.regtab.row <- function(samples, name, coef.name){
+
+  quant <- quantile(samples,probs=c(2.5,25,50,75,97.5)/100)
+  names(quant) <- c('2.5\\%','25\\%','50\\%','75\\%','97.5\\%')
+
+  sparkplot.name <- make.sparkplot(samples,name,'overall')
+
+  row <- list('Coefficient'=coef.name,
+                       'Mean'=mean(samples),
+                       'SD'=sd(samples),
+                       "\\(\\widehat{R}\\)"=NA,
+                       'Marginal Posterior'=paste0("\\raisebox{-0.1\\totalheight}{\\includegraphics[height=1em]{",sparkplot.files[[sparkplot.name]],"}}")
+)
+
+  return (append(row, quant))
+}
+
+make.sparklines <- function(model.draws, name){
+  draws <- setnames(model.draws,
+                    old=cutoff.var.names, 
+                    new=cutoff.var.symbols 
+                    )
+
+  for (var in cutoff.var.symbols){
+    make.sparkplot(draws[[var]], name, var)
+  }
+  
+}
+
+for(i in 1:length(models.draws.list)){
+  draws <- models.draws.list[[i]]
+  name <- names(models.draws.list)[[i]]
+  make.sparklines(draws,name)
+}
+
+@ 
+
+\begin{table}[t]
+  \centering
+<<regression.adoption, echo=FALSE, results='asis'>>=
+
+xtab <- prep.regtable(mod.adoption.xtable, 'mod_adoption')
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)  
+@
+\caption{Adoption check regression table}
+\label{tab:adoption.check}
+\end{table}
+
+
+\begin{figure}[b]
+  \centering
+<<adoption.me.plot, echo=FALSE, fig.height=3, dev='pdf',out.width='\\textwidth'>>=
+make.rdd.plot(adoption.me.data.df, adoption.bins.df, title="Prob reverted, all editors")
+@ 
+  \caption{Marginal effects plot showing model predicted relationship between ores score and reversion around the cutoffs \label{fig:adoption.me}}
+\end{figure}
+
+
+\section{Results}
+
+\subsection{\textbf{H1}: Effect of flagging on sanctioning}
+
+<<set.h1.vars, echo=FALSE>>=
+
+tau.1.non.anon <- mod.non.anon.reverted.draws[["$\\tau_1$"]]
+tau.2.non.anon <- mod.non.anon.reverted.draws[["$\\tau_2$"]]
+tau.3.non.anon <- mod.non.anon.reverted.draws[["$\\tau_3$"]]
+
+tau.1.anon <- mod.anon.reverted.draws[["$\\tau_1$"]]
+tau.2.anon <- mod.anon.reverted.draws[["$\\tau_2$"]]
+tau.3.anon <- mod.anon.reverted.draws[["$\\tau_3$"]]
+
+tau.1.user.page <- mod.user.page.reverted.draws[["$\\tau_1$"]]
+tau.2.user.page <- mod.user.page.reverted.draws[["$\\tau_2$"]]
+tau.3.user.page <- mod.user.page.reverted.draws[["$\\tau_3$"]]
+
+tau.1.no.user.page <- mod.no.user.page.reverted.draws[["$\\tau_1$"]]
+tau.2.no.user.page <- mod.no.user.page.reverted.draws[["$\\tau_2$"]]
+tau.3.no.user.page <- mod.no.user.page.reverted.draws[["$\\tau_3$"]]
+@ 
+
+Overall, we find that the greatest
+
+Again we observe the greatest effect for the second threshold, which corresponds to the orange flag indicating that an edit is ``likely damaging''  ($\bar{\tau_2} = \Sexpr{mean(tau.2)}$, $\mathbf{sd}(\tau_2)=\Sexpr{sd(tau.2)}$).  Our estimate indicates that flagging an edit at the ``likely damaging'' level increases it's odds of being reverted by a factor of \Sexpr{exp(mean(tau.2))}.  For comparison, being flagged at the red, or ``very likely damaging'' level ($\bar{\tau_3} = \Sexpr{mean(tau.3)}$, $\mathbf{sd}(tau_3)=\Sexpr{sd(tau.3)}$) causes an increase in the odds of being reverted by a factor of \Sexpr{exp(mean(tau.3))} and for the yellow, or ``maybe damaging'' level  ($\bar{\tau_3} = \Sexpr{mean(tau.3)}$, $\mathbf{sd}(\tau_1)=\Sexpr{sd(tau.3)}$) we only estimate an odds ratio of \Sexpr{exp(mean(tau.1))}.  All of these increases are stastically significant as the 95\% credible intervals for the estimates do not overlap with zero, as shown in table \ref{tab:adoption.check}.
+
+
+\begin{table}[t]
+  \centering
+
+<<regtable.H1.anon, echo=FALSE, results='asis'>>=
+
+xreg.anon <- prep.regtable(mod.anon.reverted.xtable, 'mod_anon_reverted')
+
+xreg.non.anon <- prep.regtable(mod.non.anon.reverted.xtable,'mod_non_anon_reverted')
+
+table.anon <- as.data.table(xreg.anon)
+
+table.anon <- table.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{IP}}$')]
+table.anon <- table.anon[order(Coefficient)]
+
+table.non.anon <- as.data.table(xreg.non.anon)
+table.non.anon <- table.non.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{not~IP}}$')]
+table.non.anon <- table.non.anon[order(Coefficient)]
+
+tau.anon <- apply(matrix(c(tau.1.anon,tau.2.anon,tau.3.anon),ncol=3,byrow=FALSE),1,sum)
+tau.non.anon <- apply(matrix(c(tau.1.non.anon,tau.2.non.anon,tau.3.non.anon),ncol=3,byrow=FALSE),1,sum)
+
+tau.non.anon.sub.anon <- apply(matrix(c(tau.non.anon, -1*tau.anon),ncol=2,byrow=FALSE),1,sum)
+
+row.tau.anon <- make.overall.regtab.row(tau.anon, 'tau_sum_anon_reverted', '$\\tau_1^{IP}  + \\tau_2^{IP}  + \\tau_3^{IP} $')
+
+row.tau.non.anon <- make.overall.regtab.row(tau.non.anon, 'tau_sum_non_anon_reverted', '$\\tau_1^\\mathrm{not~IP} + \\tau_2^\\mathrm{not~IP} + \\tau_3^\\mathrm{not~IP} $')
+
+row.diff <- make.overall.regtab.row(tau.non.anon.sub.anon, 'tau_non_anon_sub_anon', '$\\ \\sum{\\tau^{\\mathrm{not~IP}}} - \\sum{\\tau^{\\mathrm{IP}}}$')
+
+table.data <- rbind(table.anon, table.non.anon, row.tau.anon, row.tau.non.anon, row.diff)
+xtab <- format.regtable(table.data)
+
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,6,8))
+@ 
+\caption{ Regression table for model estimating the effect of flagging on sanctioning.}
+\label{tab:anon.revert}
+\end{table}
+
+
+\begin{figure}[b]
+  \centering
+<<reverted.me.plot, echo=FALSE, fig.height=6, dev='pdf',out.width='\\textwidth'>>=
+make.comparison.me.plot(anon.reverted.me.data.df,
+                        anon.reverted.bins.df,
+                        'IP',
+                        non.anon.reverted.me.data.df,
+                        non.anon.reverted.bins.df,
+                        'Not IP',
+                        no.user.page.reverted.me.data.df,
+                        no.user.page.reverted.bins.df,                        
+                        "No user page",
+                        user.page.reverted.me.data.df, 
+                        user.page.reverted.bins.df, 
+                        "User page"
+                        )
+
+@ 
+
+
+  \caption{Marginal effects plot showing model predicted relationship between ores score and reversion around the cutoffs \label{fig:adoption.me}}
+\end{figure}
+
+
+\TODO{Interpret results}
+
+\begin{table}[t]
+  \centering
+
+<<regtable.H1.user.page, echo=FALSE, results='asis'>>=
+
+xreg.no.user.page <- prep.regtable(mod.no.user.page.reverted.xtable, 'mod_no_user_page_reverted')
+
+xreg.user.page <- prep.regtable(mod.user.page.reverted.xtable,'mod_user_page_reverted')
+
+table.no.user.page <- as.data.table(xreg.no.user.page)
+
+table.no.user.page <- table.no.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{no~user~page}}$')]
+table.no.user.page <- table.no.user.page[order(Coefficient)]
+
+table.user.page <- as.data.table(xreg.user.page)
+table.user.page <- table.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{user~page}}$')]
+table.user.page <- table.user.page[order(Coefficient)]
+
+tau.no.user.page <- apply(matrix(c(tau.1.no.user.page,tau.2.no.user.page,tau.3.no.user.page),ncol=3,byrow=FALSE),1,sum)
+tau.user.page <- apply(matrix(c(tau.1.user.page,tau.2.user.page,tau.3.user.page),ncol=3,byrow=FALSE),1,sum)
+
+tau.user.page.sub.no.user.page <- apply(matrix(c(tau.user.page, -1*tau.no.user.page),ncol=2,byrow=FALSE),1,sum)
+
+row.tau.no.user.page <- make.overall.regtab.row(tau.no.user.page, 'tau_sum_no_user_page_reverted', '$\\tau_1^{N.U.P.}  + \\tau_2^{N.U.P.}  + \\tau_3^{N.U.P.} $')
+
+row.tau.user.page <- make.overall.regtab.row(tau.user.page, 'tau_sum_user_page_reverted', '$\\tau_1^\\mathrm{U.P.} + \\tau_2^\\mathrm{U.P.} + \\tau_3^\\mathrm{U.P.} $')
+
+row.diff <- make.overall.regtab.row(tau.user.page.sub.no.user.page, 'tau_no_user_page_sub_no_user_page', '$\\ \\sum{\\tau^{\\mathrm{U.P.}}} - \\sum{\\tau^{\\mathrm{N.U.P.}}}$')
+
+table.data <- rbind(table.no.user.page, table.user.page, row.tau.no.user.page, row.tau.user.page, row.diff)
+xtab <- format.regtable(table.data)
+
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,6,8))
+@ 
+\caption{ Regression table for model estimating the effect of flagging on sanctioning comparing editors with and without user pages.}
+\label{tab:anon.revert}
+\end{table}
+
+
+\begin{figure}[b]
+  \centering
+<<mod.user.cont.plot, echo=FALSE, fig.height=3, dev='pdf',out.width='\\textwidth'>>=
+make.rdd.plot(adoption.me.data.df, adoption.bins.df, title="Prob reverted, all editors")
+@ 
+  \caption{Marginal effects plot showing model predicted relationship between ores score and reversion around the cutoffs \label{fig:adoption.me}}
+\end{figure}
+
+
+\subsection{\textbf{H2}: Effect of flagging on controversial sanctioning}
+
+
+
+\begin{table}[t]
+  \centering
+<<regression.H2, echo=FALSE, results='asis'>>=
+
+xtab <- prep.regtable(mod.all.controversial.xtable, 'mod_all_controversial')
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)  
+  
+@
+\caption{ Regression table for model estimating the effect of flagging on controversial sanction.}
+\label{tab:controversial}
+\end{table}
+
+\begin{figure}[b]\centering
+  
+<<me.plot.H2, echo=FALSE, fig.height=3, dev='pdf',out.width='\\textwidth', results='asis'>>=
+make.rdd.plot(all.controversial.me.data.df, all.controversial.bins.df, title="Prob. controversial, all reverts")
+@ 
+
+\caption[H2. me plot]{Maringal effects plots for models predicting whether a revert is controversial, all editors. }
+\label{fig:h2.me.plot}
+\end{figure}
+\subsection{H3: Identity-based signals and effects of flagging on controversial sanctioning }
+
+\begin{table}[t]
+  \centering
+<<regression.H3.1, echo=FALSE, results='asis'>>=
+tau.1.non.anon <- mod.non.anon.controversial.draws[["$\\tau_1$"]]
+tau.2.non.anon <- mod.non.anon.controversial.draws[["$\\tau_2$"]]
+tau.3.non.anon <- mod.non.anon.controversial.draws[["$\\tau_3$"]]
+
+tau.1.anon <- mod.anon.controversial.draws[["$\\tau_1$"]]
+tau.2.anon <- mod.anon.controversial.draws[["$\\tau_2$"]]
+tau.3.anon <- mod.anon.controversial.draws[["$\\tau_3$"]]
+
+tau.1.user.page <- mod.user.page.controversial.draws[["$\\tau_1$"]]
+tau.2.user.page <- mod.user.page.controversial.draws[["$\\tau_2$"]]
+tau.3.user.page <- mod.user.page.controversial.draws[["$\\tau_3$"]]
+
+tau.1.no.user.page <- mod.no.user.page.controversial.draws[["$\\tau_1$"]]
+tau.2.no.user.page <- mod.no.user.page.controversial.draws[["$\\tau_2$"]]
+tau.3.no.user.page <- mod.no.user.page.controversial.draws[["$\\tau_3$"]]
+
+xreg.anon <- prep.regtable(mod.anon.controversial.xtable, 'mod_anon_controversial')
+
+xreg.non.anon <- prep.regtable(mod.non.anon.controversial.xtable,'mod_non_anon_controversial')
+
+table.anon <- as.data.table(xreg.anon)
+table.anon <- table.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{IP}}$')]
+table.anon <- table.anon[order(Coefficient)]
+
+table.non.anon <- as.data.table(xreg.non.anon)
+table.non.anon <- table.non.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{not~IP}}$')]
+
+table.non.anon <- table.non.anon[order(Coefficient)]
+
+tau.anon <- apply(matrix(c(tau.1.anon,tau.2.anon,tau.3.anon),ncol=3,byrow=FALSE),1,sum)
+tau.non.anon <- apply(matrix(c(tau.1.non.anon,tau.2.non.anon,tau.3.non.anon),ncol=3,byrow=FALSE),1,sum)
+
+tau.non.anon.sub.anon <- apply(matrix(c(tau.non.anon, -1*tau.anon),ncol=2,byrow=FALSE),1,sum)
+
+row.tau.anon <- make.overall.regtab.row(tau.anon, 'tau_sum_anon_controversial', '$\\tau_1^{IP}  + \\tau_2^{IP}  + \\tau_3^{IP} $')
+
+row.tau.non.anon <- make.overall.regtab.row(tau.non.anon, 'tau_sum_non_anon_controversial', '$\\tau_1^\\mathrm{not~IP} + \\tau_2^\\mathrm{not~IP} + \\tau_3^\\mathrm{not~IP} $')
+
+row.diff <- make.overall.regtab.row(tau.non.anon.sub.anon, 'tau_non_anon_sub_anon', '$\\ \\sum{\\tau^{\\mathrm{not~IP}}} - \\sum{\\tau^{\\mathrm{IP}}}$')
+
+table.data <- rbind(table.anon, table.non.anon, row.tau.anon, row.tau.non.anon, row.diff)
+xtab <- format.regtable(table.data)
+
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,6,8))
+@
+\caption{ Regression table for models estimating the effect of flagging on controversial sanction for IP editors and non-IP editors.}
+\label{tab:H3}
+\end{table}
+
+
+
+\begin{table}[t]
+  \centering
+<<regression.H3.2, echo=FALSE, results='asis'>>=
+xreg.no.user.page <- prep.regtable(mod.no.user.page.controversial.xtable, 'mod_no_user_page_controversial')
+
+xreg.user.page <- prep.regtable(mod.user.page.controversial.xtable,'mod_user_page_controversial')
+
+table.no.user.page <- as.data.table(xreg.no.user.page)
+table.no.user.page <- table.no.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{no~user~page}}$')]
+table.no.user.page <- table.no.user.page[order(Coefficient)]
+
+table.user.page <- as.data.table(xreg.user.page)
+table.user.page <- table.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{user~page}}$')]
+table.user.page <- table.user.page[order(Coefficient)]
+
+table.data <- rbind(table.anon, table.non.anon)
+xtab <- format.regtable(table.data)
+tau.no.user.page <- apply(matrix(c(tau.1.no.user.page,tau.2.no.user.page,tau.3.no.user.page),ncol=3,byrow=FALSE),1,sum)
+tau.user.page <- apply(matrix(c(tau.1.user.page,tau.2.user.page,tau.3.user.page),ncol=3,byrow=FALSE),1,sum)
+
+tau.user.page.sub.no.user.page <- apply(matrix(c(tau.user.page, -1*tau.no.user.page),ncol=2,byrow=FALSE),1,sum)
+
+row.tau.no.user.page <- make.overall.regtab.row(tau.no.user.page, 'tau_sum_no_user_page_reverted', '$\\tau_1^{N.U.P.}  + \\tau_2^{N.U.P.}  + \\tau_3^{N.U.P.} $')
+
+row.tau.user.page <- make.overall.regtab.row(tau.user.page, 'tau_sum_user_page_reverted', '$\\tau_1^\\mathrm{U.P.} + \\tau_2^\\mathrm{U.P.} + \\tau_3^\\mathrm{U.P.} $')
+
+row.diff <- make.overall.regtab.row(tau.user.page.sub.no.user.page, 'tau_no_user_page_sub_no_user_page', '$\\ \\sum{\\tau^{\\mathrm{U.P.}}} - \\sum{\\tau^{\\mathrm{N.U.P.}}}$')
+
+table.data <- rbind(table.no.user.page, table.user.page, row.tau.no.user.page, row.tau.user.page, row.diff)
+xtab <- format.regtable(table.data)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,6,8))
+
+@
+\caption{ Regression table for model estimating the effect of flagging on controversial sanction for editors with user pages and without user pages.}
+\label{tab:H3}
+\end{table}
+
+\begin{figure}[b]
+  \centering
+<<controversial.me.comparison.plot, echo=FALSE, fig.height=6, fig.width=9.4, dev='pdf',out.width='\\textwidth'>>=
+make.comparison.me.plot(anon.controversial.me.data.df,
+                        anon.controversial.bins.df,
+                        'IP',
+                        non.anon.controversial.me.data.df,
+                        non.anon.controversial.bins.df,
+                        'Not IP',
+                        no.user.page.controversial.me.data.df,
+                        no.user.page.controversial.bins.df,                        
+                        "No user page",
+                        user.page.controversial.me.data.df, 
+                        user.page.controversial.bins.df, 
+                        "User page"
+                        )
+
+@ 
+  
+  \caption{Marginal effects plot for models predicting whether a revert is controversial}
+  \label{fig:me.controversial.comp}
+\end{figure}
+
+\section{Discussion}
+
+\subsection{Limitations}
+
+Readers should consider the following limitations of our analysis:
+
+\subsubsection{Causality:} 
+We believe that our regression discontinuity design provides relatively strong evidence of causal relationships between algorithmic flagging and sanctioning.  That said, causal interpretation of our estimates depends on untestable assumptions that we can model the secular relationship between ores scores and our outcomes, that editors do not manipulate their edits around thresholds and that other discontinuities triggered by ORES scores do not confound our analysis.  We argue that these assumptions are believable, but they are strong compared to those of a randomized controlled experiment.  Our analysis provides strengths that an experiment would not including ecological validity and non-intervention.  Furthermore, the limitations stemming from regression discontinuity assumptions are relatively minor compared to those facing our comparison of edits by editors having different visible identity-characteristics.
+
+While our study design affords causal inference for effects of flagging, we it does not provide causal evidence for the interactions between identity-based signals and flagging.   Our theory proposes that the presence of identity-based signals cause moderators to make some sanctioning actions instead of others, but our evidence only allows us to describe differences between IP editors, editors with no user page, and other editors.  It does not show that the presence or absence of identity-based signals in moderation tools explains the observed differences.  A promising direction for future work is to conduct a randomized controlled trial that varies identity-based signals and algorithmic flags in online community moderation.   
+
+\subsubsection{Generalizability:}
+
+While our theories of interactions between identity-based signals and algorithmic flags is general, we study a single system, deployed on multiple Wikipedia projects.  These projects are not representative of online communities in general or even of Wikipedia language editions.  We analyze the broadest possible sample in an effort to improve generalizability beyond English Wikipedia alone.  Wikipedia language communities adopted ORES according to their perceived needs and their ability to label training data.  We do not claim that our findings generalize beyond the specific pool of communities that we study. 
+
+\subsubsection{Missing data:}
+
+% if we switch to the "quarry" dataset will rewrite this 
+Constructing our measure of flagging required retroactive reconstruction of software environments for running the models that were active at the time that edits were made and re-running the models on historical edits.  This process inevitably lead to missing data in the cases of deleted edits or accounts.  We excluded wikis from our analysis with a high proportion of missing data, but it remains conceivable that data is missing in unknown ways that may introduce bias in our estimates.  
+
+\subsubsection{Alternative Explanations:}
+
+Finally, our analysis cannot rule out plausible alternative explanations for our findings related to systematic differences between edits with or without identity-based signals.  For example, if damaging edits by IP editors, or editors without user pages are more difficult for the ORES model to detect, that could drive our findings for \textbf{H1} as sanctioning would be less driven by algorithmic flagging for such editors. Similarly, if over-profiled editors make edits that are prone to controversial sanctioning that might explain our findings for \textbf{H3}.  
+
+% maybe newcomers with user pages are more suspect?
+
+
+Both of these scenarios seem to suggest that over-profiled editors are sophisticated relative to other editors, which is doubtful. Yet other unknown systematic differences between editors cannot be ruled out.   
+
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{OresAudit.bib}
+
+% \setcounter{biburlnumpenalty}{9001}
+% \printbibliography[title = {References}, heading=secbib]
+
+\end{document}
+

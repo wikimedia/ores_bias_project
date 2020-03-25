@@ -7,7 +7,7 @@ import datetime
 repo = git.Repo("../mediawiki-extensions-ORES")
 repo.git.checkout("-f","master")
 # we only use the last commit
-commit = list(repo.iter_commits(paths="extension.json", until=datetime.datetime(2019,12,1)))[0]
+commit = list(repo.iter_commits(paths="extension.json", until=datetime.datetime(2020,4,1)))[0]
 
 repo.git.checkout('-f',commit)
 config = json.load(open("../mediawiki-extensions-ORES/extension.json",'r'))

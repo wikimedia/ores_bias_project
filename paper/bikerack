@@ -1,0 +1,676 @@
+
+Ostrom's principle of graduated sanctions is influential in approaches to sanctioning in online communities \cite{ostrom_governing_1990}.  She recommends that users initial violations be sanctioned relatively lightly to communicate that rules are enforced and rule breakers are detected but that subsequent violations should face harsher punishments for effective deterrence  \citep{kraut_regulating_2012, ostrom_governing_1990}.  For instance, Wikipedia uses a system of escalating warnings for vandalous editing that eventually ends in a ban \citep{geiger_work_2010}.
+
+\subsubsection{Algorithmic bias}
+
+
+
+% Statistical vs Taste-based discrimination
+
+\subsection{Algorithmic prediction}
+
+% Define machine learning prediction / algorithmic triage
+
+% Point out algorithmic bias
+
+% Propose that reasonable good, potentially biased algorithms should reduce statistical discrimination. 
+% move to background
+
+Algorithmic tools to support governance work in online communities and social media platforms can help moderators focus their attention on that content most likely to require their intervention,  but how does this adoption shape the experience of the subjects of regulation?  Will scrutiny focus on those categories of user that already face barriers to participation and acceptance in regulated online spaces? Or will adoption of such systems lead to more accountable and accurate governance?  
+
+% use ostrom here
+\subsection{Governance and monitoring}
+
+Governance work is done to construct order, both in online and offline spaces. It generally depends on the use of authorities with the power to observe and sanction behaviors \citep{ostrom_governing_1990}. That is, effective governance systems generally include monitoring and sanctioning.  
+
+\subsection{Algorithmic classification and discrimination}
+
+% Need citations here
+The introduction of algorithmic tools for surveillance in governance work raises a second problem of governance both for states and for online communities: the problem of discrimination. Systematic discrimination in surveillance and sanctioning is a historically widespread characteristic of law enforcement and criminal justice.  Two reasons this may be the case are that first that law enforcement institutions may be intentionally or implicitly designed to advantage members of an in-group and second that membership in an  out-group serves as a visible sign of law breaking.
+
+Automatic triage works in two stages: (1) machine learning algorithm automatically flags or filter content then (2) a human passes judgment on how the content should be addressed, if it should remain, be modified, or removed.  Generally, a machine learning classifier outputs a continuously valued ``score'' and if the score is above some threshold value (called the ``operating point'') flagging and filtering systems are activated to raise the visibility of content,  behavior, or an individual to monitors. 
+
+% What's a seminal paper on the origins of discrimination and in-group vs out-group discrimination? 
+
+Algorithms are not typically the origin of discrimination or other forms of unfair treatment to members of given social categories.  Rather social categories precede the construction and introduction of algorithms, which may (or may not) reproduce discrimination.  Machine learning algorithms for governance reproduce patterns of classification and judgment in the data used to train them.  Training data is created by humans and may take the form of hand coded example judgments or examples thought to represent desired patterns of decision making. For example, a racist algorithm for predictive policing learns to discriminate based on historical patterns of racial profiling in police work and in doing so reproduces the social inequities that justify racism, while short-circuiting legal protections for discrimination \citep{brayne_big_2017, mayson_bias_2018, lum_predict_2016}.  
+
+
+% In a “statistical discrimination” model (Phelps, 1972; Arrow, 1973;
+% Aigner and Cain, 1977), the differential treatment of members of the
+% minority group is due to imperfect infor- mation, and discrimination
+% is the result of a signal extraction problem. As a profit-maximizing
+% prospective employer, renter, or car salesman, tries to infer the
+% characteristics of a person that are relevant to the market
+% transaction they are considering to complete with that person, they
+% use all the information available to them. When the person-specific
+% information is limited, group- specific membership may provide
+% additional valuable information about expected productivity.  For
+% example, again using the labor market scenario, it may be known to
+% employers that minority applicants are on average less productive than
+% majority applicants. In this case, an employer who sees two applicants
+% with similar noisy but unbiased signals of productivity should
+% rationally favor the majority applicant to the minority one as her
+% expected productivity is higher. While expected productivity will
+% equal true productivity on average within each group, statistical dis-
+% crimination will result in some minority workers being treated less
+% favorably than non-minority workers of the same true productivity,
+% i.e. will result in discrimination as defined above. In the extreme
+% case where individual signals of productivity are totally
+% uninformative, an employer may rationally decide to make offers only
+% to Whites if the mean productivity among Blacks does not exceed the
+% required threshold \cite{bertrand_field_2016}.
+
+If we make the argument about statistical vs taste-based discrimination, we can actually test a more theoretically grounded prediction and we don't need to rely on weird social psych ideas about the construction of in-group and out-groups. We just need to talk about the fact that newcomers and anons are statistically more likely to make damaging edits.  The fact that it's plausible that feedback reinforces these tendencies, especially in cases like race-based discrimination is a strength not a weakness. That our setting likely has statistical discrimination but not taste-based discrimination can be a strength not a weakness.
+
+We can predict that under taste-based discrimination you might expect anti-substitution or no substitution, but under statistical discrimination we expect substitution.
+
+This idea of substitution effects isn't new. \cite{bertrand_field_2016} discuss it and point to \cite{bertrand_are_2004} as the first example. It's actually about taste-based vs statistical discrimination. When they varied the quality of resumes between simulated  white and African American job candidates, they found that the gap between low and high quality resumes was less for African Americans. This means that my current framing is kind of wrong. I maybe generalizing too much.  We can speak to instances of statistical discrimination, but not taste-based.
+
+An algorithmic governance tool can reinforce discrimination against social categories, but the social categories came first, and were already used in governance work. Even in the absence of categories of politics or oppression, human decision makers tend to rely on   Bias can enter sociotechnical systems by way of salient signals when visible characteristics (i.e. race, gender, sex, age, appearance, experience levels, or signs of socioeconomic class or status) factor (perhaps implicitly) in decision making. Introducing algorithmic predictions to a governance system will not generally make other salient social categories invisible to moderators or judges \citep{kleinberg_human_2018}.  Therefore, understanding the implications of an algorithmic governance system for fairness in the enforcement of rules and norms depends on understanding how algorithmic predictions are used alongside visible group memberships that are subject to discrimination. 
+
+In a working paper using methodology similar to our own, \cite{cowgill_impact_nodate} analyzes threshold effects in algorithms predicting whether criminal defendants will re-offend or fail to appear in court. He found that judge's decisions were most sensitive to algorithmic thresholds for Black defendants.  They don't offer much explanation for this finding, writing: 
+
+\begin{quote} the race-related effects in this paper may
+plausibly be driven by a variety of taste-based or statistical mechanisms of discrimination. Future work should shed more light on this question.\end{quote}
+
+We propose that this result suggests anti-substitution between racial categories and algorithmic predictions that in effect increases discrimination for individuals who are flagged by the algorithm. Consider the following formal argument:
+
+Let $S_{i,a}$ be a binary random variable indicating whether or not an individual is sanctioned for action $a$.  Say that individual $i$ experience discrimination on the basis of membership in group $G$ when $P(S_{i,a}|i\in G) > P(S_{i,a}|i\not\in G)$. I.e. \emph{ceteris paribus}, the probability of sanction is greater for members of $G$ than for non-members. The amount of influence an algorithm has on decision making is the causal effect of an algorithm's risk prediction on sanctioning: $P(S_{i,a}|f) - P(S_{i,a}|\neg f)$ where $f$ indicates whether the algorithm ``flags'' the individual because the algorithmic risk score is greater than an operating point.  \cite{cowgill_impact_nodate}'s finding that rulings on Black defendants were more sensitive to algorithmic prediction means that $P(S_{i,a}|i\in G,f) - P(S_{i,a}|i \in G, \neg f) > P(S_{i,a}|i\not\in G,f) - P(S_{i,a}|i \not\in G, \neg f)$.  The causal effect of being flagged on sanctioning is greater if an individual is a group member than if not. Rearranging the inequality we can see that this implies that $P(S_{i,a}|i\in G,f) - P(S_{i,a}|i\not\in G,f) > P(S_{i,a}|i \in G, \neg f) - P(S_{i,a}|i \not\in G, \neg f)$. Therefore \cite{cowgill_impact_nodate}'s finding is equivalent to finding that group membership is more important for individuals who are flagged than being flagged is for individuals that are not group members. In sum, finding that governance decisions are more sensitive to algorithmic predictions for members of a socially salient group is equivalent to finding that individuals who are flagged face more discrimination based on their group memberships than individuals who are not flagged.
+
+% write this tomorrow night
+\subsection{Governance in cooperative work online}
+
+% Use this to suggest that porous boundaries or existence of out-groups is a problerm
+This study applies this logic to the case of monitoring and removing objectionable content from a major online platform for cooperative production: language editions of the online encyclopedia Wikipedia hosted by the Wikimedia foundation. 
+
+Communities engaged collective resource management also make use of monitoring and sanctioning to organize sustainable provision of resources \citep{ostrom_governing_1990}.  Elinor Ostrom's models of common pool resource management is influential to understanding rules, norms, and monitoring in governance on Wikipedia \citep{forte_decentralization_2009, viegas_hidden_2007}.  Monitoring and sanctioning are key elements of her framework. Two of Ostrom's recommendations are connected in ways that do not mesh nicely with the realities of open collaboration. First, she advises that monitors should be themselves appropriators of the common pool resource, and second she sees the definition and maintenance of clearly defined boundaries around the group of appropriators as a precondition of effective common pool resource management.
+
+
+\emph{I stopped here.  We still need to explain anonymity, monitoring, and reversion on Wikipedia. We need to explain that reversion is sanctioning and why anonymous editors are an interesting group. We also need to point out that discrimination against newcomers might be different ethically to racism or sexism, but this can be a strength of our analysis since profiling anonymous editors isn't obviously wrong.}
+
+\emph{ A few other problems I can see with what I have here are:}
+  \begin{itemize}
+  \item \emph{There's a gap between governance and monitoring and sanctioning.  We're studying interfaces for monitoring and their effect on sanctioning.  This should be more clear. Cowgill studies interfaces for making sanctioning decisions.}
+  \item \emph{We can't really \textbf{nail} the question of whether the algorithm improves fairness, since we don't counterfactuals for editor classes. Instead we can claim that discrimination is different above the threshold, but this still require assuming that the difference between editor classes isn't confounded.}
+  \item \emph{Perhaps I've gone too far in emphasizing the broader implications of this study in the background and we'll need to refocus a bit more on online communities.}
+  \item \emph{I have no idea if that formalism bit is helpful at all.}
+    \item \emph{I still feel like I can do more to make it relevant to CSCW, but that might help once I flush out the setting}
+  \end{itemize}
+
+
+% The first of these recommendations can be easily adopted by open collaboration systems, but the second generally contradicts with the definition  peer production. The 
+
+% ``On the internet nobody knows you're a dog,'' captions the classic Gary Larson cartoon, suggesting that the ways that digital media obscure visible characteristics such as race, gender, species, and apparent signals of membership other salient social categories.  The comic reflects early thinking about social life online that suggested that social categories such as race, gender, and age would become less salient.  Yet social psychology and CMC research has shown that even without explicit identifiers, behavioral and linguistic patterns of gender inequality persist \cite{postmes_behavior_2002}. 
+
+
+% Our first hypothesis is that automatic triage will be useful and adopted in governance work. Therefore the feature will have a detectable influence on governance behavior
+
+% phrase the hypotheses in terms of substitution.
+%Mako's takeaway: AI-based flagging of actions will reduce reliance on visible features of actors in content moderation.
+  
+\textbf{H1:} Algorithmic flagging will increase the likelihood of enforcement action.
+
+  Algorithmic predictions of norm or rule violation (damage) will increase the likelihood of enforcement action (sanction or removal). 
+
+Being highlighted or filtered in an automated triaging tool will increase the likelihood that a contribution is removed.
+
+In our setting, this hypothesis corresponds to an increase in the likelihood that an edit to encyclopedia content is reverted. 
+
+Our second hypothesis is that algorithmic predictions are at least partial substitutes for membership in salient categories.  
+
+\textbf{H2:} 
+Algorithmic predictions will substitute for visible features of actors.
+
+Categories of editor known to make damaging edits at a higher rate face statistical discrimination. 
+
+Algorithmic predictions of norm or rule violation (damage) will increase the likelihood of enforcement action against members of groups associated with rule violation. 
+
+In our setting this hypothesis predicts that there will be an increase in reversion likelihood for anonymous or visible newcomer editors (not just overall).
+
+Our final hypothesis automatic triaging will have an outsize effect for changes where other information isn't available to suggest that a contribution needs reviewed.  This is because people will still use the category systems that they have already learned. They know that the algorithm can be faulty and therefore they won't use it to the exclusion of other signals they know can be useful. Thus algorithmic predictions are an imperfect substitute for salient category membership.
+
+\textbf{H3:} Algorithmic predictions will substitute for old signals.  
+
+The increase in enforcement action caused by algorithmic predictions will be less when contributors are members of salient categories.
+
+In our setting, this hypothesis predicts that the increase in reversion likelihood for an IP edit will be less than the increase for newcomer or established edits. 
+
+\end{document}
+
+Anonymity is suggested to provide a mechanism for reducing gender equality because it obscures membership in such classes that are visible in person or on real-name platforms \cite{postmes_behavior_2002}. 
+
+A second problem is that, in many cases, there is not an obvious objective or correct response to a piece of content. Decisions about whether content or behavior violates rules or norms may be nuanced or contested. To ease the burden of this kind of work, online communities and platforms introduce machine learning systems. 
+
+
+
+
+In the face of difficult or nuanced judgment, algorithmic predictions may function as a ``salient signal'' with an over-weighted influence on human decision making \citep{bordalo_salience_2012, kleinberg_human_2018, tversky_judgment_1974}.  Thus bias in an algorithmic triage system may shape both \emph{which pieces} of content will be scrutinized and also \emph{how} they will interpreted.
+
+When the 
+
+will be more likely to violate 
+
+But norm and rule violation are associated with the 
+
+%  Cite some evidence here? 
+
+ \cite{brayne_big_2017,kubler_state_2017, , ,gillespie_custodians_2018}.  Te
+
+
+ Work to create order, such as governance work, can lead to discrimination by (re)producing patterns of exclusion, marginalization, and classification.  Sources of discrimination include salient signals, domination/subjugation, and problems in classification.
+
+
+In criminal justice
+
+In online communities
+
+\subsection{Algorithms and interfaces in governance}
+
+In criminal justice ...
+
+There are two ways that algorithmic triage systems can influence monitoring and enforcement: (1) providing \emph{surveillence} to increase the visibility content predicted to be objectionable and (2) \emph{nudging} by suggesting to human reviewers that content is likely to be objectionable.
+
+% we need to make the point that social categories are relevant in online communities.
+% tom postmes might help a lot with that.
+\subsection{Anonymity and regulation in online communities}
+
+While there are amny
+Anonymity and cheap pseudonyms create challenges for governance as they raise difficulties in 
+
+Yet identity on the internet 
+
+We consider a specific class of such systems: automated triage systems \citep{chandrasekharan_crossmod:_2019}.  
+
+% To the background with this par!
+
+\cite{leung_can_2020} 
+
+Such systems face critique on the basis of the reductionist nature of machine learning algorithms and their propensity for unfair misclassifications \citep{gillespie_custodians_2018}.  
+
+That algorithmic classification has consequences to an online sociotechnical systems is intuitive, but the effective design of such systems must depend on how moderators actually use the system in practice and on how this use shapes experience of contributors subject to algorithmic governance.
+
+It's not just about attracting and retaining \emph{new} contributors. It's also about
+ being fair to everyone. This is important for institutions, like platforms, the legal system, and Wikipedia.  Don't think about Wikipedia as just another online community. Think about it as an institution. 
+
+Governance is tightly related to a second task of successful online communities: to attract and retain a pool of participants \citep{kraut_building_2012-1}. Newcomers are likely to violate rules and norms, but are also likely to stop participating if sanctioned \citep{halfaker_dont_2011, teblunthuis_revisiting_2018}.
+
+More generally, difficulties encountering platform and community governance
+
+(whether automated or not) can reinforce barriers to participation faced by people
+
+with marginalized identities or who fall outside of classification systems \cite{blackwell_classification_2017}.  
+
+
+% Summary of Blackwell
+
+% Kleinberg considers what happens when judges can see defendents. And considers a number of possible decision making rules as models for how a judge might make use of algorithmic predictions.
+Specifically, the notion that removing bias from an algorithm is sufficient for equitable use may rely on assumptions about how algorithmic predictions factor in governance decisions. For example, Kleinberg's rosy pictures of algorithmic prediction to advance fairness generally assume that algorithmic predictions will substitute for other salient signals. But they might not if they only serve to encode, obscure, and reify prejudice. 
+
+On the other hand, it is also possible that algorithms function mainly to justify decisions that were being made anyway .  
+
+
+% Blackwell documented that automated systems aren't accountable and can 
+
+%When faced with a large number of uncertain decisions
+ when people face a large number of nuanced or uncertain decisions, they tend to make use of ``salient signals,'' such as membership in social categories or out-group status \cite{bordalo_salience_2012}.   
+In the face of difficult or nuanced judgment, algorithmic predictions may function as a ``salient signal'' with an over-weighted influence on human decision making .  Thus bias in an algorithmic triage system may shape both \emph{which pieces} of content will be scrutinized and also \emph{how} they will interpreted.
+
+At least in theory, information such as account age, registration status, reputation, or user profiles are visible to human moderators can be a source of systemic bias in online governance \cite{de_laat_profiling_2016}. 
+
+
+When faced with a large number of uncertain decisions, human decision makers tend to rely on ``salient signals'' which are visible signs used in decision making \citep{bordalo_salience_2012, kleinberg_human_2018, tversky_judgment_1974}.  Bias can enter sociotechnical systems by way of salient signals when visible characteristics (i.e. race, gender, sex, age, experience levels, or signs of socioeconomic class or status) factor (perhaps implicitly) in decision making. At least in theory, information such as account age, registration status, reputation, or user profiles are visible to human moderators can be a source of systemic bias in online governance \cite{de_laat_profiling_2016}. 
+
+Judges have been racist for a long time, but maybe algorithms can influence racist judges to make better decisions \cite{kleinberg_human_2018}. 
+
+Therefore we seek to understand ways that algorithmic tools may or may not support the dual goals of community governance at scale while improving treatment for marginal or liminal participants. 
+
+Can the adoption of algorithmic governance systems shift the how institutions relate to those who have historically been excluded, marginalized, or oppressed by them?
+
+Institutions constructing governance technologies have an ethical responsibility to treat   
+
+
+
+\end{document}
+
+
+% TODO In this section: define sanction
+\section{Rationale}
+\begin{itemize}
+
+% What's the even bigger philosophical issue at stake? Something about the relationship between monitoring and surveillance and justice in commons governance?  Is it a Bentham + Weber + Ostrom story? 
+
+% The problem isn't algorithms, the problem is capitalism and centralized authority to institute algorithms.
+
+\item The introduction of ORES tools on different Wikipedia language editions provides an opportunity to study how biased machine learning algorithms in sociotechnical systems might create or amplify systemic bias.  
+
+\item The surge in advances and popularity of machine learning in computer engineer  merits the ongoing rise in attention to the social and ethical implications of big data and machine learning \citep{barocas_fairness_2019}.  One of the central concerns is that algorithms will treat members of relevant social groups (e.g. race, sex, and gender) unfairly (algorithmic bias) leading to allocative and representational harms \citep{campolo_ai_2017}.  
+
+\item Algorithmic risk assessment is often a component of larger ``big data'' assemblages which can amplify and transformative surveillance (monitoring and sanctioning) practices in the criminal justice system \citep{barocas_big_2016, brayne_big_2017}.
+
+\item Indeed, a growing body of critical work demonstrates how ``how unfairness can play out in algorithmically mediated social contexts''  \citep{halfaker_ores:_2019}, with numerous demonstrations of biases encoded into algorithms \citep[e.g.][]{chouldechova_fair_2017,  kay_unequal_2015, lum_predict_2016, sweeney_discrimination_2013}, and considerable work by model builders and fixers  seeks to develop best practices for developing fair algorithms \citep{barocas_fairness_2019, mitchell_prediction-based_2018}.  
+\item In general, different notions of fairness for risk assessment correspond to different statistical properties of an algorithm, not all of which can be satisfied when group membership predicts risk  \citep{chouldechova_fair_2017, kleinberg_inherent_2016, mitchell_prediction-based_2018}. Removing problematic features doesn't help with this problem because it can easily lead to miscalibration if some predictors are correlated with relevant groups.   
+
+\item Particularly relevant are applications of algorithmic risk assessment to governance in sociotechnical systems like online communities, user generated content and social network sites, and peer production projects. Content moderation is labor intensive and platforms and moderators use algorithmic risk assessment tools to filter or flag content to assist them in monitoring and controlling online spaces \citep[p.116]{chandrasekharan_crossmod:_2019,gillespie_custodians_2018}.
+
+% Without the before/after comparisons we don't have the ability to speak to this problem anymore. 
+\item  Both the algorithm critics and the model fixers risk emphasizing technical bias to the neglect of bias which precedes the algorithmic system or which emerges only when the system is put into use \citep{friedman_bias_1996}.  \cite{hu_welfare_2018} offer a formalization of how classifiers can be optimized to maximize objective functions not of accuracy to the training data, but of social welfare. This makes explicit an assumption of social welfare as an aggregation of individuals' utilities. Such an approach ignores consequences of introducing algorithms into real-world social contexts at organizational and institutional levels.  Even tools that seem neutral can altar work practices and power structures when put into use \citep{barley_technology_1986, barley_technicians_1996, leonardi_crossing_2009}. 
+
+% 
+
+% Similarly, this point is hard to address. 
+\item There are theoretical reasons from social psychology and sociology to be optimistic about introducing predictive risk assessment into bureaucratic systems \citep{barocas_fairness_2019, brayne_big_2017}. Human decision makers are generally limited by cognitive biases and implicit biases \citep{tversky_judgment_1974, greenwald_statistically_2015}. The idea that a well-informed and efficient bureaucracy can increase fairness goes back to Max Weber \citep{weber_economy_1978}.  When implemented effectively, quantified tools have long been demonstrated to improve human judgments \citep{dawes_clinical_1989}.
+%
+\item  However, there seem to be few (if any?) studies of how sociotechnical systems change when algorithmic risk predictors are put into use.  The closest thing seems to be simulation studies that attempt to anticipate and model how human judgments will change when assisted by an algorithm. \citet{kleinberg_human_2018} simulated deployments of a model predicting whether plaintiffs will fail to appear in court, and simulate a scenario in which real human judges adopted their system to argue that their model could simultaneously reduce the racial bias of judges, and the number of people jailed, without reducing the crime rate. This kind of study also neglects lessons from STS and CSCW that designers often fail to understand the needs of users or to anticipate how technologies will be put into use \citep{kline_users_1996, kling_computerization_1991, suchman_working_2013, schmidt_taking_1992}. 
+
+\item This study will be (one of?) the first to analyze the macro consequences of an algorithmic risk predictor put into use in a consequential sociotechnical system.  It will do so with theoretical focus on how algorithmic classifiers used by people in a broader organizational and institutional context. The research design will provide causal inference of micro-level changes to work activities and human judgements and of macro-level changes in participation and 
+representation.  
+
+\item Wikipedia is a young institution that produces a free multi-lingual encyclopedia through peer production: an organizational form characterized by openness, decentralized authority, peer-to-peer distribution of work, and voluntary collaboration \citep{benkler_coases_2002}. 
+
+\item Wikipedia provisions a high quality encyclopedia through a highly developed bureaucratic system of norms, policies, and procedures which are imbricated with a technological system of bots and templates \citep{butler_dont_2008, geiger_work_2010, geiger_beyond_2017, leonardi_when_2011}.  Wikipedia, a self-governing project, is also a system of concertive control \citep{barker_tightening_1993}.  Wikipedians make the rules and enforce them on themselves.
+
+\item One of Wikipedia's central tasks is to monitor changes to encyclopedic content. English Wikipedia is edited about 160,000 times every day and edits must be monitored to minimize the risk that readers will encounter errors in the encyclopedic content \citep{halfaker_ores:_2019}. This is likely an important problem for peer production systems in general. Monitoring is one of Ostrom's design principles for institutions to sustainably provision commons-based goods \citep{ostrom_governing_1990}.
+
+
+
+\item However, Wikipedia's algorithmic systems for monitoring and sanctioning damage likely have unintended consequences for recruitment and retention of editors as new editors who are sanctioned (even when acting in good faith!) are substantively less likely to remain contributors compared to unsanctioned newcomers \citep{halfaker_rise_2013}, and these mechanisms seem to generalize to a broader class of peer-production projects \citep{teblunthuis_revisiting_2018}. Similarly, Wikipedia's monitoring system has been implicated in some of its other shortcomings such as the gap in participation and content coverage by gender \citep{lam_wp:clubhouse?:_2011}. Such systemic biases in how Wikipedia treats different groups of editors and content are an important concern for study and intervention.
+
+% We won't bring up the concertive control stuff any more 
+%\item Wikipedia's quality control system might even be described as a Panopticon. All actions on the site are visible to everyone and can be monitored and sanctioned, but no one knows if they are being monitored \citep{foucault_discipline_1979, jemielniak_common_2014}.  At the same time, the great volume of activity means that monitoring and maintenance work must be distributed among volunteers.  In practice, this falls to a relatively small pool of specialist vandal fighters \citep{welser_finding_2011}.  
+
+%\input{resources/diagram_1.tex}
+
+\item In 2015 the Wikimedia foundation, in collaboration with the community, starting rolled out ORES, a set of models that predict the probability that an edit is damaging, good-faith or will be reverted. ORES was designed to support the needs of diverse potential users in an effort to broaden participation in edit screening \citep{halfaker_ores:_2019}. However, we know lvittle about how the introduction of this new technology to the Wikipedia is changing organizational dynamics on the encyclopedia. 
+
+\item Furthermore, while ORES was designed and built with attention to Wikipedia's systemic bias, we do not know to what degree ORES encodes the bias it may have learned from human Wikipedians, whether this bias should be considered ``fair,'' or how algorithmic bias might amplify (or dampen) Wikipedia's systemic bias.
+
+\item In sum, the introduction of ORES to Wikipedia presents a novel opportunity to learn about how introducing algorithms into sociotechnical systems for monitoring and sanctioning behavior can change those systems.  Will biased algorithms influence the behavior of human editors to make them more biased? Or can they actually improve fairness by providing more informative salient signals? 
+
+%\input{resources/diagram_2.tex}
+% Even the notion that algorithmic bias can lead to bias in human decision making lacks empirical tests in the field.  We can contribute a really good one!
+
+ % Similarly, while socially constructed systems of categorization can be powerful tools for institutionalized injustice, categorization is necessary to the functioning of information infrastructures on which knowledge and society depend \citep{bowker_sorting_2008}.   
+
+% \item Conclusions about how algorithmic bias may impact social systems seem to apply an additive logic that seems to assume that since biased humans lead to disparate outcomes therefore biased algorithms will too. 
+ 
+% \item 
+
+\end{itemize}
+\section{Objectives}
+\subsection{General Objectives}
+
+\begin{itemize}
+\item Understand how algorithms to assist monitoring in peer production projects may influence which edits will be reverted.
+
+\item Understand how bias in algorithms to assist monitoring in peer production projects may lead to bias in editor reversion behavior. 
+
+\item Understand if influence by biased algorithms translates will increase systemic bias at the project level. 
+\end{itemize}
+
+\subsection{Specific Objectives}
+
+\begin{itemize}
+\item Evaluate ORES models' encoded biases in terms of calibration, balance, and parity.
+\item Test if ORES has an influence on whether particular edits by newcomers and anons are reverted.
+\item Test if introducing ORES has an observable influence on reversion and bias at the project level. 
+%\item Develop measures of breadth of participation in monitoring, unfair reverts, monitoring efficiency, and gaps in participation knowledge. $$\item Test the hypotheses below to understand how introducing a potentially biased algorithm to improve visibility in a peer production project may broaden participation in monitoring and improve fairness and participation and representation at the macro level. 
+\end{itemize}
+% \subsection{Contribution to Wikimedia}
+% \begin{itemize}
+% \item Complete the evaluation step in the value-sensitive algorithm design framework \citep{zhu_value-sensitive_2018}.  
+% \end{itemize}
+% \subsection{Contribution to computer science and HCI}
+% \subsection{Contribution to social science}
+
+\section{Null Hypotheses}
+We will test the following high level null hypotheses: 
+
+\textbf{H0:} ORES is not biased against newcomer and anonymous editors.
+
+\textbf{H1:} ORES thresholds will not influence whether edits to the encyclopedia are reverted.
+
+\textbf{H2a:} ORES thresholds will not influence whether newcomer edits to the encyclopedia are reverted. 
+
+\textbf{H2b:} ORES thresholds will not influence whether IP edits to the encyclopedia are reverted.     
+
+\textbf{H3:} Releasing ORES has no project-level effect on the number of changes to  Wikipedia that are reverted. 
+
+% \textbf{H3b:} Releasing ORES has no project-level effect on the efficiency of monitoring by Wikipedia editors.
+\textbf{H4a:} The project-level effect of releasing ORES on the number of reverted edits by newcomers is no greater than that on other kinds of edits.
+
+\textbf{H4b:} The project-level effect of releasing ORES on the number of reverted edits by anons is no greater than that on other kinds of edits.
+
+% \textbf{H4c:} The project-level effect of releasing ORES on the number on the efficiency of monitoring edits by newcomers is no greater than that on other kinds of edits.
+
+% \textbf{H4d:} The project-level effect of releasing ORES on the number on the efficiency of monitoring edits by anons is no greater than that on other kinds of edits.
+
+% \textbf{H3:} Releasing ORES has no effect or decreases the efficiency of monitoring.
+
+% \textbf{H4:}  A substantial improvement to fairness of ORES has no effect or increases fairness of reverts on Wikipedia compared to the baseline. 
+
+% \textbf{H5:}  The introduction of ORES has no effect or increases (a) participation gaps and (b) knowledge gaps.
+
+\section{Anticipated Findings}
+
+I expect to reject all the null hypotheses. 
+
+\textbf{H0:} As ORES is trained using edits by highly established editors as examples of non-damaging edits, it will learn to recognize edits by less new and anonymous editors as potentially damaging. 
+
+\textbf{H1:} Editors will use ORES-powered filtering and highlighting features to find edits to revert. Bias in human decision making is likely driven by cognitive biases that overweight salient factors in the presence of uncertainty \citep{tversky_judgment_1974, kleinberg_algorithmic_2018}.  Before ORES was introduced, Wikipedians reviewing recent changes would have been more likely to rely on salient signals like anonymity, edit history, and their expectations about what content is encyclopedic.  ORES provides new, more reliable salient signals that with support for filtering and highlighting. Edits above thresholds will be even more likely to be reverted compared to edits right below the thresholds than can be explained by scores themselves.
+
+\textbf{H2B:} If in addition to \textbf{H2A}, ORES is biased against anonymous editors, then anonymous editors will become more likely to have their changes undone compared to other editors after ORES is adopted.  
+
+\textbf{H2C:} If in addition to \textbf{H2A}, ORES is biased against newcomers, then newcomers will become more likely to have their changes undone compared to other editors after ORES is adopted.  
+
+\textbf{H3:} Editors using ORES as a signal to revert edits will become more thorough at undoing damage therefore they will revert more edits. 
+
+\textbf{H4A:} Algorithmic bias against IP editors that influences editors to revert changes by such editors at a greater rate. 
+
+\textbf{H4B:} Algorithmic bias against newcomer editors that influences editors to revert changes by such editors at a greater rate. 
+
+
+% \textbf{H3B:} If in addition to \textbf{H3A}, ORES is biased against newcomers, then quality controllers will become even faster to revert edits by newcomers compared to other editors after ORES is introduced. 
+
+% \textbf{H3C:} If in addition to \textbf{H3A}, ORES is biased against anonymous editors, then quality controllers will become  even faster to revert edits by anonymous editors compared to other editors after ORES is introduced. 
+
+
+\clearpage
+
+\section{Counterargument}
+There are reasons to doubt the proposed hypotheses.
+\begin{itemize}
+\item Wikipedia's collaborative dynamics have become highly stabilized and oligarchical.  Introducing ORES might not be enough to break the equilibrium. Concretely, there might be limited need for technologies like ORES to improve monitoring efficiency. For instance incumbent bots and specialized vandal fighters (Huggle users) respond to changes so fast that casual monitors cannot compete. 
+
+\item We might not find evidence of for our hypotheses simply because of methodological limitations.  Without clean experiments we will have to use less powerful study designs like time series analysis which not be sensitive enough to detect changes.
+
+\item Micro-level changes caused by introductions of new technology may not translate to macro-level changes when there are multiple causal pathways between the micro and macro Editors doing quality control work on Wikipedia might be guided by ORES to revert particular edits, but still revert similar amounts of reverts. 
+
+\end{itemize}
+
+% Consider adding the relevance of broader participation in monitoring here.
+% maybe broadening participation is a different paper
+
+% NO, tweak this to replace the current H4 with another hypothesis that ORES will expand participation in monitoring. This is a key thing that they wanted to happen, seems like a really good idea for peer production, and also seems like a key mechanism for H1 and H2.
+
+\section{Methods and Measures}
+
+\subsection{\textbf{H0:} Detecting bias in ORES}
+
+We will demonstrate that ORES is biased against newcomer and anonymous editors in terms of calibration and balance \cite{kleinberg_inherent_2016}.  This has been done and reported \hyperlink{https://meta.wikimedia.org/wiki/Research:Exploring_systematic_bias_in_ORES/Calibration_and_balance_for_newcomers_and_anons}{here}.
+
+\subsection{\textbf{H1} and  \textbf{H2:} Demonstrating ORES adoption and biased influence}
+
+We will use a regression discontinuity design to show that quality controllers on Wikipedia are sensitive to the thresholds used by ORES damaging models. ORES powers RCFilters and also flags edits that it predicts need review based on whether the edit is scored above some threshold. If Wikipedians use these features to find damaging edits then they will be more likely to undo edits that are scored above the threshold compared to edits that score below the threshold. If Wikipedians use these systems to find edits that need review then the choice of thresholds will influence their editing behavior.  
+
+To test this proposition, we will take a sample of edits following the releases of ORES-powered RCFilters on each wiki. For this sample of edits, we will reconstruct the ORES deployment environment at the time each edit was made to obtain the correct ORES scores and thresholds in use by RCFilters. We will then fit the below locally linear regression models following \cite{litschig_impact_2013}'s approach to regression discontinuity analyses with multiple cutoffs with separate treatments.  Since we don't know the ORES score until we take the sample we will have to take a large enough sample over a long enough time span to have good statistical power (especially for IP edits and newcomer edits) for the smaller wikis. 
+
+
+
+
+The goal of this model is to estimate the local average treatment effects (\(\tau_j\), for each cutoff \(j\)) of threshold-based monitoring tools on \(Reverted_{rw}\), whether or not a revision is reverted. The tools are activated when the ORES score is greater than the threshold (\(score_r > c_{jw}\)). Our approach using an RDD design to evaluate an algorithmic risk assessment tool is similar to that used by \cite{cowgill_impact_2019} to evaulate the COMPAS recidivism prediction tool.
+
+For the appendix we will fit seperate models for each wiki to get a sense of how consistent the average finding is across our sample.
+
+The parameter \(p\) defines the radius of a neighborhood (defined by \(\mathbf{1_{jp}}\)) of scores around each cutoff. We will test multiple values of \(p\) as robustness checks. The data consists of a sample of revisions within the neighborhoods so we compare revision right above and right below the threshold. Estimating \(\tau_j\) requires controlling for the local relationship between \(score_r\) and \(P(Reverted_{rw})\). Following \citet{imbens_regression_2008} and \citet{litschig_impact_2013}, we model different slopes before and after each cutoff as the coefficients \(\alpha_{j0}\), \(\alpha_{j1}\) and \(B_j\). \(\alpha_w\) are fixed effects for wiki and \( \mu_{rw} \) are revision errors.  Since different wikis have different cutoffs, we will fit slopes using the distance from the score to cutoff instead of the value of the score. 
+
+\renewcommand{\figurename}{Figure}
+\setcounter{equationcnt}{\thefigure}
+\setcounter{figure}{\thefiguretmp}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{resources/litschig_2013_figure2.jpg}
+\caption{Illustration of the RDD estimation procedure using multiple cutoffs (from \cite{litschig_impact_2013}).}
+    \label{fig:my_label}
+\end{figure}
+
+%     ][B_1\mathrm{Prob\_Damaging} + B_2\mathrm{Maybe\_Damaging\_Pred} +
+%     B_3\mathrm{Likely\_Damaging\_Pred} + \] 
+%     \[B_4\mathrm{Very\_Likely\_Damaging\_Pred} + \mathbf{Z_1}\mathrm{Wiki} + \mathbf{Z_2}\mathrm{Prob\_Damaging \times Wiki} + \] 
+%     \[\mathbf{Z_3}\mathrm{Prob\_Damaging} \times \mathrm{Wiki} \times \mathrm{Maybe\_Damaging\_Pred} + \] \[\mathbf{Z_4}\mathrm{Prob\_Damaging} \times \mathrm{Wiki} \times \mathrm{Likely\_Damaing\_Pred} + \]
+% \[ \mathbf{Z_4}\mathrm{Prob\_Damaging} \times \mathrm{Wiki} \times \mathrm{Very\_Likely\_Damaing\_Pred} +  I + e\]
+
+\begin{figure}
+\includegraphics[width=0.7\textwidth]{resources/Threshold_Dag_drawing.jpg}
+\caption{Drawing of a DAG illustrating the need to control for wiki and score when estimating the effect of a score exceeding a threshold on reversion}
+\end{figure} 
+
+We will fit this model on stratified samples of edits taken during the period after the RCFilters feature was released. Since we aim to estimate the effect on the average wiki, each sample will place equal weight on revisions to each wiki.  Therefore we will weight each data point in sample as \(\frac{1}{W}\) where \(W\) stands for the number of edits sample from wiki \(w\). We will take separate samples and fit separate models for our analysis of edits made by new and anonymous editors. 
+
+As a robustness check we will fit the model on edits made prior to the date that ORES was first released. We do not expect to find any threshold effects on this data. 
+
+% H4: before and after ORES was released, after RCFilters was in beta, and after RCFilters was released. This will help us to corroborate threshold effects with the results from the time series analysis. 
+
+
+\subsection{\textbf{H3} and \textbf{H4:} Project-level changes in reversion patterns}
+
+We will look for project-level evidence that the rollout of ORES increased overall reversion of edits and reversion of edits by IP editors and newcomers using interrupted time series analysis. The intuition is that we can estimate unobserved potential outcomes for treated Wikis by controlling for time and seasonality with each wiki serving as its own control. This approach depends on having a correct model for the temporal structure of the dependent variable, which is a questionable assumption. We'll fit the following negative binomial regression model.
+
+\renewcommand{\figurename}{Equation}
+\setcounter{figuretmp}{\thefigure}
+\setcounter{figure}{\theequationcnt}
+\begin{figure}
+\begin{small}
+\begin{equation*}
+    \begin{split}
+        E[Reverts_{wt}] & =  exp [ \gamma_{w} + \alpha_{wm} + \kappa_{wd}  \\ 
+        & + B_{1} has\_ores\_model + B_{2} rcfilters\_beta + B_{3} rcfilters\_released ] \\
+    \end{split}
+\end{equation*}1
+\end{small}
+\caption{ Negative binomial regression model for testing \textbf{H4}.}
+\end{figure}
+\setcounter{equationcnt}{\thefigure}
+\setcounter{figure}{\thefiguretmp}
+
+While I considered more sophisticated time series modeling techniques (based on ARIMA models), creating a pooling model with a seasonality model that estimates a single average causal effect across wikis is proving infeasible. Therefore we will model temporal trends within each wiki using a seasonality using fixed effects for month and a linear effect of time. If we have time we can try alternative specifications of time like splines.
+
+There are three temporal discontinuities to consider and in some wikis they are contemporaneous. The first is 
+\(has\_ores\_model\) which indicates whether an ores model has been released for a wiki. This means that an API is active that community members might integrate with their monitoring tools such as Huggle.  The second is rcfilters\_beta which marks the point that the RCFilters feature has been made available on a wiki. Finally, we consider rcfilters\_released which is when the configuration settings to enable and customize RCFilters features are moved  from the `Beta features' tab to the `Recent changes' and  `Watchlist' tabs in user's preferences settings. 
+
+\subsection{Measures}
+
+\subsubsection{Reverts}
+The dependent variables of \textbf{H1}, \textbf{H2}, \textbf{H3} and \textbf{H4} all depend on detecting \emph{identity reverts}, which are are edits undo another edit (the \emph{reverted edit}) by restoring a page to the state prior to the reverted edit.  However, these complementary analysis take two very different views of Wikipedia in relation to ORES/RCnFilters.  The analysis of \textbf{H1} and \textbf{H2}  zooms in on situations that are most likely to be influenced by algorithmic bias: edits that are right around the thresholds that determine whether an edit will be filtered or flagged in watchlists or RecentChanges.  On the other hand \textbf{H3} and \textbf{H4} zoom out to assess the impacts of design using time series analyses. 
+
+For \textbf{H1} and \textbf{H2} we will model whether or not specific edits are \emph{reverted}. 
+
+For \textbf{H3} and \textbf{H4} we will count the number of \emph{reverts} that happen each week. 
+
+For \textbf{H1} and \textbf{H2} we will use all reverts, for \textbf{H2a} and \textbf{H4a} we will use reverted IP edits, and for \textbf{H2b} and \textbf{H4b} we will use reverted edits by newcomers. 
+
+For \textbf{H1} and \textbf{H2} we will look at edits before the first time ORES was introduced and at edits from the time after RCFilters was enabled by default. 
+
+For \textbf{H3} and \textbf{H4} we will analyze the entire available edit histories of the encyclopedias up to 3 months after RCFilters were enabled by default.
+
+
+\subsubsection{Ores scores and thresholds}
+
+The particular models and thresholds that are in use by encyclopedia editors change over time for a number of reasons. As is common practice in machine learning deployments, models built at one point in time go "stale" and must be updated periodically with new training data. New predictors are added, bugs are fixed, and thresholds are tweaked, sometimes in response to feedback from community members \citep{halfaker_ores:_2019}.
+
+Since for our analysis of \textbf{H1} and \textbf{H2} requires precise measurement of the scores that edits were given by the models that were deployed at the time the edits were made and of the thresholds that were in place, we reconstruct the site deployment environments as described above. 
+
+To obtain the precise thresholds that were in use at specific times in our analysis, we process public git repositories where the Wikimedia foundation deploys configuration files that control whether ORES or RCFilters are enabled and how thresholds are specified. We can obtain the precise time that configuration changes were made by cross-refrencing commit times in the deployment repositories with public server admin log where Wikimedia deployments are published.\footnote{\url{https://wikitech.wikimedia.org/wiki/Server_Admin_Log}} The thresholds can be configured explicitly (i.e. 0.5) or may indicate a desired level of precision or recall (i.e. \textit{maximum precision @ recall=0.95}).  In these latter cases we can either lookup this value using our reconstructed python environments either from metadata stored in the model files or manually by reconstructing precision-recall curves. 
+
+\subsubsection{Ores deployment cutoffs}
+
+To test \textbf{H3}, and \textbf{H4} We obtain the precise dates that ORES features were released by iterating through public git repositories where the Wikimedia foundation makes configuration changes to wikis. We parse configuration files to look for configuration changes that indicate the release of features and use the dates from the server admin log to obtain the precise time that the deployments were made. 
+
+%\section{Dummy Tables}
+
+\section{Discussion}
+\label{sec:disc}
+
+\subsection{Scale and Discrimination beyond Social Media}
+
+The ``problem of scale'' is not only a problem for online communiites. Governance systems in general task a minority of a population with monitoring and sanctioning behavior, and they use technologies to make the relevant social space visible and actionable to the authorities.  For example, early technologies for tracking people, such as addresses and last names, were introduced during the rise of the modern nation state and were important to the enforcement of taxation and conscription \citep{scott_seeing_1998}.  Extending this process through today, governments surveil online communications to combat violent extremism, for international intelligence, and in warfare \citep{lyon_snowden_2015}.  Somewhat more mundane, but no less serious, law enforcement also adopts predictive surveillance technologies, such as those sold by the company Palantir, in everyday police work \citep{brayne_big_2017}. For rules to be enforced, violations of the rules must be visible. The social construction of rules and norms that may be costly to obey requires identifying and sanctioning violators \citep{piskorski_testing_2017, coleman_social_1988}.  Like online platforms states are increasingly adopting machine learning \emph{automatic triage} to help police identify criminal behavior more efficiently \cite{brayne_big_2017}.
+
+Systems for monitoring and sanctioning behavior are key to the construction social order and cooperation not just online, but throughout society \citep{bowker_sorting_2008, ostrom_governing_1990, scott_seeing_1998}.  Today, algorithmic governance systems that support monitoring at scale are increasingly adopted in major social institutions, such as in courtrooms to improve the quality of sanctioning  decisions and in police work to increasing the scale of practical surveillance. Police departments use predictive algorithms to target geographic areas or people for patrol \citep{brayne_big_2017}  These developments further advance the quantification, systematization and rationalization of governance and therefore are likely to shape how institutions relate to groups they have historically excluded, marginalized, oppressed, or profiled. % cite something
+
+These developments have attracted the attention of the FAT*ML scholarly community in computing as well as studies in law and economics.  While using algorithmic tools can lead to unfairness if they are not accountable or if their misclassifications are not remediated \citep{sweeney_discrimination_2013, chouldechova_fair_2017}, at least in theory, algorithmic systems can be designed to prevent discrimination, discount systematic biases, and otherwise advance egalitarian and equitable goals \citep{kleinberg_discrimination_2019}. Yet most approaches to such design problems focus on ``technical interventions'' such as building fairness constraints into machine learning models but neglect of the broader design and organizational context that situates the algorithmic system \citep{selbst_fairness_2019}.  \cite{selbst_fairness_2019} argue that advancing the goals of fairness in  machine learning depends on considering a broader \emph{sociotechnical frame} that includes how algorithmic predictions factor into decision making. Adopting a sociotechnical frame requires modeling other aspects of the system besides the algorithm. We move in this direction by considering the information that moderators use to make decisions about how to direct their attention. Specifically, we consider signals of membership in visible groups associated with damaging or norm-violating behavior.  Our results suggest that merely introducing algorithmic predictions will not eliminate statistical discrimination against over-profiled categories of peopele.
+
+In a working paper using methodology similar to our own, economist \cite{cowgill_impact_nodate} analyzes threshold effects in algorithms predicting whether criminal defendants will re-offend or fail to appear in court. He found that judge's decisions were most sensitive to algorithmic thresholds for Black defendants.  They don't offer much explanation for this finding, writing: 
+
+\begin{quote} the race-related effects in this paper may
+plausibly be driven by a variety of taste-based or statistical mechanisms of discrimination. Future work should shed more light on this question.\end{quote}
+
+We propose that this result is consistent with taste-based discrimination against Black defendents, while our finding is consistent with statistial discrimination against anonymous encylopedia editors. 
+
+\subsection{Threats to validity and limitations}
+
+\begin{itemize}
+
+\item 
+While the particular context of our study may be narrow relative to the broad range of cases where algorithmic governance tools are deployed, our non-invasive method for analyzing interactions between socially salient categories can generalize broadly to algorithmic triage systems in online platform governance.
+
+\item A set of threats to validity are posed by our quasi-experimental designs. Such approaches are always subject to assumptions that cannot be verified, especially when it comes to the time series analysis, which depends on the implausible assumption of having a true model for the time series for each wiki.  Our stronger causal evidence based on the threshold analysis will support the prediction of positive results for \textbf{H3} and \textbf{H4} based on a causal theory. We caution readers that causal interpretation of our analyses rest on untestable assumptions. In the case of the threshold analysis, we believe these assumptions are feasible as editors have virtually zero control over the precise ORES score that their edits will receive. However, our panel data analysis may easily subject to omitted variable bias or mispecification of the time series. Future randomized controlled field experiments such as A/B tests that manipulate algorithmic bias can improve upon our study.
+
+\item One key limitation of our study is that our dependent variables in our analysis of  \textbf{H1}, \textbf{H2}, \textbf{H3} and \textbf{H4} have limited construct validity for measuring changes in bias.  We only measure whether edits were reverted or the quantity of reverted edits in a given time frame. We make no attempt to account for whether these reversions are ``fair.'' Interpreting our results as indicative of a change in systemic bias requires assuming that they are not driven by a change in the quality of edits by IP or new editors. 
+
+\item We cannot not know the extent to which our results will generalize to other contexts, and even to other peer production organizations. We proposed these hypotheses based on broadly applicable theories from social-psychology. This suggests that our results will generalize to the extent that these theories do as well, particularly in similar sociotechnical contexts where predictive risk assessment tools are used to filter or flag user generated content.  
+
+\item Evaluating consequences of algorithmic bias in sociotechnical systems can inform ethical decision making, but is necessarily insufficient.  Even if we find evidence that algorithmic bias does not increase systemic bias in the case of ORES and Wikipedia, we should not conclude that it is ethical for ORES to have these biases.  Instead we should also consider allocative and representational harms, values, and ethical principles along with measurable consequences \citep{duflo_women_2012-1}. 
+
+\end{itemize}
+
+
+\subsection{Future work}
+\label{sec:futurework}
+
+  Future controlled experiments should seek direct evidence concerning these proposals.
+
+
+\setcounter{biburlnumpenalty}{9001}
+\printbibliography[title = {References}, heading=secbib]
+
+\end{document}
+
+
+\item Our model for counterfactual reversion may be biased, This will lead to error in our measures of reversion fairness.
+
+
+
+% An early draft of anticipated findings
+With ORES features powering more tools such as recent changes, and watch list enhancements,  Wikipedians now have a more reliable signal and will be less likely to discriminate on the basis of such categories. 
+
+I also expect that the effect of ORES on Wikipedia bias will be a roughly linear function of ORES's accuracy and balance. A model cannot be unbiased in every sense \citep{kleinberg_inherent_2016}. However, a more accurate model   
+
+We expect to find that ORES will have an effect on systemic bias on Wikipedia and that both the magnitude and the sign of that effect will depend on its level of encoded bias (for both models), but we expect bias-deltas in the bad-faith model to have a stronger effect than bias-deltas in the good-faith model.
+
+Based on the optimistic idea that algorithmic scoring can increase the efficiency of rationale-bureaucratic organizations like Wikipedia, we predict that 
+
+If ORES has substantially more encoded bias than Wikipedia, then we expect it to amplify Wikipedia's systemic bias. Inversely, if ORES encodes less bias than Wikipedia then we expect it to dampen Wikipedia's systemic bias.
+
+In general, we expect ORES will tend to reproduce Wikipedia's systemic bias and there may be little variation in the proportion of the bias it reproduces.  If so then we may not have enough variation to test H2, or H3. 
+
+We will test our hypotheses using the random-discontinuity design for causal inference \citet{lee_regression_2010}.  This approach was used by   \citet{hill_hidden_nodate}, and I used it for \citet{narayanan_all_2019}.
+The unit of analysis will be the Wiki-week. We will construct measures as weekly aggregates and then fit RDD estimators. I'm not 100\% sure that the RDD assumptions w ill be valid. The key assumption is that subjects have ``some, but not perfect control'' over the intervention. Most Wikipedia editors seem to have had little if anything to do with the timing of the ORES deployments. A handful certainly did, like participants in discussions about enabling the features and in labeling edits. But it seems like the impact of these would be small compared to the number who would use ORES. Also, even these editors didn't decide when exactly to flip the switch (right?). 
+
+ORES reduces unfair treatment of newcomers, anonymous editors, and of editors to articles on Women and Non-Whites because  broadening participation in monitoring on Wikipedia increases chances that the monitor who observes a change to an article is sympathetic to the editor and to the article. Furthermore,  improved efficiency helps monitors better evaluate changes.  Therefore, the quality of monitor's judgments improves decreasing incidence of unfair reversion.  
+
+\textbf{H4:} Algorithmic bias matters. When monitors rely on signals from the algorithm to filter and judge edits, bias in the algorithm may influence them to make unfair judgments. A decrease in algorithmic bias will cause a decrease in unfair revision. 
+
+\textbf{H5:} Introducing ORES has effects at the micro level, and these are  consequential at the macro level.  A decrease in unfair reversion improves (a) participation gaps (e.g. newcomer retention) and (b) knowledge gaps (e.g. coverage of women and non-whites). 
+
+
+%A final complication is that different Wikis adopt ORES at different times. We can model a time series for each group of wikis that turned on ORES during the same window. In the model above $D_i^*$ represents binary group membership. But we actually have many different treatment small treatment groups (i.e. Wikis enabled ORES in 03/17, 05/17, 11/17, 02/18, or 05/18). So we might have $D_i^*$ index each of these groups, but then the sample size in each group will be small. Alternatively we can model three time-series: one for Wikis which are never treated in our sample, another for Wikis that will be treated (but have not been yet), and a third for Wikis that have already been treated. 
+
+%\[ Y_{it} = a + (D_{it} \times D_i^*)b + Tc + (D_i_{it} \times D_i^* \times T)c^{'} + D_{it}d + e_{it}\]
+\item The push for ``Big Data'' applications in industries has been criticized as a product not of a rational improvements in efficiency but of institutional isomorphism \citep{dimaggio_iron_1983}.  Despite the Wikimedia Foundations nominal goal to improve the quality of encyclopedic content and increase participation in the Wikipedia community, to survive and to provide careers to its employees it needs legitimacy and status in the Silicon Valley technology industry \citep{zorn_institutional_2011}.  Therefore it might (consciously or not) undertake projects that give it the appearance of a high status technology organization but that may not advance its mission. Isomorphism provides an alternative explanation for why the Wikimedia foundation would invest in the ORES project even if its efficacy is uncertain.
+
+\subsection{Causal inference}
+I will choose the most appropriate causal inference strategy depending on the timings of the ORES deployments.  
+
+I considered the following econometric designs:
+
+\textbf{Differences-in-differences:} A Differences-In-Differences (DID) design compares changes before and after treatment in an outcome variable of interest (e.g. unfair reversion) between a treatment group and a control group. These designs only use 1 observation before the treatment and 1 observation after it. Applications of differences-in-differences generally focus on modeling treatment assignment using approaches like regression and matching. However, they are limited by reliance on assumptions about the temporal trends of the treatment and control groups.  If the trends are not parallel (the ``parallel-trends-assumption'' is violated) then they will be wrong \citep[ch. 11][]{morgan_counterfactuals_2016}. And using matching to control for assignment based on pretreatment outcomes can make things worse \citep{daw_matching_2018}. 
+
+\textbf{Interrupted time series:} The next best choice is probably going to be an interrupted time series (ITS) strategy.  
+\textbf{Regression discontinuity design:} Finally, we can use an regression discontinuity design (RDD).  Since time is our ``forcing variable,'' the RDD approach is similar to the ITS approach, but uses a shorter time series.  The disadvantage of an RDD is that estimates an instantaneous effect while an ITS is more flexible.  Some believe that RDD offers even more convincing causal inference than DID, but this argument is weak when time is the ``forcing variable.''  Since we expect that the changes caused by ORES will not be instantaneous but will instead evolve over time, this is not likely to be a good choice. 
+
+\textbf{Proposed approach:}
+
+We can do better than a standard DID design when we have many pre-treatment observations.  Instead of requiring parallel-trends-assumption, we can model the pre-treatment trends in the treatment and control groups (using time series analysis as in an ITS design).  We can also adjust for observed confounders using regression. 
+
+Morgan and Winship present a model that estimates the causal effect of a treatment in an unconfounded treatment assignment regime without requiring a parallel trends assumption.  
+
+
+\[ Y_{it} = a + D_i^*b + Tc + (D_i^* \times T)c^{'} + D_{it}d + e_{it}\]
+
+With $Y_{it}$ as the outcome for wiki $i$ at time $t$, $a$ the intercept, $T$ a fixed effect for time, $D_i$ the group membership (treatment or control) of the wiki, $D_it$ is the treatment status of the individual at time $t$, and $e_it$ the error term.  In this model $d$ is a consistent estimate of average causal effect \citep{morgan_counterfactuals_2016}. The term $Tc + (D_i^* \times T)c^{'} $ can easily be extended to a more sophisticated model of the time series (e.g. using an ARMA or ARIMA model). 
+
+To adjust our estimates for observed confounders we will use weighted regression estimators in a two-stage approach.  In the first stage, we build a propensity score model predicting whether or not a Wiki receives the treatment. We then use the inverse-propensity scores to weight the regression model.  We can also make the estimator ``doublely robust'' to bias in the propensity score model (at the cost of power) by also including potential confounders in the regression model \citep{hernan_causal_2019, morgan_counterfactuals_2016}.
+
+We will develop our measure of unfairness in reversion against newcomers and anons using the counterfactual approach \cite{kusner_counterfactual_2017}.  The idea is that unfairness depends the answer to the counterfactual question "Would the edit have been reverted if the editor had not been an anon?" This can be defined in terms of conditional probabilities, for example in the case of unfairness in reversion of anonymous editors: 
+\[P(\mathrm{reversion}|X,\mathrm{anon}) - P(\mathrm{reversion}|X, \neg \mathrm{anon})\]
+
+Where \(X\) stands for all non-protected attributes other than the protected class (anon).  
+
+Unfortunately, we lack true knowledge of \(P(\mathrm{reversion}|X,\neg \mathrm{anon})\), but we can model it. 
+
+Our dependent variable will be
+\[y_fairness = [P(R|X,newcomer,ores) - P(R|X,\neg newcomer, ores)] - [P(R|X,newcomer,\neg ores) - P(R|X,newcomer,\neg,ores)]\]
+Using our model estimates for the probabilities and a selection of X variables. 
+
+The gold-standard measures of classifier fairness are calibration and balance. Calibration means that the algorithm's probability estimates are unbiased within all groups.  Balance means that the false-positive rate and false-negative rate are the same within all groups.  With ``ground-truth'' on whether reverts are fair or not we will be able to use these measures of fairness to evaluate the fairness of Wikipedia's bias.  
+
+The ideal ways to measure fair reversion require labeled samples of reverts taken before and after the deployments under consideration.  The sample size required will depend on the proportion of reverts that are fair. A rough guess is 
+that we probably need on the order of 4,000 reverts labeled for each wiki in the analysis.
+
+If we choose an ITS approach we can build a new model to predict whether a reversion was fair or not, calibrate the model within the relevant groups, and use this model to build a long time series of revert fairness.  Ideally, we can reuse much of the ORES pipeline for this. 
+
+So ideally we can get 120,000 new labels (for 30 wikis), but I (perhaps over-optimistically) expect to find substantial effects and we should have enough statistical power for an RDD with as few as 5 Wikis (the unit of analysis is the wiki-week), in which case we only need like 20,000 labels. For a DID we may need more wikis (around 10) and therefore more labels (40,000). This seems like a pretty substantial amount of work, but if we can find volunteers to label these edits it would be amazing. If not I have a backup plan (below). 
+
+A related challenge will be to evaluate whether our own measure of bias is biased.  Asking editors to label edits that were reverted and also asking them if they would have reverted the edit. It might help to try to recruit editors who are expert in Wikipedia policy. \emph{I would really appreciate any ideas about this.}
+
+The backup plan is that instead of evaluating calibration and balance, we evaluate parity. Parity just means that the probabilities of reversion are the same within groups.  Parity doesn't account for differences between the groups that are useful for predicting the truth. In that sense, we won't be able to say that reverts are ``unfair'' using parity, but we will be able to say that they are ``biased'' (but some may consider the bias to be fair).  I can start working on a parity-based analysis while I wait for labels. 
+
+\subsubsection{Broadness of participation in monitoring}
+A simple and easy way to operationalize broadness of participation in monitoring is the inequality of reverting actions. We can use the Gini coefficient and/or Herfindhal-Hirshman index of the number of reverts by accounts. 
+
+
+\subsubsection{Encoded bias}
+We have two options to measure an as-good-as-random change in the encoded bias of ORES: 
+
+\textbf{Option 1:}  Evaluate the upgrade from the revert model to the goodfaith / damaging model (either when goodfaith / damaging is released, when reverted is removed, or both).  
+
+\textbf{Option 2:} Modify ORES to improve its calibration and/or balance. If ORES isn't already calibrated within relevant groups then it is probably a good idea to try to improve ORES so that it is calibrated within groups and then experiment with deploying it.  If ORES is already calibrated (afaict nobody has checked) then we can see if people would be interested in experimenting with a model that trades a bit of calibration for some balance. 
+
+We can then deploy (or A/B test) the new version of ORES to estimate the causal effect of bias on reversion and screening efficiency. 
+
+\subsubsection{Monitoring efficiency}
+The monitoring efficiency can be measured as the average time (geometric mean) it takes for reverted edits to be reverted. 
+
+\subsubsection{Participation gaps}
+We will operationalize participation gaps as the number of anonymous and newcomer edits and as (a version of) newcomer retention.
+
+\subsubsection{Knowledge gaps}
+We will operationalize knowledge gaps as the rate of content growth to articles about (1) women and (2) non-whites compared to articles about (1) men and (2) whites. 
+
+We will identify a sample of biographies by demographic category by sampling articles and manually label them as being about men or women.
+
+% limitations
+\item Our approach to modeling the trends in our outcome variables for our treatment and control groups does not account for the fact that Wikis received ORES at different times. 
+
+Under a hypotheses that the algorithmic flag should be understood primarily as a surveillence tool, classes of edit that are likely to be objectionable, but are made visible without the algorithmic flag will be less sensitive to crossing operating points. On the other hand, if the nudging function dominates the surveillence function of the automatic triage system then the supplementary information should make little difference.
+
+
+%% OLD abstract
+  Governance is a key problem for online communities, user generated content platforms, and peer production, as well as for society at large.  Constructing a well-regulated online space requires considerable monitoring and enforcement work, and minimizing unfair sanctioning.
+  Recently, both online communities and criminal-justice institutions are adopting machine learning algorithms to help scale monitoring and enforcement of rules and norms. Existing institutions often discriminate on the basis of visible membership in categorical groups such as race, class, gender, sex, class or affiliation. How will the introduction of algorithmic predictions interact with the use of visible membership in salient groups in finding objectionable behavior? Will it amplify barriers faced by those viewed as suspicious or will more accurate triage level the playing field?  
+
+Perhaps predictive algorithms can improve fairness if monitors use algorithmic predictions instead of group memberships to direct their attention. The thresholds that underlies automated triage allow us to test this hypothesis in a natural setting using a regression discontinuity design on 21 language editions of Wikipedia that estimates the causal effects of crossing thresholds on edit reversion.  The monitoring interfaces we consider reveal memberships in salient groups (anonymous/IP editors) so the difference between how members and non-members of this category are effected by being flagged tests whether algorithmic prediction can substitute for group memberships. We find that algorithmic predictions are imperfect substitutes for group membership from the view of monitor-enforcers.  Our study demonstrates a simple and general mechanism by which introducing algorithmic predictors into governance systems can support fair treatment of contributors and suggests other design changes (such as obscuring class memberships) that may also support fairness. 
+
+test this hypothesis in a natural setting using a regression discontinuity design on 21 language editions of Wikipedia to 
+
+
+We propose that algorithmic flagging will have a effect on actions for which other signals of quality are available because moderators use identity-based signals as well. 
+
+Our study has implications for community growth as new users lack identity-based signals of quality, statistical discrimination is likely to result in over-profiling of newcomers, and therefore over-sanctioning of newcomers. 
+
+  Will algorithm-based signals substitute for identity-based signals and improve the accuracy of sanctioning in the field?
+
+  The monitoring interfaces we consider reveal identity-based signals (anonymous/IP editors) that are over-profiled by moderators.  Comparing the effect of flagging on sanctioning between groups of editors tests whether algorithmic prediction can substitute for group memberships.
+  We find that algorithmic predictions partially substitute for identity-based signals from the view of monitor-enforcers and that moderators sanctions are less controversial on flagged edits.
+  Our study demonstrates that introducing algorithmic predictors into governance systems can support fair treatment of contributors and suggests other design changes (such as obscuring class memberships) that may also support fairness. 
+
+% LocalWords : sociotechnical Palantir problematize analytics covariates generalizability
