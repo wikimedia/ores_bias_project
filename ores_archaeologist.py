@@ -14,6 +14,11 @@ from functools import partial
 import psutil
 import datetime
 
+tmp_scores_file = 'tmp_revision_scores.csv'
+
+if os.path.exists(tmp_scores_file):
+    os.remove(tmp_scores_file)
+
 siteList = dict(pickle.load(open("data/wikimedia_sites.pickle",'rb')))
 call_log = "syscalls.sh"
 
@@ -69,11 +74,11 @@ def reap_children(proc, timeout=3):
             for p in alive:
                 print("process {} survived SIGKILL; giving up".format(p))
 
-def tryparsefloat(s, default = None):
+def tryparsefloat(s):
     try:
         return float(s)
     except (ValueError, TypeError) as e:
-        return default
+        return s
     
 class Ores_Archaeologist(object):
 
@@ -141,6 +146,9 @@ class Ores_Archaeologist(object):
             
     def get_threshold(self, wiki_db, date, threshold_string, outfile = None, append=True, model_type='damaging', load_environment=True, commit = None):
 
+        if threshold_string is None or threshold_string == "None":
+            return None
+
         if isinstance(date,str):
             date = fromisoformat(date)
 
@@ -173,11 +181,41 @@ class Ores_Archaeologist(object):
 
         def lookup_threshold(key, threshold):
 
+            if key.startswith('goodfaith'):
+                model_type = 'goodfaith'
+            else:
+                model_type = 'damaging'
+            
+            # threshold is either False, "", "NA"    
+            # if a given threshold is set to "false" that means that the flag is disabled.
+            # setting the threshold value to -100 ensures it is never the nearest threshold for a given edit.
+            if threshold == False or str(threshold).lower() == "false":
+                return -100
+
+            # is the threshold string a value?
             value = tryparsefloat(threshold)
-            if value is not None and not pd.isna(value):
+            if isinstance(value, float) and not pd.isna(value):
                 return value
 
-            if pd.isna(value) or len(threshold)==0:
+            # if it's a float, but not a string, use the default
+            if pd.isna(value):
+                threshold = default_thresholds.get(key,np.nan)
+
+                if threshold is None or threshold == "None":
+                    return -100
+                
+                value = tryparsefloat(threshold)
+
+                if isinstance(value,float):
+                    return value
+
+            res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=(first & load_environment))
+
+            if res is not None:
+                value = res.split('\t')[1]
+                return tryparsefloat(value)
+
+            else: 
                 # pre_cutoff_thresholds = default_thresholds.loc[default_thresholds.date<=row.deploy_dt]
                 # min_dt = pre_cutoff_thresholds.date.max()
                 # threshold = list(pre_cutoff_thresholds.loc[pre_cutoff_thresholds.date==min_dt,key])[0]
@@ -186,12 +224,6 @@ class Ores_Archaeologist(object):
                 if isinstance(threshold, float):
                     return threshold
             
-            if key.startswith('goodfaith'):
-                model_type = 'goodfaith'
-            else:
-                model_type = 'damaging'
-                
-
             res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=(first & load_environment))
 
             if res is not None:
@@ -279,7 +311,7 @@ class Ores_Archaeologist(object):
         print("--commit={0}".format(commit))
         return output
 
-    def score_history(self, cutoff_revisions, preprocess=True, use_cache=True, add_thresholds=True):
+    def score_history(self, cutoff_revisions, preprocess=True, use_cache=True, add_thresholds=False):
         
         if preprocess:
             cutoff_revisions = self.preprocess_cutoff_history(cutoff_revisions)
@@ -295,20 +327,30 @@ class Ores_Archaeologist(object):
         period_1 = period_1.drop('commit', 1)
         period_1 = pd.merge(period_1, last_commit, on=['wiki_db'], how='outer')
         cutoff_revisions = pd.concat([period_1, period_2], sort=False)
-        parts = []
+
         for commit in set(cutoff_revisions.commit):
-            scored_revisions = self.score_commit_revisions(commit, cutoff_revisions, preprocess=False, load_environment=True, use_cache=use_cache, add_thresholds=add_thresholds)
-            parts.append(scored_revisions)
+            self.score_commit_revisions(commit, cutoff_revisions, preprocess=False, load_environment=True, use_cache=use_cache, add_thresholds=add_thresholds)
 
-        result =  pd.concat(parts,
-                            sort=False,
-                            ignore_index=True)
+        scores = pd.read_csv(tmp_scores_file, quotechar='\"', escapechar="\\", dtype={'revision_id':str})
+        cutoff_revisions.loc[:,"revision_id"] = cutoff_revisions.revision_id.astype(str)
+        # scores.set_index(['wiki_db','revision_id'],inplace=True, verify_integrity=True)
+        # cutoff_revisions.set_index(['wiki_db','revision_id'],inplace=True, verify_integrity=True)
+        # cutoff_revisions.update(scores, join='left', overwrite=True)
+        # cutoff_revisions.reset_index(inplace=True)
 
+        cutoff_revisions = pd.merge(cutoff_revisions, scores, on=['wiki_db','revision_id'], how='left')
 
-        scored_revids = result.loc[:,["wiki_db", "revision_id", "prob_damaging"]]
+        scored_revids = cutoff_revisions.loc[cutoff_revisions.revscoring_error.isna(),["wiki_db", "revision_id", "prob_damaging"]]
         scored_revids.to_pickle(self.cache_file)
 
-        return result
+        return cutoff_revisions
+
+    def save_scores(self, all_revisions):
+
+        scored_revisions = all_revisions.loc[~ all_revisions.revision_id.isna(),['wiki_db','revision_id','prob_damaging','revscoring_error']]
+
+        with open(tmp_scores_file, 'a') as f:
+            scored_revisions.to_csv(f, header=f.tell() == 0, index=False, quotechar='\"',escapechar="\\")
 
     def score_commit_revisions(self, commit, cutoff_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = True):
 
@@ -325,16 +367,11 @@ class Ores_Archaeologist(object):
         parts = []
 
         for wiki_db in set(commit_revisions.wiki_db):
-
             wiki_commit_revisions = commit_revisions.loc[ (commit_revisions.wiki_db == wiki_db)]
-            scored_revisions = self.score_wiki_commit_revisions(commit, wiki_db, wiki_commit_revisions, preprocess=False, load_environment=False, use_cache=use_cache, add_thresholds=add_thresholds)
-            parts.append(scored_revisions)
+            self.score_wiki_commit_revisions(commit, wiki_db, wiki_commit_revisions, preprocess=False, load_environment=False, use_cache=use_cache, add_thresholds=add_thresholds)
 
-        return pd.concat(parts,
-                         sort=False,
-                         ignore_index=True)
-            
-    def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = True):
+    # We no longer pass data back up the stack. Instead we save it to a file and then do one big join at the end.
+    def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=True, use_cache=True, add_thresholds = False):
         if preprocess:
             all_revisions = self.preprocess_cutoff_history(all_revisions)
 
@@ -344,8 +381,9 @@ class Ores_Archaeologist(object):
         if add_thresholds is True:
             all_revisions = self.lookup_revision_thresholds(all_revisions)
 
-        all_revisions['prob_damaging'] = pd.np.nan
-        all_revisions['revscoring_error'] = ""
+        all_revisions.loc[:,'prob_damaging'] = pd.np.nan
+        all_revisions.loc[:,'revscoring_error'] = ""
+
         if use_cache is True:
             if os.path.exists(self.cache_file):
                 cached_scores = pd.read_pickle(self.cache_file)
@@ -357,7 +395,8 @@ class Ores_Archaeologist(object):
 
         # don't score revisions we have already scored
         if 'prob_damaging' in all_revisions.columns and not all_revisions.prob_damaging.isna().any():
-            return all_revisions
+            all_revisions.reset_index(inplace=True)
+            self.save_scores(all_revisions)
 
         uri = siteList[wiki_db]
 
@@ -430,11 +469,9 @@ class Ores_Archaeologist(object):
             all_revisions.loc[:, 'prob_damaging'] = np.NaN
             all_revisions.loc[:, "revscoring_error"] = "Unknown error. Check log. Process died?"
 
-
         all_revisions.reset_index(inplace=True)
-            
-        return all_revisions
-        
+        self.save_scores(all_revisions)
+
     # there's only ever one wikidb here
     # all the revisions must be from the same commit
     # the revscoring environment must be already built
@@ -448,6 +485,7 @@ class Ores_Archaeologist(object):
         cutoffs = cutoffs.loc[cutoffs.wiki_db == wiki_db]
         cutoffs = cutoffs.sort_values('deploy_dt')
         revisions = revisions.sort_values('event_timestamp')
+
         revisions = pd.merge_asof(revisions, cutoffs, left_on='event_timestamp', right_on='deploy_dt', by='wiki_db', direction='backward')
 
         deploy_dt = cutoffs.loc[cutoffs.deploy_dt <= revisions.event_timestamp.min(), 'deploy_dt'].max()
@@ -476,11 +514,11 @@ class Ores_Archaeologist(object):
                                         
         cutoffs = cutoffs.loc[cutoffs.deploy_dt == deploy_dt].reset_index()
 
-        thresholds = self.get_all_thresholds(cutoffs, wiki_db=wiki_db, date=deploy_dt)
+        # thresholds = self.get_all_thresholds(cutoffs, wiki_db=wiki_db, date=deploy_dt)
 
-        value_names = [s+'_value' for s in threshold_names]
+        # value_names = [s+'_value' for s in threshold_names]
 
-        revisions.assign(**dict(thresholds.loc[:,value_names + threshold_names].iloc[0]))
+        # revisions.assign(**dict(thresholds.loc[:,value_names + threshold_names].iloc[0]))
 
 #        revisions = pd.concat([revisions, thresholds.loc[:,value_names + threshold_names]], axis=1, sort=False)
         return revisions
@@ -489,22 +527,48 @@ class Ores_Archaeologist(object):
     # if we are pre-cutoff then use scores from the latest model
         
         # call get_thresholds
-        
 
         # merge and return.
         
     def build_thresholds_table(self):
         cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv",parse_dates=['deploy_dt'])
+#        cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv",parse_dates=['deploy_dt'])
+        from helper import dedup_chronological
+
+        cutoffs = cutoffs.loc[(cutoffs.useOresUi == True) | (cutoffs.rcfilters_watchlist_enabled == True)]
+        # cutoffs = dedup_chronological(cutoffs,['damaging_maybebad_min',
+        #                                        'damaging_likelybad_min',
+        #                                        'damaging_verylikelybad_min',
+        #                                        'damaging_maybebad_max',
+        #                                        'damaging_likelybad_max',
+        #                                        'damaging_verylikelybad_max'],
+        #                               datecol='deploy_dt')
+
         cutoffs = cutoffs.sort_values(['deploy_dt'])
         chunks = []
         commit_wikis = {}
+
         for wiki, dc in wiki_date_commits.items():
-            for date, commit in dc.items():
-                if date > datetime.datetime(2017,5,1):
-                    if commit in commit_wikis:
-                        commit_wikis[commit].append((wiki, date))
-                    else:
-                        commit_wikis[commit] = [(wiki, date)]
+            if wiki in set(cutoffs.wiki_db):
+                first_wiki_cutoff = cutoffs.loc[cutoffs.wiki_db==wiki].deploy_dt.min()
+                start_wiki_cutoff = cutoffs.loc[ (cutoffs.wiki_db==wiki) & (cutoffs.deploy_dt > datetime.datetime(2018,3,1))].deploy_dt
+                if len(start_wiki_cutoff) > 0:
+                    start_wiki_cutoff = start_wiki_cutoff.max()
+
+                else:
+                    start_wiki_cutoff = cutoffs.loc[cutoffs.wiki_db==wiki].deploy_dt.max()
+                
+                
+                min_dc_datetime = max(date for date, commit in dc.items() if date <=start_wiki_cutoff)
+
+                min_datetime = max(datetime.datetime(2018,3,1),
+                                   min_dc_datetime)
+                for date, commit in dc.items():
+                    if date >= min_datetime:
+                        if commit in commit_wikis:
+                            commit_wikis[commit].append((wiki, date))
+                        else:
+                            commit_wikis[commit] = [(wiki, date)]
 
         for commit, wiki_date in commit_wikis.items():
             load_model_environment(date=None, commit=commit)
@@ -532,7 +596,7 @@ class Ores_Archaeologist(object):
             cutoff_revisions = pd.read_csv(cutoff_revisions, sep=',',parse_dates=['event_timestamp','period1_start','period2_end','date_first','date_last'],quotechar='\"',infer_datetime_format=True,error_bad_lines=False,escapechar='\\')
 
 
-        cutoff_revisions.revision_id = cutoff_revisions.revision_id.astype(str)
+        cutoff_revisions.loc[:,"revision_id"] = cutoff_revisions.revision_id.astype(str)
         # cutoff_revisions.date = pd.to_datetime(cutoff_revisions.date)
         # cutoff_revisions.event_timestamp = pd.to_datetime(cutoff_revisions.event_timestamp)
         # cutoff_revisions.period_start = pd.to_datetime(cutoff_revisions.period_start)
@@ -547,7 +611,7 @@ class Ores_Archaeologist(object):
         commits = cutoff_revisions.apply(lambda row: lookup_commit_from_wiki_date(row.wiki_db, row.event_timestamp), axis=1)
 
 
-        cutoff_revisions['commit'] = commits
+        cutoff_revisions.loc[:,'commit'] = commits
 
         cutoff_revisions = cutoff_revisions.sort_values(by=['commit','wiki_db'],axis=0)
 
@@ -567,7 +631,7 @@ class Ores_Archaeologist_Api():
         
         buf = io.StringIO()
         
-        res.to_csv(buf, index=False,quotechar='\"',escapechar="\\")
+        res.to_csv(buf, index=False, quotechar='\"',escapechar="\\")
         csv = buf.getvalue()
         if output is not None:
             with open(output,'w') as of:
