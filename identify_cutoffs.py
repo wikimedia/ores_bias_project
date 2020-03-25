@@ -140,17 +140,19 @@ distinct_cols = [
     'goodfaith_likelygood_max']
 
 
-def dedup_chronological(df, distinct_cols):
+def dedup_chronological(df, distinct_cols, direction='forward'):
     df = df.sort_values(['wiki_db','date'])
     bywiki = df.groupby('wiki_db')[distinct_cols]
     # d.shift(1) == d if the previous entry is the same as the current entry
-    identical = bywiki.apply(lambda d: ((d.shift(-1) == d) | (d.shift(-1).isna() & d.isna()))).all(1)
+    if direction == 'forward':
+        identical = bywiki.apply(lambda d: ((d.shift(1) == d) | (d.shift(1).isna() & d.isna()))).all(1)
+    else:
+        identical = bywiki.apply(lambda d: ((d.shift(-1) == d) | (d.shift(-1).isna() & d.isna()))).all(1)
     return (df[~identical])
 
 
 rcfilters_watchlist_available_date = fromisoformat("2017-09-19")
 rcfilters_watchlist_default_date = fromisoformat("2018-06-16")
-
 table = dedup_chronological(table1, distinct_cols)
 
 for wiki in set(table.wiki_db):
@@ -211,7 +213,7 @@ table.to_csv(os.path.join(data_dir, "mw_config_history.csv"),index=False,)
 
 #cutoffs = table.loc[:,['wiki_db','date','commitsha','has_ores','has_rcfilters','has_rcfilters_watchlist']]
 
-cutoffs = dedup_chronological(table, ['has_ores','has_rcfilters','has_rcfilters_watchlist'])
+cutoffs = dedup_chronological(table, distinct_cols)
 
 # get more precise cutoffs from the server admin log on wikitech
 sal_pages = ["Server_admin_log/Archive_29","Server_admin_log/Archive_30","Server_admin_log/Archive_31","Server_admin_log/Archive_32","Server_admin_log/Archive_33","Server_admin_log/Archive_34","Server_admin_log/Archive_35", "Server_admin_log/Archive_36","Server_admin_log/Archive_37","Server_admin_log/Archive_38","Server_admin_log/Archive_39","Server_Admin_Log"]
