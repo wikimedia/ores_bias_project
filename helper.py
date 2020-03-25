@@ -15,6 +15,17 @@ import fire
 import json
 from project_settings import *
 
+def dedup_chronological(df, distinct_cols, direction='forward'):
+    df = df.sort_values(['wiki_db','date'])
+    bywiki = df.groupby('wiki_db')[distinct_cols]
+    # d.shift(1) == d if the previous entry is the same as the current entry
+    if direction == 'forward':
+        identical = bywiki.apply(lambda d: ((d.shift(1) == d) | (d.shift(1).isna() & d.isna()))).all(1)
+    else:
+        identical = bywiki.apply(lambda d: ((d.shift(-1) == d) | (d.shift(-1).isna() & d.isna()))).all(1)
+    return (df[~identical])
+                                
+
 # python 3.5 doesn't have datetime.fromisoformat
 call_log = "syscalls.sh"
 from dateutil import parser
@@ -96,7 +107,7 @@ else:
 
             wheels_commit = next(wheels_repo.iter_commits(until=commit_datetime, max_count=1))
 
-            wheels_commit_time = datetime.datetime.fromtimestamp(wheels_commit.committed_datetime.timestamp())
+p            wheels_commit_time = datetime.datetime.fromtimestamp(wheels_commit.committed_datetime.timestamp())
             wheels_time_diff = commit_datetime - wheels_commit_time
             print("time from wheels commit {0} to deploy:{1}".format(wheels_commit.hexsha[0:10], wheels_time_diff))
             found_prior_commit = True
