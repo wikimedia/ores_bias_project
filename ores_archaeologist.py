@@ -220,7 +220,7 @@ class Ores_Archaeologist(object):
                 # min_dt = pre_cutoff_thresholds.date.max()
                 # threshold = list(pre_cutoff_thresholds.loc[pre_cutoff_thresholds.date==min_dt,key])[0]
                 default = default_thresholds.get(key,np.nan)
-                threshold = tryparsefloat(default, default)
+                threshold = tryparsefloat(default)
                 if isinstance(threshold, float):
                     return threshold
             
@@ -530,12 +530,10 @@ class Ores_Archaeologist(object):
 
         # merge and return.
         
-    def build_thresholds_table(self):
-        cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv",parse_dates=['deploy_dt'])
-#        cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv",parse_dates=['deploy_dt'])
+    def build_thresholds_table(self, infile):
+        cutoffs = pd.read_csv(infile,parse_dates=['deploy_dt'])
         from helper import dedup_chronological
 
-        cutoffs = cutoffs.loc[(cutoffs.useOresUi == True) | (cutoffs.rcfilters_watchlist_enabled == True)]
         # cutoffs = dedup_chronological(cutoffs,['damaging_maybebad_min',
         #                                        'damaging_likelybad_min',
         #                                        'damaging_verylikelybad_min',
@@ -638,9 +636,9 @@ class Ores_Archaeologist_Api():
                 of.write(csv)
         return csv
 
-    def build_thresholds_table(self, output=None):
+    def build_thresholds_table(self, infile, output=None):
         cls = Ores_Archaeologist()
-        return self._wrap(cls.build_thresholds_table, output)
+        return self._wrap(cls.build_thresholds_table, output, infile)
 
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=False, wrap=False, output=None):
 
