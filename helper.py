@@ -298,7 +298,7 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
          reqfile.writelines("numpy==1.17.0")
 
     # modules that are safe and good to keep since they are either required or have long compilation times. 
-    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','mysqltsv','more-itertools', 'editquality','numpy']
+    to_keep = ['fire','python-dateutil','pkg_resources','pkg-resources','sortedcontainers','python-git','gitpython','gitdb2','pandas','send2trash','smmap2','termcolor','mwapi','urllib3','certifi','chardet','idna','mysqltsv','more-itertools', 'editquality','numpy','mwcomments']
 
 
     to_uninstall = [k + '\n' for k in old_versions.keys() if k not in packages and k.lower() not in to_keep]
@@ -331,6 +331,10 @@ def set_revscoring_version(model_file, commit):
     revscoring_version = version.parse(revscoring_version) 
     if revscoring_version < version.parse("2.0.3"):
         call = "source ../mediawiki-services-ores-deploy/bin/activate && revscoring model_info {0} --as-json".format(model_file)
+
+    #special case for zhwiki
+     # elif ('zhwiki' in model_file):
+     #    subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && python3 -m pip install revscoring==2.2.0 numpy==1.17.0", shell=True, stdout=subprocess.PIPE, executable="/bin/bash", universal_newlines=True)
 
     #special case for arwiki
     elif commit.startswith("47d9a6bad2") and ('arwiki' in model_file or 'lvwiki' in model_file):
