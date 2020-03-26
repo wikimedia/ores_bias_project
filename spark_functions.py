@@ -56,7 +56,7 @@ def add_has_user_page(wmhist, page_history, remember_dict):
                  wmhist.event_user_text_historical == user_pages.user_page_title,
                  wmhist.event_timestamp > user_pages.user_page_first_edit,
                  wmhist.event_timestamp >= user_pages.user_page_start_timestamp,
-                 wmhist.event_timestamp < user_pages.user_page_end_timestamp]
+                 ((wmhist.event_timestamp < user_pages.user_page_end_timestamp) | f.isnull(f.col("user_page_end_timestamp")))]
 
     
 
@@ -178,7 +178,7 @@ def process_reverts(wmhist, spark, remember_dict):
     reverts = reverts.join(reverteds,
                            on=[reverts.wiki_db_l == reverteds.wiki_db,
                                reverts.revert_revision_id == reverteds.revision_first_identity_reverting_revision_id,
-                               reverts.revert_user_id!= reverteds.reverted_user_id],
+                               reverts.revert_user_text_historical!= reverteds.reverted_user_text_historical],
                            how='inner')
 
     reverted_reverts = reverts.filter(f.col('revert_is_identity_reverted')==True)
@@ -187,15 +187,28 @@ def process_reverts(wmhist, spark, remember_dict):
     reverted_reverts = reverted_reverts.withColumnRenamed("revert_revision_id","rr_revision_id")
     reverted_reverts = reverted_reverts.withColumnRenamed("reverted_revision_id","rr_reverted_revision_id")
     reverted_reverts = reverted_reverts.withColumnRenamed("revert_user_id","rr_user_id")
+    reverted_reverts = reverted_reverts.withColumnRenamed("revert_user_text_historical","rr_user_text_historical")
     reverted_reverts = reverted_reverts.withColumnRenamed("revert_first_identity_reverting_revision_id","rr_reverting_revision_id")
     reverted_reverts = reverted_reverts.withColumnRenamed("wiki_db",'rr_wiki_db')
-    reverted_reverts = reverted_reverts.select(['rr_wiki_db','rr_timestamp','rr_revision_id','rr_reverting_revision_id', 'rr_user_id','rr_reverted_revision_id'])
+    reverted_reverts = reverted_reverts.select(['rr_wiki_db','rr_timestamp','rr_revision_id','rr_reverting_revision_id', 'rr_user_id','rr_reverted_revision_id', 'rr_user_text_historical'])
         
+    reverts_join = reverts.select(f.col('reverted_revision_id').alias('reverted_revision_id_a'),
+                                  f.col('wiki_db').alias('wiki_db_a'),
+                                  f.col('revert_user_text_historical').alias('revert_user_text_historical_a'))
+    reverted_reverts = reverted_reverts.join(reverts_join,
+                                             on= [
+                                                  reverts_join.reverted_revision_id_a == reverted_reverts.rr_reverting_revision_id,
+                                                  reverts_join.wiki_db_a == reverted_reverts.rr_wiki_db,
+                                                  reverts_join.revert_user_text_historical_a != reverted_reverts.rr_user_text_historical],
+                                             how='inner'
+                                             )
+
+
+
     reverts = reverts.join(reverted_reverts,
                            on=[reverts.reverted_revision_id == reverted_reverts.rr_reverted_revision_id,
-                               reverts.revert_revision_id == reverted_reverts.rr_reverting_revision_id,
-                               reverts.wiki_db == reverted_reverts.rr_wiki_db,
-                               reverts.revert_user_id != reverted_reverts.rr_user_id],
+                               reverts.revert_revision_id == reverted_reverts.rr_revision_id,
+                               reverts.wiki_db == reverted_reverts.rr_wiki_db],
                            how='left_outer')
 
     # next lets look at time to revert

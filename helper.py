@@ -15,6 +15,17 @@ import fire
 import json
 from project_settings import *
 
+def dedup_chronological(df, distinct_cols, direction='forward'):
+    df = df.sort_values(['wiki_db','date'])
+    bywiki = df.groupby('wiki_db')[distinct_cols]
+    # d.shift(1) == d if the previous entry is the same as the current entry
+    if direction == 'forward':
+        identical = bywiki.apply(lambda d: ((d.shift(1) == d) | (d.shift(1).isna() & d.isna()))).all(1)
+    else:
+        identical = bywiki.apply(lambda d: ((d.shift(-1) == d) | (d.shift(-1).isna() & d.isna()))).all(1)
+    return (df[~identical])
+                                
+
 # python 3.5 doesn't have datetime.fromisoformat
 call_log = "syscalls.sh"
 from dateutil import parser
@@ -44,19 +55,19 @@ wheels_commits = {}
     
 repo = git.Repo(repo_path)
 repo.git.checkout("-f", 'master')
-
+repo.git.pull()
 editquality_repo = git.Repo(editquality_repo_path)
 editquality_repo.git.checkout("-f", 'master')
-
+editquality_repo.git.pull()
 wheels_repo = git.Repo(wheels_repo_path)
 wheels_repo.git.checkout("-f", 'master')
-
+wheels_repo.git.pull()
 commits = repo.iter_commits(paths=["submodules/editquality"])
 
 wheels_commits_path = os.path.join(data_dir,"wheels_commits.pickle")
 editquality_commits_path = os.path.join(data_dir,"editquality_commits.pickle")
-date_commits_path = os.path.join("date_commits.pickle")
-wiki_date_commits_path = os.path.join("wiki_date_commits.pickle")
+date_commits_path = os.path.join(data_dir, "date_commits.pickle")
+wiki_date_commits_path = os.path.join(data_dir, "wiki_date_commits.pickle")
 lfs_transition_date = fromisoformat("2018-08-10")
 
 if os.path.exists(wiki_date_commits_path) and os.path.exists(date_commits_path):
@@ -125,7 +136,7 @@ else:
         elif found_next_commit:
             use_commit = wheels_commit2.hexsha
         else:
-            print("found no wheels commit for commit {0} at {1}".format(commit, comit_datetime))
+            print("found no wheels commit for commit {0} at {1}".format(commit, commit_datetime))
             
         wheels_commits[commit.hexsha] = use_commit
         print("using commit {0}".format(use_commit))
@@ -226,15 +237,13 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
         print('checkout {0} from {1}'.format(editquality_commits[commit], editquality_repo.working_dir))
         editquality_repo.git.checkout('-f', 'master')
         editquality_repo.git.checkout('-f', editquality_commits[commit])
+        editquality_repo.git.submodule("sync","--recursive")
         editquality_path = editquality_repo_path
     else:
         editquality_path = os.path.join(repo.working_dir,"submodules/editquality")
         try: 
             editquality_submodule = repo.submodule("submodules/editquality")            
-            if hasattr(editquality_submodule,'sync'): 
-                editquality_submodule.sync(init=True, recursive=True, force=True)
-            if hasattr(editquality_submodule,'update'): 
-                editquality_submodule.update(init=True, recursive=True, force=True)
+            editquality_submodule.update(init=True, recursive=True, force=True)
 
         except git.exc.GitCommandError as e:
             print(e)
@@ -247,15 +256,14 @@ def load_model_environment(date = None, commit=None, wiki_db=None):
     if commit in wheels_commits:
         print("updating wheels to {0}".format(wheels_commits[commit]))
         wheels_repo.git.checkout("-f", wheels_commits[commit])
+        wheels_repo.git.submodule("sync","--recursive")
 
     else:
         print("loading wheels submodule")
         wheels_path = os.path.join(repo.working_dir,"submodules/wheels")
         try:
             wheels_submodule = repo.submodule("submodules/wheels")
-            if hasattr(wheels_submodule, 'update'):
-                wheels_submodule.sync(init=True, recursive=True, force=True)
-                wheels_submodule.update(init=True, recursive=True, force=True)
+            wheels_submodule.update(init=True, recursive=True, force=True)
 
         except git.exc.GitCommandError as e:
             print(e)
@@ -315,7 +323,7 @@ def set_revscoring_version(model_file, commit):
     from packaging import version
     from revscoring import __version__
 
-    proc = subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 show revscoring", shell=True, stdout=subprocess.PIPE, executable='/bin/bash', universal_newlines=True)
+    proc = subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && python3 -m pip show revscoring", shell=True, stdout=subprocess.PIPE, executable='/bin/bash', universal_newlines=True)
 
     res = proc.stdout
     revscoring_re = re.compile("Version: (.*)")
@@ -326,7 +334,7 @@ def set_revscoring_version(model_file, commit):
 
     #special case for arwiki
     elif commit.startswith("47d9a6bad2") and ('arwiki' in model_file or 'lvwiki' in model_file):
-        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring==2.2.0 numpy==1.17.0", shell=True, stdout=subprocess.PIPE, executable="/bin/bash", universal_newlines=True)
+        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && python3 -m pip install revscoring==2.2.0 numpy==1.17.0", shell=True, stdout=subprocess.PIPE, executable="/bin/bash", universal_newlines=True)
         return
     else:
         call = "source ../mediawiki-services-ores-deploy/bin/activate && revscoring model_info {0} --formatting=json".format(model_file)
@@ -347,4 +355,4 @@ def set_revscoring_version(model_file, commit):
         version = None
 
     if version is not None:
-        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && pip3 install revscoring=={0} numpy==1.17.0".format(version), shell=True, executable="/bin/bash")
+        subprocess.run("source ../mediawiki-services-ores-deploy/bin/activate && python3 -m pip install revscoring=={0} numpy==1.17.0".format(version), shell=True, executable="/bin/bash")

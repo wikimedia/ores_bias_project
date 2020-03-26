@@ -74,11 +74,11 @@ def reap_children(proc, timeout=3):
             for p in alive:
                 print("process {} survived SIGKILL; giving up".format(p))
 
-def tryparsefloat(s, default = None):
+def tryparsefloat(s):
     try:
         return float(s)
     except (ValueError, TypeError) as e:
-        return default
+        return s
     
 class Ores_Archaeologist(object):
 
@@ -146,6 +146,9 @@ class Ores_Archaeologist(object):
             
     def get_threshold(self, wiki_db, date, threshold_string, outfile = None, append=True, model_type='damaging', load_environment=True, commit = None):
 
+        if threshold_string is None or threshold_string == "None":
+            return None
+
         if isinstance(date,str):
             date = fromisoformat(date)
 
@@ -178,25 +181,49 @@ class Ores_Archaeologist(object):
 
         def lookup_threshold(key, threshold):
 
-            value = tryparsefloat(threshold)
-            if value is not None and not pd.isna(value):
-                return value
-
-            if pd.isna(value) or len(threshold)==0:
-                # pre_cutoff_thresholds = default_thresholds.loc[default_thresholds.date<=row.deploy_dt]
-                # min_dt = pre_cutoff_thresholds.date.max()
-                # threshold = list(pre_cutoff_thresholds.loc[pre_cutoff_thresholds.date==min_dt,key])[0]
-                default = default_thresholds.get(key,np.nan)
-                threshold = tryparsefloat(default, default)
-                if isinstance(threshold, float):
-                    return threshold
-            
             if key.startswith('goodfaith'):
                 model_type = 'goodfaith'
             else:
                 model_type = 'damaging'
-                
+            
+            # threshold is either False, "", "NA"    
+            # if a given threshold is set to "false" that means that the flag is disabled.
+            # setting the threshold value to -100 ensures it is never the nearest threshold for a given edit.
+            if threshold == False or str(threshold).lower() == "false":
+                return -100
 
+            # is the threshold string a value?
+            value = tryparsefloat(threshold)
+            if isinstance(value, float) and not pd.isna(value):
+                return value
+
+            # if it's a float, but not a string, use the default
+            if pd.isna(value):
+                threshold = default_thresholds.get(key,np.nan)
+
+                if threshold is None or threshold == "None":
+                    return -100
+                
+                value = tryparsefloat(threshold)
+
+                if isinstance(value,float):
+                    return value
+
+            res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=(first & load_environment))
+
+            if res is not None:
+                value = res.split('\t')[1]
+                return tryparsefloat(value)
+
+            else: 
+                # pre_cutoff_thresholds = default_thresholds.loc[default_thresholds.date<=row.deploy_dt]
+                # min_dt = pre_cutoff_thresholds.date.max()
+                # threshold = list(pre_cutoff_thresholds.loc[pre_cutoff_thresholds.date==min_dt,key])[0]
+                default = default_thresholds.get(key,np.nan)
+                threshold = tryparsefloat(default)
+                if isinstance(threshold, float):
+                    return threshold
+            
             res = self.get_threshold(wiki_db = row.wiki_db, date=row.deploy_dt, threshold_string = threshold, model_type = model_type, load_environment=(first & load_environment))
 
             if res is not None:
@@ -503,18 +530,43 @@ class Ores_Archaeologist(object):
 
         # merge and return.
         
-    def build_thresholds_table(self):
-        cutoffs = pd.read_csv("data/ores_rcfilters_cutoffs.csv",parse_dates=['deploy_dt'])
+    def build_thresholds_table(self, infile):
+        cutoffs = pd.read_csv(infile,parse_dates=['deploy_dt'])
+        from helper import dedup_chronological
+
+        # cutoffs = dedup_chronological(cutoffs,['damaging_maybebad_min',
+        #                                        'damaging_likelybad_min',
+        #                                        'damaging_verylikelybad_min',
+        #                                        'damaging_maybebad_max',
+        #                                        'damaging_likelybad_max',
+        #                                        'damaging_verylikelybad_max'],
+        #                               datecol='deploy_dt')
+
         cutoffs = cutoffs.sort_values(['deploy_dt'])
         chunks = []
         commit_wikis = {}
+
         for wiki, dc in wiki_date_commits.items():
-            for date, commit in dc.items():
-                if date > datetime.datetime(2017,5,1):
-                    if commit in commit_wikis:
-                        commit_wikis[commit].append((wiki, date))
-                    else:
-                        commit_wikis[commit] = [(wiki, date)]
+            if wiki in set(cutoffs.wiki_db):
+                first_wiki_cutoff = cutoffs.loc[cutoffs.wiki_db==wiki].deploy_dt.min()
+                start_wiki_cutoff = cutoffs.loc[ (cutoffs.wiki_db==wiki) & (cutoffs.deploy_dt > datetime.datetime(2018,3,1))].deploy_dt
+                if len(start_wiki_cutoff) > 0:
+                    start_wiki_cutoff = start_wiki_cutoff.max()
+
+                else:
+                    start_wiki_cutoff = cutoffs.loc[cutoffs.wiki_db==wiki].deploy_dt.max()
+                
+                
+                min_dc_datetime = max(date for date, commit in dc.items() if date <=start_wiki_cutoff)
+
+                min_datetime = max(datetime.datetime(2018,3,1),
+                                   min_dc_datetime)
+                for date, commit in dc.items():
+                    if date >= min_datetime:
+                        if commit in commit_wikis:
+                            commit_wikis[commit].append((wiki, date))
+                        else:
+                            commit_wikis[commit] = [(wiki, date)]
 
         for commit, wiki_date in commit_wikis.items():
             load_model_environment(date=None, commit=commit)
@@ -584,9 +636,9 @@ class Ores_Archaeologist_Api():
                 of.write(csv)
         return csv
 
-    def build_thresholds_table(self, output=None):
+    def build_thresholds_table(self, infile, output=None):
         cls = Ores_Archaeologist()
-        return self._wrap(cls.build_thresholds_table, output)
+        return self._wrap(cls.build_thresholds_table, output, infile)
 
     def score_wiki_commit_revisions(self, commit, wiki_db, all_revisions, preprocess=True, load_environment=False, wrap=False, output=None):
 
