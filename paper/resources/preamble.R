@@ -1,7 +1,8 @@
 library(ggplot2)
-theme_set(theme_minimal())
+suppressMessages(library(bayesplot,quietly=TRUE))
 library(data.table)
 library(xtable)
+library(tikzDevice)
 #set xtable options
 options(xtable.floating = FALSE,
         xtable.timestamp = '',
@@ -9,10 +10,13 @@ options(xtable.floating = FALSE,
         math.style.negative=TRUE,
         booktabs = TRUE,
         xtable.format.args=list(big.mark=','),
-        xtable.sanitize.text.function=identity
+        xtable.sanitize.text.function=identity,
+        tikzDefaultEngine='xetex'
         )
-
-
+options(tinytex.verbose = TRUE)
+        
+base_size <- 12
+theme_set(theme_bw(base_size=base_size,base_line_size=base_size/22, base_rect_size=base_size/22))
 
 bold <- function(x) {paste('{\\textbf{',x,'}}', sep ='')}
 gray <- function(x) {paste('{\\textcolor{gray}{',x,'}}', sep ='')}
@@ -21,6 +25,120 @@ wrapify <- function (x) {paste("{", x, "}", sep="")}
 # load("knitr_data.RData"); now broken up into small files so we'll bring 'em all in together
 
 f <- function (x) {formatC(x, format="d", big.mark=',')}
+
+mcmc_areas_summary_row <- function(draws, superscript){
+  draws[["tau.total"]] <- draws[[tau.1.name]] + draws[[tau.2.name]] + draws[[tau.3.name]]
+  label <- bquote(sum(tau[j]^.(superscript)))
+  p <- mcmc_areas(draws,pars="tau.total",prob=0.95,point_est='median') + scale_y_discrete(labels=c(label)) + theme_bw() + theme(axis.text.y = element_text(size=14))
+  return(p)
+}
+
+mcmc_intervals_summary_row <- function(draws, superscript){
+  draws[["tau.total"]] <- draws[[tau.1.name]] + draws[[tau.2.name]] + draws[[tau.3.name]]
+  label <- bquote(sum(tau[j]^.(superscript)))
+  p <- mcmc_intervals(draws,pars="tau.total",outer_prob=0.95,point_est='median') + scale_y_discrete(labels=c(label)) + theme_bw() + theme(axis.text.y = element_text(size=12))
+  return(p)
+}
+
+
+superscript_names <- function(superscript, symbols=TRUE, tex=FALSE){
+  if(tex==FALSE){
+    if(symbols == TRUE)
+      base_labels = c(expression(tau[1]),expression(tau[2]),expression(tau[3]))
+    else
+      base_labels = c("maybe bad", "likely bad", "very likely bad")
+
+    if(!is.null(superscript)){
+      labels = lapply(base_labels, function(l) bquote(.(l)^.(superscript)))
+    } else {
+      labels <- base_labels
+    }
+  } else {
+
+    if(symbols == TRUE){
+      if(!is.null(superscript)){
+        labels = c("$\\tau_1^{}$","$\\tau_2^{}$","$\\tau_3^{}$")
+        labels = gsub("\\{\\}",paste0('{\\\\mathrm{',superscript,'}}'),labels)
+      } else {
+        labels = c("$\\tau_1$","$\\tau_2$","$\\tau_3$")
+      }
+    } else {
+      if(!is.null(superscript)){
+        labels = c("maybe bad$^{}$","likely bad$^{}$","very likely bad$^{}$")
+        labels = gsub("\\{\\}",paste0('{\\\\mathrm{',superscript,'}}'),labels)
+      } else {
+        labels = c("maybe bad","likely bad", "very likely bad")
+      }
+    }
+  }
+  return(labels)
+}
+
+my_mcmc_intervals <- function(draws, superscript=NULL,symbols=TRUE, tex=FALSE){
+  labels <- rev(superscript_names(superscript,symbols=symbols,tex=tex))
+  data <- mcmc_intervals_data(draws,
+                              pars=c(tau.1.name,tau.2.name,tau.3.name),
+                              prob_outer=0.95,
+                              point_est="mean")
+
+  p <- ggplot(data, aes(x=parameter,y=m,ymin=ll,ymax=hh)) + geom_pointrange(fatten=0.8)
+  p <- p + xlab("") + ylab("Marginal Posterior") + scale_x_discrete(labels=labels,limits=rev(levels(data$parameter)))
+  p <- p + theme_bw() + theme(legend.position="None", axis.text.y=element_text(color='black'),panel.grid.major=element_blank(), panel.grid.minor=element_blank())
+  p <- p + geom_hline(yintercept=0, color='gray10',linetype='dashed')
+  p <- p + coord_flip()
+  return(p)
+}
+
+my_mcmc_areas <- function(draws, superscript=NULL){
+  labels <- superscript_names(superscript)
+  p <- mcmc_areas(draws,pars=c(tau.1.name,tau.2.name,tau.3.name),prob=0.95,point_est="mean") + scale_y_discrete(labels=labels) + theme_bw() + theme(axis.text.y = element_text(size=12))
+
+  return(p)
+}
+
+big_reg_plot2 <- function(mcmc.data, group1.pattern, group1.name, group2.name, tex=FALSE){
+  var.names <- names(mcmc.data)
+  mcmc.data <- as.data.table(mcmc_intervals_data(mcmc.data,prob_outer=0.95,point_est="median"))
+  mcmc.data[grepl('tau\\.1.*',parameter),threshold:='maybe bad']
+  mcmc.data[grepl('tau\\.2.*',parameter),threshold:='likely bad']
+  mcmc.data[grepl('tau\\.3.*',parameter),threshold:='very likely bad']
+  mcmc.data[grepl(group1.pattern,parameter),group:=group1.name]
+
+}
+
+big_reg_plot <- function(mcmc.data, sup1, sup2, tex=FALSE){
+  var.names <- names(mcmc.data)
+  mcmc.data <- as.data.table(mcmc_intervals_data(mcmc.data,prob_outer=0.95,point_est="median"))
+  mcmc.data[grepl('tau\\.1.*',parameter),threshold:='maybe bad']
+  mcmc.data[grepl('tau\\.2.*',parameter),threshold:='likely bad']
+  mcmc.data[grepl('tau\\.3.*',parameter),threshold:='very likely bad']
+
+  mcmc.data[,color := c('orange','green','orange','green','orange','green','orange','green','blue')]
+  mcmc.data[,linetype := c(rep('solid',6),'dotdash','dotdash','dashed')]
+
+  if(tex == FALSE){
+    display.names <- c(bquote(sum(tau[j])^.(sup1) - sum(tau[j])^.(sup2)),
+                       bquote(sum(tau[j])^.(sup2)),
+                       bquote(sum(tau[j])^.(sup1)),
+                       rev(superscript_names(sup2)),
+                       rev(superscript_names(sup1))
+                       )
+  } else {
+    display.names <- c(paste0("$\\sum{\\tau_j^{\\mathrm{",sup1,"}}} - \\sum{\\tau_j^{\\mathrm{",sup2,"}}}$"),
+                       paste0("$\\sum{\\tau_j^{\\mathrm{",sup2,"}}}$"),
+                       paste0("$\\sum{\\tau_j^{\\mathrm{",sup1,"}}}$"),
+                       rev(superscript_names(sup2,tex=tex)),
+                       rev(superscript_names(sup1,tex=tex))
+                       )
+  }
+  p <- ggplot(mcmc.data, aes(x=parameter,y=m, ymin=ll, ymax=hh, color=color,linetype=linetype)) + geom_pointrange(fatten=0.8) + scale_linetype_manual(values=c(solid='solid',dashed='dashed',dotted='dotted',dotdash='dotdash'))
+  p <- p + xlab("") + ylab("Marginal Posterior")
+  p <- p + scale_x_discrete(labels = display.names, limits=rev(levels(mcmc.data$parameter)))
+  p <- p + theme_bw() + theme(legend.position="None",axis.text.y=element_text(color='black'),panel.grid.major=element_blank(), panel.grid.minor=element_blank())
+  p <- p + geom_hline(yintercept=0,color='gray10',linetype='dashed')
+  p <- p + coord_flip()
+  return(p)
+}
 
 format.percent <- function(x) {paste(f(x*100),"\\%",sep='')}
 
@@ -130,11 +248,16 @@ attach(r2)
 library(grid)
 library(gridExtra)
 sparkplot.files <<- list()
+tau.1.name <- "nearest.thresholdmaybebad:gt.nearest.thresholdTRUE"
+tau.2.name <- "nearest.thresholdlikelybad:gt.nearest.thresholdTRUE"
+tau.3.name <- "nearest.thresholdverylikelybad:gt.nearest.thresholdTRUE"
 cutoff.var.names <- c(
   "nearest.thresholdmaybebad:gt.nearest.thresholdTRUE",
   "nearest.thresholdlikelybad:gt.nearest.thresholdTRUE",
   "nearest.thresholdverylikelybad:gt.nearest.thresholdTRUE")
+
 cutoff.var.symbols <- c("$\\tau_1$", "$\\tau_2$", "$\\tau_3$") 
+
 names(cutoff.var.symbols) <- cutoff.var.names
 
 models.draws.list <- list("mod_adoption" = mod.adoption.draws,
@@ -197,7 +320,7 @@ plot.bins <- function(data.plot, partial.plot = NULL){
         partial.plot <- ggplot()
     }
     data.plot <- data.plot[,pre.cutoff := bin.mid <0]
-    p <- partial.plot + geom_point(aes(x=bin.mid,y=prob.outcome), color="grey30", data=data.plot, alpha=0.8,size=0.8) + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*sd.outcome/sqrt(N),ymin=prob.outcome-1.96*sd.outcome/sqrt(N)), color="grey30" ,data=data.plot, alpha=0.7, size=0.7)
+    p <- partial.plot + geom_point(aes(x=bin.mid,y=prob.outcome), color="grey30", data=data.plot, alpha=0.8,size=0.8) + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*se.outcome/sqrt(N),ymin=prob.outcome-1.96*se.outcome/sqrt(N)), color="grey30" ,data=data.plot, alpha=0.7, size=0.7)
 
     return(p)
 }
@@ -300,7 +423,7 @@ make.comparison.me.plot <- function(me.data.df.1,
       seg.df.t <- seg.df[(nearest.threshold == threshold) & (label==label.t)]
 
       p <- ggplot() + geom_point(aes(x=bin.mid,y=prob.outcome), data=bins.df.t, alpha=0.7,size=0.7, color='grey30')
-      p <- p + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*sd.outcome/sqrt(N),ymin=prob.outcome-1.96*sd.outcome/sqrt(N), ),data=bins.df.t, alpha=0.7, size=0.7, color='grey30')
+      p <- p + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*se.outcome/sqrt(N),ymin=prob.outcome-1.96*se.outcome/sqrt(N)),data=bins.df.t, alpha=0.7, size=0.7, color='grey30')
 
       p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold, group=pre.cutoff), alpha=0.5, data=me.data.df.t[pre.cutoff==FALSE], color='grey30', fill='grey30')
 
@@ -310,6 +433,9 @@ make.comparison.me.plot <- function(me.data.df.1,
       p <- p + geom_line(aes(y=linpred, x=d.nearest.threshold), color='grey30', data=me.data.df.t[pre.cutoff==TRUE])
       p <- p + geom_segment(aes(x=0,xend=0,y=y,yend=yend),data=seg.df.t, linetype='solid', color='black',size=0.8)
       p <- p + xlab("") + ylab("")
+
+      ## from <- ceiling(min(me.data.df.t$linpred.lower)*100)/100
+      ## print(me.data.df.t)
 
       p <- p + scale_y_continuous(breaks=seq(ceiling(min(me.data.df.t$linpred.lower)*100)/100, floor(max(me.data.df.t$linpred.upper)*100)/100,length.out=5))
 
@@ -415,6 +541,10 @@ proto.reverted <- function(data.df, where='below', threshold='very likely bad'){
   return(r)
 }
 
+plot.marginal.posterior <- function(samples, name, var){
+  p <- qplot(samples, geom="density") + ggtitle("") + xlab("") + ylab("") + scale_y_continuous(breaks=c(0)) + theme_minimal() 
+  print(p)
+}
 
 sparkplot <- function(samples){
   # place lines (or maybe shading?) at the mean and credible interval
@@ -485,10 +615,10 @@ make.overall.regtab.row <- function(samples, name, coef.name){
 }
 
 make.sparklines <- function(model.draws, name){
-  draws <- setnames(model.draws,
-                    old=cutoff.var.names, 
-                    new=cutoff.var.symbols 
-                    )
+  for(i in 1:length(cutoff.var.names)){
+    model.draws[,cutoff.var.symbols[i]:=cutoff.var.names[i]]
+    }
+  draws <- model.draws
 
   for (var in cutoff.var.symbols){
     make.sparkplot(draws[[var]], name, var)
@@ -496,3 +626,70 @@ make.sparklines <- function(model.draws, name){
   
 }
 
+
+## h1.mcmc.data[,display.name:=display.name.map[variable]]
+
+## ggplot(h1.mcmc.data, aes(x=value, y=variable, color=color)) + geom_density() + scale_y_discrete(labels=display.name.map)
+
+## xlims <- c(min(h1.mcmc.data$value),max(h1.mcmc.data$value))
+               
+## color_scheme_set("orange")
+## p1 <- my_mcmc_intervals(mod.anon.reverted.draws,superscript='IP') 
+## p2 <- mcmc_intervals_summary_row(mod.anon.reverted.draws,superscript='IP')
+## color_scheme_set("blue")
+## p3 <- my_mcmc_intervals(mod.non.anon.reverted.draws,superscript='not IP') 
+## p4 <- mcmc_intervals_summary_row(mod.non.anon.reverted.draws,superscript='not IP')
+## color_scheme_set("green")
+## p5 <- mcmc_intervals(data.table(tau.non.anon.sub.anon)) + scale_y_discrete(labels=c(expression(sum(tau[j]^"not IP") - sum(tau[j]^"IP")))) + theme(axis.text.y = element_text(size=12))
+## ## p <- bayesplot_grid(p1,p2,p3,p4,p5,grid_args=list("layout_matrix"=rbind(c(1,1,2,2),
+## ##                                                                         c(1,1,2,2),
+## ##                                                                         c(3,3,4,4),
+## ##                                                                         c(3,3,4,4),
+## ##                                                                         c(6,5,5,6),
+## ##                                                                         c(6,5,5,6))))
+## p <- bayesplot_grid(p1,p2,p3,p4,p5,xlim = c(-1.2,2.5),grid_args=list("ncol"=1))
+## print(p)
+## h1.mcmc.data <- as.data.table(mcmc_intervals_data(h1.mcmc.data,prob_outer=0.95,point_est="median"))
+
+## color.map <- list(tau.1.anon='green',
+##                   tau.2.anon='green',
+##                   tau.3.anon='green',
+##                   tau.anon='green',
+##                   tau.1.non.anon='orange',
+##                   tau.2.non.anon='orange',
+##                   tau.3.non.anon='orange',
+##                   tau.non.anon='orange',
+##                   tau.non.anon.sub.anon='blue')
+
+
+## color.map <- data.table(color.map,parameter=names(color.map))
+## h1.mcmc.data <- h1.mcmc.data[color.map,color:=color.map,on=.(parameter)]
+
+## linetype.map <- c(tau.1.anon='solid',
+##                   tau.2.anon='solid',
+##                   tau.3.anon='solid',
+##                   tau.anon='dotdash',
+##                   tau.1.non.anon='solid',
+##                   tau.2.non.anon='solid',
+##                   tau.3.non.anon='solid',
+##                   tau.non.anon='dotdash',
+##                   tau.non.anon.sub.anon='dashed')
+
+## linetype.map <- data.table(linetype.map, parameter = names(linetype.map))
+## h1.mcmc.data <- h1.mcmc.data[linetype.map, linetype:=linetype.map, on=.(parameter)]
+
+## display.name.map <- c(tau.1.anon=expression(tau[1]^'IP'),
+##                       tau.2.anon=expression(tau[2]^'IP'),
+##                       tau.3.anon=expression(tau[3]^'IP'),
+##                       tau.anon=expression(sum(tau[j])^'IP'),
+##                       tau.1.non.anon=expression(tau[1]^'not IP'),
+##                       tau.2.non.anon=expression(tau[2]^'not IP'),
+##                       tau.3.non.anon=expression(tau[3]^'not IP'),
+##                       tau.non.anon=expression(sum(tau[j])^'not IP'),
+##                       tau.non.anon.sub.anon=expression(sum(tau[j])^'not IP' - sum(tau[j])^'IP'))
+
+## p <- ggplot(h1.mcmc.data, aes(x=parameter,y=m, ymin=ll, ymax=hh, color=color,linetype=linetype)) + geom_pointrange() + scale_linetype_manual(values=c(solid='solid',dashed='dashed',dotted='dotted',dotdash='dotdash'))
+## p <- p + xlab("") + ylab("Marginal Posterior") + scale_x_discrete(labels = display.name.map, limits=rev(levels(h1.mcmc.data$parameter))) + theme_minimal() + theme(legend.position="None") 
+## p <- p + geom_hline(yintercept=0,color='gray30')
+## p <- p + coord_flip()
+## p
