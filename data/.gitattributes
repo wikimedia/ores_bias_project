@@ -93,3 +93,5 @@ quarry_ores_scores/kowiki_ids.csv filter=lfs diff=lfs merge=lfs -text
 quarry_ores_scores/rowiki_scores.csv filter=lfs diff=lfs merge=lfs -text
 db_scores_sample_revisions.csv filter=lfs diff=lfs merge=lfs -text
 db_scores_strata_counts.csv filter=lfs diff=lfs merge=lfs -text
+cutoff_revisions_sample_500.csv filter=lfs diff=lfs merge=lfs -text
+threshold_strata_counts_sample_500.csv filter=lfs diff=lfs merge=lfs -text
