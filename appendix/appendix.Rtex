@@ -1,0 +1,194 @@
+
+\documentclass[format=acmsmall, natbib=true, review=true, screen=true]{acmart}
+\citestyle{acmauthoryear}
+
+%\usepackage{cdsc-memoir}        
+% \usepackage{pdflscape}          %
+% \usepackage{tikz}
+% \usetikzlibrary{arrows}
+% \usetikzlibrary{positioning}
+% \usetikzlibrary{shapes}
+%\usepackage{pgfgantt}
+
+% there are two chapter styles: cdsc-article and cdsc-memo
+
+% memo assumes that you remove the "\\" and the email address from the
+% \author field below as well as that you will comment out the
+% \published tag
+%\chapterstyle{cdsc-article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{wrapfig}
+\usepackage{booktabs}
+<<init, echo=FALSE>>=
+library(knitr)
+knit_hooks$set(document = function(x) {
+  sub('\\usepackage[]{color}',
+'\\usepackage[]{color}', x, fixed = TRUE)
+})
+opts_chunk$set(fig.path="figures/knitr-")
+
+overwrite <- TRUE
+source("resources/preamble.R")
+@
+\usepackage{subcaption}
+% \usepackage[T1]{fontenc}
+% \usepackage{textcomp}
+% \usepackage[garamond]{mathdesign}
+
+% \usepackage[letterpaper,left=1.65in,right=1.65in,top=1.3in,bottom=1.2in]{geometry} 
+
+% packages i use in essentially every document
+\usepackage{graphicx}
+\usepackage{enumerate}
+
+% packages i use in many documents but leave off by default
+\usepackage{amsmath, amsthm} %, amssymb}
+%\usepackage{caption}
+% \usepackage{dcolumn}
+% \usepackage{endfloat}
+
+% % import and customize urls
+% \usepackage[breaklinks]{hyperref}
+% \hypersetup{colorlinks=true, linkcolor=Black, citecolor=Black, filecolor=Blue,
+%     urlcolor=Blue, unicode=true}
+
+% list of footnote symbols for \thanks{}
+% \makeatletter
+% \renewcommand*{\@fnsymbol}[1]{\ensuremath{\ifcase#1\or *\or \dagger\or \ddagger\or
+%  \mathsection\or \mathparagraph\or \|\or **\or \dagger\dagger
+%   \or \ddagger\ddagger \else\@ctrerr\fi}}% \makeatother
+% \newcommand*\samethanks[1][\value{footnote}]{\footnotemark[#1]}
+
+% add bibliographic stuff 
+\usepackage[american]{babel}
+% \usepackage{csquotes}
+
+%\usepackage[natbib=true, style=apa, backend=biber]{biblatex} 
+%\DeclareLanguageMapping{american}{american-apa} 
+
+% \defbibheading{secbib}[\bibname]{%
+%   \section*{#1}%
+%   \markboth{#1}{#1}%
+%   \baselineskip 14.2pt%
+%   \prebibhook}
+
+% \def\citepos#1{\citeauthor{#1}'s (\citeyear{#1})}
+% \def\citespos#1{\citeauthor{#1}' (\citeyear{#1})}
+
+% memoir function to take out of the space out of the whitespace lists
+% \firmlists
+
+%p LATEX NOTE: these lines will import vc stuff after running `make vc` which
+% will add version control information to the bottom of each page. This can be
+% useful for keeping track of which version of a document somebody has:
+% \input{vc}
+% \pagestyle{cdsc-page-git}
+
+% LATEX NOTE: this alternative line will just input a timestamp at the
+% build process, useful for sharelatex
+% \pagestyle{cdsc-page-sharelatex}
+
+\hyphenation{social-psy-cho-lo-gi-cal}
+%\newcommand{\oressource}{oresarchaeologist}
+\newcommand{\TODO}[1]{{\color{red} TODO: #1}}
+\newcommand{\oressource}{\oresdatabase}
+\begin{document}
+
+\setlength{\parskip}{4.5pt}
+% LATEX NOTE: Ideal linespacing is usually said to be between 120-140% the
+% typeface size. So, for 12pt (default in this document, we're looking for
+% somewhere between a 14.4-17.4pt \baselineskip.  Single; 1.5 lines; and Double
+% in MSWord are equivalent to ~117%, 175%, and 233%.
+
+% \baselineskip 16pt
+
+\title{Supplementary Material for: Algorithmic flagging does not replace identity-based signals in online community moderation}
+\author{Nate TeBlunthuis}
+
+\date{\today}
+
+% \published{\textsc{\textcolor{BrickRed}{This document is an
+%   unpublished draft.\\ Please do not distribute or cite without
+%   permission.}}}
+
+\maketitle
+
+%We believe that understanding the design of algorithmic governance systems requires accounting for how and to what extent the system serves both the surveillence and nudging functions. We analyze an algorithmic triage system in the wild
+
+% Too much emphasis on criminal justice and claiming that as a major part of the contribution is creating extra work. Don't do that unless you really need it.
+
+\section{Introduction}
+
+% Paragraph motivating the question: What are we concerned about why does it matter?% What's the CSCW problem we're working on? It's a popular topic right now. 
+
+% I need to develop / focus my concepts of enforcement or monitoring work. Use ostrom?
+
+% Bring in blackwell and bowker and star and mary douglas more here. Blackwell's important for signaling that this is CSCW work, not FAT*. 
+% Salient signals go in the introduction, but the point must be that they signal membership in suspicious categories.  
+% broaden the focus beyond online communities to broader questions of algorithmic governance --- including the criminal justice system.
+% Bring back surveillence/visibility and profiling in the intro.
+% don't make it about online communities!
+
+\begin{table}[t]
+\begin{subtable}[t]{0.49\textwidth}
+\centering
+
+<<adoption.sample,echo=FALSE,results='asis'>>=
+df <- format.sample.stats(mod.adoption.N.by.wiki.cutoff)
+tab <- xtable(df,digits=0,label='tab:adoption.sample',align=c('r','r','r','r','r'))
+print(tab,hline.after=c(-1,0,nrow(tab)),size='footnotesize')
+@ 
+\caption{Sample for adoption check models}
+\end{subtable}
+\begin{subtable}[t]{0.49\textwidth}
+\centering
+<<controversial.sample,echo=FALSE,results='asis'>>=
+df <- format.sample.stats(mod.all.controversial.N.by.wiki.cutoff)
+tab <- xtable(df,digits=0,label='tab:controversial.sample',align=c('r','r','r','r','r'))
+print(tab,hline.after=c(-1,0,nrow(tab)),size='footnotesize')
+@ 
+\caption{Sample for models testing H2.}
+\end{subtable}
+\begin{subtable}[t]{0.49\textwidth}
+<<anon.reverted.sample,echo=FALSE,results='asis'>>=
+df <- format.sample.stats(mod.anon.reverted.N.by.wiki.cutoff,
+                          "IP",
+                          mod.non.anon.reverted.N.by.wiki.cutoff,
+                          'not IP',
+                          mod.no.user.page.reverted.N.by.wiki.cutoff,
+                          'no u.p.',
+                          mod.user.page.reverted.N.by.wiki.cutoff,
+                          'user page')
+
+tab <- xtable(df,digits=0,label='tab:anon.reverted.sample',align=c('r','r','r','r','r','r'))
+print(tab,hline.after=c(-1,0,nrow(tab)),size='footnotesize')
+@
+\caption{Sample information for models testing H1.}
+\end{subtable}
+\begin{subtable}[t]{0.49\textwidth}
+<<anon.controversial.sample,echo=FALSE,results='asis'>>=
+df <- format.sample.stats(mod.anon.controversial.N.by.wiki.cutoff,
+                          "IP",
+                          mod.non.anon.controversial.N.by.wiki.cutoff,
+                          'not IP',
+                          mod.no.user.page.controversial.N.by.wiki.cutoff,
+                          'no u.p.',
+                          mod.user.page.controversial.N.by.wiki.cutoff,
+                          'u.p.'
+                          )
+
+tab <- xtable(df,digits=0,label='tab:anon.controversial.sample',align=c('r','r','r','r','r','r'))
+print(tab,hline.after=c(-1,0,nrow(tab)),size='footnotesize')
+@
+\caption{Sample information for models testing H3.}
+\end{subtable}
+
+\end{table}
+
+% \setcounter{biburlnumpenalty}{9001}
+% \printbibliography[title = {References}, heading=secbib]
+
+\end{document}
+
+% LOCAL_WORDS: decile
