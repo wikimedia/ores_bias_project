@@ -1,3 +1,22 @@
+% Old hypothesis tests section
+\subsection{Hypothesis tests}
+
+We consider that our analysis supports \textbf{H1} if the total effect of being flagged on controversial reversion is less for actions by IP-editors and editors without a user page (abbreviated ``u.p.'' in formulas) than for actions by others, formally:
+
+$$\sum_j{\tau^{\mathbf{H1}, not\_IP}_j} = \tau^{\mathbf{H1},not\_IP}_{1} + \tau^{\mathbf{H1},not\_IP}_{2} + \tau^{\textbf{H1}, not\_IP}_{3} > \tau^{\textbf{H1}, IP}_{1} + \tau^{\textbf{H1}, IP}_{2} + \tau^{\textbf{H1}, IP}_{3} = \sum_j{\tau^{\mathbf{H1}, IP}_j}$$ and $$\sum_j{\tau^{\textbf{H1}, u.p}_j} = \tau^{\textbf{H1}, u.p.}_{1} + \tau^{\textbf{H1},u.p.}_{2} + \tau^{\textbf{H1},u.p.}_{3} > \tau^{\textbf{H1},no\_u.\_p.}_{1} + \tau^{\textbf{H1},no\_u.p.}_{2} + \tau^{\textbf{H1}, no\_u.p.}_{3} = \sum_j{\tau^{\textbf{H1}, no\_u.p.}_j}$$ 
+
+We consider that our analysis supports \textbf{H2} if the total effect of being flagged on controversial reversion is greater than 0.
+
+$$\sum_j{\tau^{\mathbf{H2}}_j} = \tau^{\mathbf{H2}}_{1} + \tau^{\mathbf{H2}}_{2} + \tau^{\textbf{H2}}_{3} > 0 $$
+
+Similarly to \textbf{H1}, we consider \textbf{H3} supported if the total effect of being flagged on controversial reversion is less for actions by IP-editors and editors without a user page than for actions by others, formally:
+
+$$ \sum_j{\tau^{\mathrm{H3},not\_IP}_j} = \tau^{\mathbf{H3},not\_IP}_{1} + \tau^{\mathbf{H3},not\_IP}_{2} + \tau^{\textbf{H3}, not\_IP}_{3} > \tau^{\textbf{H3}, IP}_{1} + \tau^{\textbf{H3}, IP}_{2} + \tau^{\textbf{H3}, IP}_{3} = \sum_j{\tau^{\mathrm{H3},IP}_j}$$
+and
+$$\sum_j{\tau^{\mathrm{H3}, u.p}_j} = \tau^{\textbf{H3}, u.p.}_{1} + \tau^{\textbf{H3},u.p.}_{2} + \tau^{\textbf{H3},u.p.}_{3} > \tau^{\textbf{H3},no\_u.p.}_{1} + \tau^{\textbf{H3},no\_u.p.}_{2} + \tau^{\textbf{H3}, no\_u.p.}_{3} = \sum_j{\tau^{\mathrm{H3}, no\_u.p.}_j}$$.
+
+
+
 
 Ostrom's principle of graduated sanctions is influential in approaches to sanctioning in online communities \cite{ostrom_governing_1990}.  She recommends that users initial violations be sanctioned relatively lightly to communicate that rules are enforced and rule breakers are detected but that subsequent violations should face harsher punishments for effective deterrence  \citep{kraut_regulating_2012, ostrom_governing_1990}.  For instance, Wikipedia uses a system of escalating warnings for vandalous editing that eventually ends in a ban \citep{geiger_work_2010}.
 
@@ -674,3 +693,4 @@ Our study has implications for community growth as new users lack identity-based
   Our study demonstrates that introducing algorithmic predictors into governance systems can support fair treatment of contributors and suggests other design changes (such as obscuring class memberships) that may also support fairness. 
 
 % LocalWords : sociotechnical Palantir problematize analytics covariates generalizability
+
