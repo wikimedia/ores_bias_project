@@ -1,0 +1,655 @@
+\documentclass[10pt,xcolor=dvipsnames,aspectratio=169]{beamer}
+<<init, echo=FALSE, warning=FALSE>>=
+library(knitr)
+knit_hooks$set(document = function(x) {
+  sub('\\usepackage[]{color}',
+'\\usepackage[]{color}', x, fixed = TRUE)
+})
+opts_chunk$set(fig.path="figures/knitr-")
+opts_chunk$set(dev='pdf')
+opts_chunk$set(external=TRUE)
+opts_chunk$set(cache=FALSE)
+overwrite <- FALSE
+source("resources/preamble.R")
+@
+
+\usetheme{metropolis}
+\usepackage{appendixnumberbeamer}
+
+\usepackage{pgfpages}
+\input{notes.config}
+
+\usepackage{pgfplots}
+\usepgfplotslibrary{dateplot}
+
+\usepackage{booktabs}
+\usepackage[scale=2]{ccicons}
+
+% optional metro things
+\metroset{numbering=fraction} % page numbering format
+\metroset{progressbar=foot} % progress bar in footer
+\metroset{sectionpage=none, subsectionpage=none}
+\metroset{block=fill}
+% \metroset{background=light}
+
+\setsansfont{OpenSans}[
+Path = ./fonts/OpenSans/,
+Extension = .ttf,
+UprightFont     =   *-Regular,
+BoldFont        =   *-Bold,
+ItalicFont      =   *-Italic,
+BoldItalicFont  =   *-BoldItalic
+]
+
+\setmonofont{RobotoMono}[
+Path = ./fonts/RobotoMono/,
+Extension = .ttf,
+UprightFont     =   *-Regular,
+BoldFont        =   *-Bold,
+ItalicFont      =   *-Italic,
+BoldItalicFont  =   *-BoldItalic
+]
+
+\definecolor{makopurple1}{RGB}{57,39,91}
+\definecolor{makopurple2}{RGB}{137,119,173}
+\definecolor{makopurple3}{RGB}{29,13,59}
+\definecolor{makopurple4}{RGB}{124,99,173}
+
+% \definecolor{makopurple1}{HTML}{3b255b}
+\definecolor{makogreen1}{HTML}{0b7a75}
+\definecolor{makovanilla1}{HTML}{d7c9aa}
+\definecolor{makoumber1}{HTML}{7b2d26}
+\definecolor{makowhite1}{HTML}{f0f3f5}
+
+\setbeamercolor{normal text}{fg=black, bg=white}
+\setbeamercolor{alerted text}{fg=makopurple4}
+\setbeamercolor{example text}{fg=makoumber1}
+
+\setbeamercolor{palette primary}{bg=makopurple1, fg=normal text.bg}
+\setbeamercolor{palette secondary}{bg=makogreen1,fg=normal text.bg}
+\setbeamercolor{palette tertiary}{bg=makovanilla1,fg=normal text.bg}
+\setbeamercolor{palette quaternary}{bg=makoumber1,fg=normal text.bg}
+\setbeamercolor{structure}{fg=makopurple1, bg=normal text.bg} % itemize, enumerate, etc
+\setbeamercolor{section in toc}{fg=makopurple1, bg=normal text.bg} % TOC sections
+
+% \setbeamercolor{progress bar}{fg=makopurple1}
+% \setbeamercolor{title separator}{fg=makopurple1}
+% \setbeamercolor{progress bar in head/foot}{fg=makopurple1}
+% \setbeamercolor{progress bar in section page}{fg=makopurple1}
+
+% this is a fix for a bug with XeTeX and notes pages
+% see: https://tex.stackexchange.com/questions/232168/normal-text-is-invisible-when-using-beamer-with-notes-and-xelatex
+\usepackage{ifthen}
+\makeatletter
+\def\beamer@framenotesbegin{% at beginning of slide
+  \ifthenelse{\not \boolean{metropolis@standout}}{%
+    \usebeamercolor[fg]{normal text}%
+      \gdef\beamer@noteitems{}% 
+      \gdef\beamer@notes{}%
+      
+    }{\gdef\beamer@noteitems{}%
+      \gdef\beamer@notes{}%
+    }
+}
+% redfine the notes type to clear things (working around the same bug)
+% https://tex.stackexchange.com/questions/28966/change-beamer-notes-list-type-for-in-frame-notes
+\def\beamer@setupnote{%
+  \gdef\beamer@notesactions{%
+    \beamer@outsideframenote{%
+      \beamer@atbeginnote%
+      {\normalfont%
+       \parskip 0.5em%
+      \usebeamercolor[fg]{normal text}%
+      \beamer@notes%
+      \ifx\beamer@noteitems\@empty\else
+      \beamer@noteitems%
+      \fi%
+      
+      \par}
+      \beamer@atendnote%
+    }%
+    \gdef\beamer@notesactions{}%
+  }
+}
+\makeatother
+
+\usepackage{xspace}
+\usepackage{relsize}
+
+% add tikz and a bunch of tikz foo
+\usepackage{tikz}
+\usetikzlibrary{shapes,shapes.misc,backgrounds,fit,positioning}
+\tikzstyle{every picture}+=[overlay,remember picture]
+
+% add functions to circle parts of slides (e.g., in tables)
+\newcommand\marktopleft[1]{\tikz \node (marker-#1-a) at (0,1.5ex) {};}
+\newcommand\markbottomright[1]{%
+  \tikz{\node (marker-#1-b) at (0,0) {};}
+  \tikz[dashed,inner sep=3pt]{\node[violet!75,ultra thick,draw,rounded rectangle,fit=(marker-#1-a.center) (marker-#1-b.center)] {};}}
+
+% create an empty quotetxt so we can reuse it
+\newcommand{\quotetxt}{}
+
+% more flexible non-tikz alternative with no dropshadow 
+\newlength{\centertxtlen}
+\makeatletter
+\newcommand\centertext[2]{%
+  \setlength{\centertxtlen}{#1}%
+  \setlength{\centertxtlen}{0.48\centertxtlen}%
+  {\centering
+    \fontsize{#1}{2\centertxtlen}\selectfont
+    \e{#2}
+
+  }
+}
+
+% packages i use in essentially every document
+\usepackage{graphicx}
+\usepackage{url}
+% \usepackage{dcolumn}
+% \usepackage{booktabs}
+
+% replace footnotes with symbols instead of numbers
+\renewcommand*{\thefootnote}{\fnsymbol{footnote}}
+\usepackage{perpage}
+\MakePerPage{footnote}
+
+% \hypersetup{colorlinks=true, linkcolor=Black, citecolor=Black, filecolor=makopurple1,
+%     urlcolor=Plum, unicode=true}
+
+% create a new \e{} command to make things purple and bold
+\newcommand{\e}[1]{\alert{#1}}
+
+% remove the nagivation symbols
+\newcommand{\greenscreen}{
+\begin{tikzpicture}
+  \draw[fill=green] (13.1,5.4) rectangle ++(4/1.35,5/1.35);
+\end{tikzpicture}
+}
+
+\addtobeamertemplate{footline}{}{\greenscreen}
+
+\setbeamertemplate{navigation symbols}{}
+
+\newcommand{\credit}[1]{%
+  \tikz[overlay]{\node at (current page.south west)
+    [anchor=south west, yshift=3pt, xshift=2pt]
+    {\smaller \smaller {[}#1{]}};}}
+
+\setlength{\parsep}{1em}
+
+\title{The effects of algorithmic flagging on fairness:}
+\subtitle{Quasi-experimental evidence from Wikipedia}
+\author[TeBlunthuis,Hill,Halfaker]{\textbf{Nathan TeBlunthuis}
+  \footnotesize{nathante@uw.edu}\inst{1} \inst{2} \\ \and \textbf{Benjamin Mako Hill} \inst{1} \and \\ \textbf{Aaron Halfaker} \inst{2}}
+
+\institute[UW,WMF]{\textbf{University of Washington\inst{1}} \\
+  Department of Communication \\
+{\textbf{Wikimedia Foundation}\inst{2}}
+}
+
+\date{June 19, 2020}
+
+\begin{document}
+
+% remove some of the space in the itemize to make it quite compact
+% \let\olditemize\itemize
+% \renewcommand\itemize{\olditemize\itemsep-1pt}
+
+%% SLIDE: Title Slide
+\begin{frame}
+  \titlepage
+
+  \tikz{\node at (current page.center) [anchor=center, yshift=-.75in, xshift=1.6in]
+    {\includegraphics[width=0.25\textwidth]{figures/logo.pdf}};
+  }
+
+  % include version control stuff
+  \input{vc}
+  \credit{Revision:\ \VCRevision\  (\VCDateTEX)}
+\end{frame}
+
+\section{How will algorithmic flagging shape fairness of human decision making?}
+
+
+
+\begin{frame}
+\larger
+  \sectionpage
+
+  \note{This is an example section page.}
+\end{frame}
+
+\begin{frame}{What are we talking about?}
+
+\larger \larger
+
+Algorithmic predictions that inform human \\ decisions (judgments) that affect another person \\ by routing attention to those predicted as risky. 
+
+\smaller
+
+\e{High stakes, legally complicated:} Should a judge grant bail to a defendant? Should a job applicant get an interview?  Should an applicant get a lease? 
+
+\e{Lower stakes:} Online moderation, where fairness impacts who has voice in communities and whose views are represented in important knowledge bases, but not individual life courses or systematic oppression. 
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Simplifying a debate: Will algorithms help or hurt fairness?}
+
+\larger
+
+  \e{Taste-based discrimination:}  \\ \emph{``I don't like people that look like you.''}
+
+  Algorithmic flagging can be \emph{biased}; \\ reproduce problematic ontologies; \\ reinforce taste-based discrimination.
+
+  \pause \vspace{1em}
+
+  \e{Statistical discrimination:} \\  \emph{``People that look like you are likely to cause problems.''}
+
+  Can algorithmic flagging help by better accounting for more information that human judges and thereby reduce statistical discrimination?  
+
+\end{frame}
+
+\section{Algorithmic flagging in online content moderation on Wikipedia}
+
+\begin{frame}
+  \sectionpage
+\end{frame}
+
+\begin{frame}\frametitle{Moderation and fairness}
+
+  \larger 
+\enspace
+
+  Moderators use \emph{social signals} like \emph{registration} \\ and \emph{experience} to find and \emph{sanction} misbehavior. 
+
+  \enspace
+
+  People displaying such signals might be \e{over-profiled} if moderators focus their attention on them but not on others engaged in similar behavior.
+
+\enspace
+
+  Moderator actions can be considered unfair if they are \e{controversial sanctions} (i.e. a third person objects to the initial sanction).
+
+\end{frame}
+
+
+\begin{frame}\frametitle{Recent changes filters on Wikipedia}
+\vspace{15em}
+    \centering
+\larger
+\begin{tikzpicture}
+
+  \node[anchor=west](flags) at (-7,2.7) {ORES Flags};
+%  \node[anchor=west](pagetitle) at (-4.7,2.7) {Page titles};
+  \node[anchor=west](userpagelink) at (-2.9,2.7) {Red user profile link};
+  \node[anchor=west](unregistered) at (1.4,2.7) {Unregistered editor};
+
+
+  \begin{scope}
+  \node[anchor=south, inner sep=0] (image) at (0,0) {\includegraphics[width=\textwidth]{resources/rcfilters_example_2.png}};
+  \draw [-stealth,ultra thick] (flags.220) -- ++(0,-0.4);
+%  \draw [-stealth,ultra thick] (pagetitle.south) -- ++(0,-0.4);
+  \draw [-stealth,ultra thick] (unregistered.200) -- (1.5,2);
+  \draw [-stealth,ultra thick] (userpagelink.280) -- (0.2,1.6);
+\end{scope}
+\end{tikzpicture}
+
+\raggedright
+
+Flags are triggered by arbitrary thresholds, so we can use a regression discontinuity to estimate the causal effects of being flagged on moderator actions?
+
+\end{frame}
+
+
+\begin{frame}\frametitle{Research questions}
+\vspace{7em}
+\larger
+
+  \e{RQ1:} How will flagging an action change the likelihood an action is sanctioned for over-profiled edtitors compared to others?
+
+  \e{RQ2:} How will flagging an action by an over-profiled editor change the chances it receives a controversial sanction?
+
+  \e{RQ3:} Within the set of sanctioned actions, how will the effect of flagging an action on controversial sanctions depend on whether contributors are over-profiled?
+
+\end{frame}
+
+\begin{frame}\frametitle{Research questions}
+\vspace{7em}
+\larger
+
+  \e{RQ1:} How will flagging an action change the likelihood an action is sanctioned for over-profiled edtitors compared to others?
+
+  \e{RQ2:} How will flagging an action by an over-profiled editor change the chances it receives a controversial sanction?
+
+\textcolor{gray}{\textbf{RQ3:} Within the set of sanctioned actions, how will the effect of flagging an action on controversial sanctions depend on whether contributors are over-profiled?}
+
+\end{frame}
+
+\begin{frame}\frametitle{Research design: regression discontinuity}
+
+\larger
+
+  An algorithmic predictor triggers flags when prediction scores \\ cross an \emph{arbitrary threshold}.
+
+  So we infer the causal effects of flagging on moderation by \\ comparing edits right above the threshold with and  \\ conditioning  on the scores
+
+\begin{minipage}{0.45\textwidth}
+<<adoption.me.plot, echo=FALSE, fig.height=2.0, fig.width=3,out.width='\\textwidth',dev='pdf',cache=F>>=
+mod.adoption.me.data.df.1 <- mod.adoption.me.data.df[nearest.threshold == 'likelybad']
+p <- make.rdd.plot(mod.adoption.me.data.df.1, mod.adoption.bins.df, title="Prob reverted, all editors",digits=2)
+print(p + ggtitle("") + theme(strip.text.x=element_blank()))
+@
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+By the way, we use Bayesian models fit with Rstanarm. 
+\end{minipage}
+
+
+\end{frame}
+
+\begin{frame}\frametitle{Data: Wikimedia History}
+
+\larger
+
+\begin{itemize}
+\item Public data of Wikipedia edit history
+\item Historical prediction scores maintained by Wikimedia \\ (to be released)
+\item Thresholds (``maybe damaging'', ``likely damaging'', \\ ``very likely damaging'') reconstructed by loading old models and configuration files
+\item Stratified sample with up to \Sexpr{length(adoption.check.included.wikis)} different language editions of Wikipedia.
+\end{itemize}
+
+Unit of analysis: \emph{revision to an article}
+
+\begin{description}
+
+\item[overprofiling:] \emph{registration status} and \emph{redlink User pages}.
+\item[sanction:] a revision is undone by a second party.
+\item[\hspace{0.2em} controversial sanction:] a sanction is undone by a third party.
+
+\end{description}
+
+%We didn't find overall effects on sanctioning at the highest (very likely damaging) threshold, so we exclude it.
+\end{frame}
+
+\section{Results}
+
+\begin{frame}
+  \sectionpage
+  \end{frame}
+
+\begin{frame}\frametitle{RQ1: Flagging and over-profiling: Registration status}
+<<set.h1.vars,echo=FALSE>>=
+
+h1.tau.anon <- apply(matrix(c(h1.tau.1.anon,h1.tau.2.anon),ncol=2,byrow=FALSE),1,sum)
+h1.tau.non.anon <- apply(matrix(c(h1.tau.1.non.anon,h1.tau.2.non.anon),ncol=2,byrow=FALSE),1,sum)
+h1.tau.1.non.anon.sub.anon <- h1.tau.1.non.anon - h1.tau.1.anon
+h1.tau.2.non.anon.sub.anon <- h1.tau.2.non.anon - h1.tau.2.anon
+h1.tau.non.anon.sub.anon <- apply(matrix(c(h1.tau.non.anon, -1*h1.tau.anon),ncol=2,byrow=FALSE),1,sum)
+
+h1.tau.user.page <- apply(matrix(c(h1.tau.1.user.page,h1.tau.2.user.page),ncol=2,byrow=FALSE),1,sum)
+h1.tau.no.user.page <- apply(matrix(c(h1.tau.1.no.user.page,h1.tau.2.no.user.page),ncol=2,byrow=FALSE),1,sum)
+h1.tau.1.user.page.sub.no.user.page <- h1.tau.1.user.page - h1.tau.1.no.user.page
+h1.tau.2.user.page.sub.no.user.page <- h1.tau.2.user.page - h1.tau.2.no.user.page
+h1.tau.user.page.sub.no.user.page <- apply(matrix(c(h1.tau.user.page, -1*h1.tau.no.user.page),ncol=2,byrow=FALSE),1,sum)
+
+anon.ld.proto.below <- proto.reverted(mod.anon.reverted.me.data.df, where='below', threshold.name='likelybad')
+anon.ld.proto.above <- proto.reverted(mod.anon.reverted.me.data.df, where='above', threshold.name='likelybad')
+anon.md.proto.below <- proto.reverted(mod.anon.reverted.me.data.df, where='below', threshold.name='maybebad')
+anon.md.proto.above <- proto.reverted(mod.anon.reverted.me.data.df, where='above', threshold.name='maybebad')
+non.anon.ld.proto.below <- proto.reverted(mod.non.anon.reverted.me.data.df, where='below', threshold.name='likelybad')
+non.anon.ld.proto.above <- proto.reverted(mod.non.anon.reverted.me.data.df, where='above', threshold.name='likelybad')
+non.anon.md.proto.below <- proto.reverted(mod.non.anon.reverted.me.data.df, where='below', threshold.name='maybebad')
+non.anon.md.proto.above <- proto.reverted(mod.non.anon.reverted.me.data.df, where='above', threshold.name='maybebad')
+
+up.ld.proto.below <- proto.reverted(mod.user.page.reverted.me.data.df, where='below', threshold.name='likelybad')
+up.ld.proto.above <- proto.reverted(mod.user.page.reverted.me.data.df, where='above', threshold.name='likelybad')
+up.md.proto.below <- proto.reverted(mod.user.page.reverted.me.data.df, where='below', threshold.name='maybebad')
+up.md.proto.above <- proto.reverted(mod.user.page.reverted.me.data.df, where='above', threshold.name='maybebad')
+no.up.ld.proto.below <- proto.reverted(mod.no.user.page.reverted.me.data.df, where='below', threshold.name='likelybad')
+no.up.ld.proto.above <- proto.reverted(mod.no.user.page.reverted.me.data.df, where='above', threshold.name='likelybad')
+no.up.md.proto.below <- proto.reverted(mod.no.user.page.reverted.me.data.df, where='below', threshold.name='maybebad')
+no.up.md.proto.above <- proto.reverted(mod.no.user.page.reverted.me.data.df, where='above', threshold.name='maybebad')
+
+@ 
+<<h1.unreg.me.plot, echo=F, fig.height=3.8,fig.width='\\textwidth', message=F, warning=F>>=
+
+d.anon = mod.anon.reverted.me.data.df[,.(d.nearest.threshold,
+                                           linpred.lower,
+                                           linpred.upper,
+                                           linpred,
+                                           gt.nearest.threshold,
+                                           nearest.threshold
+                                           )
+                                         ]
+d.anon[,editor.type:='Unregistered']
+
+d.anon[nearest.threshold=='maybebad',nearest.threshold:='Maybe damaging']
+d.anon[nearest.threshold=='likelybad',nearest.threshold:='Likely damaging']
+d.anon <- d.anon[nearest.threshold !='verylikelybad']
+d.anon[,nearest.threshold:=factor(nearest.threshold,levels=c("Maybe damaging", "Likely damaging"))]
+
+d.non.anon = mod.non.anon.reverted.me.data.df[,.(d.nearest.threshold,
+                                                 linpred.lower,
+                                                 linpred.upper,
+                                                 linpred,
+                                                 gt.nearest.threshold,
+                                                 nearest.threshold
+                                                 )
+                                              ]
+d.non.anon[,editor.type:='Registered']
+d.non.anon[nearest.threshold=='maybebad',nearest.threshold:='Maybe damaging']
+d.non.anon[nearest.threshold=='likelybad',nearest.threshold:='Likely damaging']
+d.non.anon <- d.non.anon[nearest.threshold !='verylikelybad']
+d.non.anon[,nearest.threshold:=factor(nearest.threshold,levels=c("Maybe damaging", "Likely damaging"))]
+
+p.anon.mb <- plot.rdd.simple(d.anon[nearest.threshold=='Maybe damaging']) 
+
+# Extract legend as a grob
+g_legend<-function(a.gplot){
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend) }
+
+leg <- g_legend(p.anon.mb)
+
+p.anon.mb <- p.anon.mb + theme(legend.position="none")
+
+p.non.anon.mb <- plot.rdd.simple(d.non.anon[nearest.threshold=='Maybe damaging'])
+
+p.non.anon.mb <- p.non.anon.mb + theme(legend.position="none")
+
+plots <- harmonize.scales(p.anon.mb,p.non.anon.mb)
+
+p.anon.mb <- plots$p1
+p.non.anon.mb <- plots$p2
+
+p.anon.lb <- plot.rdd.simple(d.anon[nearest.threshold=='Likely damaging']) 
+p.non.anon.lb <- plot.rdd.simple(d.non.anon[nearest.threshold=='Likely damaging']) 
+
+plots <- harmonize.scales(p.anon.lb,p.non.anon.lb)
+p.anon.lb <- plots$p1 + theme(legend.position="none")
+p.non.anon.lb <- plots$p2 + theme(legend.position="none")
+grid.arrange(arrangeGrob(p.anon.mb,p.non.anon.mb,
+                                  p.anon.lb,p.non.anon.lb,
+                                  ncol=2,bottom='Distance from threshold',left='Prob. Reverted'),
+                      legend=leg,ncol=2,widths=c(10,4))
+@ 
+\end{frame}
+
+\begin{frame}\frametitle{RQ1: Flagging and over-profiling: Registration status}
+
+ \larger
+
+We find quite large effects of flagging on sanctioning. 
+
+Unflagged actions by unregistered editors \\ are far more likely to be reverted. 
+
+Once flagged, actions by registered and unregistered editors are reverted at relatively similar rates.
+
+This is evidence that Wikipedia moderators overprofile based on registration status and that algorithmic flagging reduces this over-profiling. 
+
+% Being flagged at the ``maybe damaging'' increases the probability of sanctioning from  for unregistered contributors a change of between \Sexpr{round((anon.md.proto.above$linpred.lower - anon.md.proto.below$linpred.upper)*100,1)} and \Sexpr{round((anon.md.proto.above$linpred.upper - anon.md.proto.below$linpred.lower)*100,1)}
+% percentage points. 
+
+% For registered contributors the increase is \emph{larger:} from \Sexpr{format.percent(non.anon.md.proto.below$linpred,1)} to \Sexpr{format.percent(non.anon.md.proto.above$linpred,1)}, change of between \Sexpr{round((non.anon.md.proto.above$linpred.lower - non.anon.md.proto.below$linpred.upper)*100,1)} and \Sexpr{round((non.anon.md.proto.above$linpred.upper - non.anon.md.proto.below$linpred.lower)*100,1)} percentage points.  
+
+% Similarly, at the ``likely damaging'' threshold we see an increases in sanctioning probability from \Sexpr{format.percent(anon.ld.proto.below$linpred,1)} to \Sexpr{format.percent(anon.ld.proto.above$linpred,1)} for unregistered contributors a change of between \Sexpr{round((anon.ld.proto.above$linpred.lower - anon.ld.proto.below$linpred.upper)*100,1)} and \Sexpr{round((anon.ld.proto.above$linpred.upper - anon.ld.proto.below$linpred.lower)*100,1)}
+% percentage points. 
+
+% And for registered contributors the increase is \emph{larger:} from \Sexpr{format.percent(non.anon.ld.proto.below$linpred,1)} to \Sexpr{format.percent(non.anon.ld.proto.above$linpred,1)}, change of between \Sexpr{round((non.anon.ld.proto.above$linpred.lower - non.anon.ld.proto.below$linpred.upper)*100,1)} and \Sexpr{round((non.anon.ld.proto.above$linpred.upper - non.anon.ld.proto.below$linpred.lower)*100,1)} percentage points.  
+\end{frame}
+
+\begin{frame}\frametitle{RQ1: Flagging and over-profiling: User pages}
+
+<<h1.userpage.me.plot, echo=F, fig.height=3.8, out.width='\\textwidth', message=F, warning=F,dev='pdf'>>=
+
+d.np = mod.no.user.page.reverted.me.data.df[,.(d.nearest.threshold,
+                                               linpred.lower,
+                                               linpred.upper,
+                                               linpred,
+                                               gt.nearest.threshold,
+                                               nearest.threshold
+                                               )
+                                             ]
+d.np[,editor.type:='No User page']
+
+d.np[nearest.threshold=='maybebad',nearest.threshold:='Maybe damaging']
+d.np[nearest.threshold=='likelybad',nearest.threshold:='Likely damaging']
+d.np <- d.np[nearest.threshold !='verylikelybad']
+d.np[,nearest.threshold:=factor(nearest.threshold,levels=c("Maybe damaging", "Likely damaging"))]
+
+d.p = mod.user.page.reverted.me.data.df[,.(d.nearest.threshold,
+                                                     linpred.lower,
+                                                     linpred.upper,
+                                                     linpred,
+                                                     gt.nearest.threshold,
+                                                     nearest.threshold
+                                                     )
+                                                  ]
+
+d.p[,editor.type:='Profile page']
+d.p[nearest.threshold=='maybebad',nearest.threshold:='Maybe damaging']
+d.p[nearest.threshold=='likelybad',nearest.threshold:='Likely damaging']
+d.p <- d.p[nearest.threshold !='verylikelybad']
+d.p[,nearest.threshold:=factor(nearest.threshold,levels=c("Maybe damaging", "Likely damaging"))]
+
+p.np.mb <- plot.rdd.simple(d.np[nearest.threshold=='Maybe damaging']) 
+
+# Extract legend as a grob
+g_legend<-function(a.gplot){
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend) }
+
+leg <- g_legend(p.np.mb)
+
+p.np.mb <- p.np.mb + theme(legend.position="none")
+
+p.p.mb <- plot.rdd.simple(d.p[nearest.threshold=='Maybe damaging'])
+
+p.p.mb <- p.p.mb + theme(legend.position="none")
+
+plots <- harmonize.scales(p.np.mb,p.p.mb)
+
+p.np.mb <- plots$p1
+p.p.mb <- plots$p2
+
+p.np.lb <- plot.rdd.simple(d.np[nearest.threshold=='Likely damaging']) 
+p.p.lb <- plot.rdd.simple(d.p[nearest.threshold=='Likely damaging']) 
+
+plots <- harmonize.scales(p.np.lb,p.p.lb)
+p.np.lb <- plots$p1 + theme(legend.position="none")
+p.p.lb <- plots$p2 + theme(legend.position="none")
+grid.arrange(arrangeGrob(p.np.mb,p.p.mb,
+                        p.np.lb,p.p.lb,
+                        ncol=2,bottom='Distance from threshold',left='Prob. Damaging'),
+                         legend=leg,ncol=2,widths=c(10,4))
+@ 
+
+\end{frame}
+
+\begin{frame}\frametitle{RQ1: Flagging and over-profiling: User pages}
+
+\larger
+
+Actions by editors \emph{without} User pages are more sensitive \\ to flagging than are edits \emph{with} User pages at the \\ ``maybe damaging'' threshold.  
+
+%  There are few edits by editors with profile pages flagged at the ``likely damaging'' threshold.
+
+  This points to the opposite conclusion as when we looked at registration status: algorithmic flagging seems to amplify over-profiling of editors without User pages. 
+
+\end{frame}
+
+
+\begin{frame}\frametitle{RQ2: Flagging and fair sanctioning: Registration status}
+
+\larger 
+
+Flagging decreases controversial sanctioning \\ for unregistered editors. 
+
+<<me.plot.H2.anon, echo=FALSE, fig.height=2, out.width='100%', results='asis'>>=
+make.rdd.plot(mod.anon.controversial.me.data.df, mod.all.controversial.bins.df, used.thresholds=c("maybebad","likelybad"), digits=3) + xlab("Distance from threshold") + ylab("Prob. Controversial")
+@ 
+
+\end{frame}
+
+\begin{frame}\frametitle{RQ2: Flagging and fair sanctioning: User pages}
+
+\larger
+
+We don't detect a change in controversial sanctioning \\ for editors without user pages. 
+  
+<<me.plot.H2.no.user.page, echo=FALSE, fig.height=2, out.width='\\textwidth', results='asis'>>=
+make.rdd.plot(mod.no.user.page.controversial.me.data.df, mod.all.controversial.bins.df, used.thresholds=c("maybebad","likelybad"), digits=3) + ylab("Prob. Controversial")
+@ 
+\end{frame}
+
+\begin{frame}\frametitle{Summary}
+
+\larger
+
+How does being flagged by an algorithm affect fair treatment \\ of those who facing barriers to participation?
+
+We use a regression discontinuity to estimate causal effects \\ of being flagged using data from Wikipedia. 
+
+Flagging made things better for \emph{unregistered} editors in 2 senses:
+\begin{description}
+\item[Reducing overprofiling:] Once flagged, they were sanctioned at a more similar rate as \emph{registered} editors. 
+\item[Formal rationality:] Flagging makes sanctions against unregistered editors more fair in terms of Wikipedian norms.  
+\end{description}
+
+But we didn't find this for \emph{editors without User pages}.
+
+While algorithmic flagging can improve fariness for some classes of user, the general relationship seems complex and contingent. 
+
+\end{frame}
+
+\begin{frame}\frametitle{Final points}
+\larger
+
+  While our estimates of the effects of flagging are causal, \\ comparison between types of editors is not. 
+
+  Perhaps editors without User pages are not over profiled, or the algorithm is biased against them.
+
+  This is about moderation on Wikipedia, but social and psychological processes of social signals and statistical discrimination might be common in other higher stakes settings where algorithmic flagging shapes human decision making. 
+
+\end{frame}
+
+
+\appendix
+
+
+
+\end{document}
+
+%  LocalWords:  xcolor dvipsnames beamer ugm phv sep pageofpages px
+%  LocalWords:  titleline alternativetitlepage titlepagelogo Torino
+%  LocalWords:  watermarkheight watermarkheightmult bg makopurple fg
+%  LocalWords:  noparskip colback colframe coltext coltitle fonttitle
+%  LocalWords:  colorlinks linkcolor citecolor filecolor urlcolor
+%  LocalWords:  unicode frametitle subbody subsubbody
