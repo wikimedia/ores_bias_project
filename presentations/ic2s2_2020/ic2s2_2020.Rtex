@@ -13,9 +13,12 @@ overwrite <- FALSE
 source("resources/preamble.R")
 @
 
+\definecolor{maybebad}{HTML}{d7e519}
+\definecolor{likelybad}{HTML}{db981c}
+\definecolor{verylikelybad}{HTML}{db3f1c}
 \usetheme{metropolis}
 \usepackage{appendixnumberbeamer}
-
+\usepackage{epstopdf}
 \usepackage{pgfpages}
 \input{notes.config}
 
@@ -148,7 +151,7 @@ BoldItalicFont  =   *-BoldItalic
 \usepackage{url}
 % \usepackage{dcolumn}
 % \usepackage{booktabs}
-
+\graphicspath{{resources}{figure}{figures}}
 % replace footnotes with symbols instead of numbers
 \renewcommand*{\thefootnote}{\fnsymbol{footnote}}
 \usepackage{perpage}
@@ -205,49 +208,74 @@ BoldItalicFont  =   *-BoldItalic
   }
 
   % include version control stuff
-  \input{vc}
-  \credit{Revision:\ \VCRevision\  (\VCDateTEX)}
+  % \input{vc}
+  % \credit{Revision:\ \VCRevision\  (\VCDateTEX)}
 \end{frame}
 
-\section{How will algorithmic flagging shape fairness of human decision making?}
+% \section{How will algorithmic flagging shape fairness of human decision making?}
 
+% \begin{frame}
+% \larger
+%   \sectionpage
 
-
-\begin{frame}
-\larger
-  \sectionpage
-
-  \note{This is an example section page.}
-\end{frame}
+%   \note{This is an example section page.}
+% \end{frame}
 
 \begin{frame}{What are we talking about?}
 
 \larger \larger
 
-Algorithmic predictions that inform human \\ decisions (judgments) that affect another person \\ by routing attention to those predicted as risky. 
+\emph{Algorithmic predictions} that \emph{route attention} or \emph{provide information} to influence \emph{human decisions} that \emph{affect another person}.
 
-\smaller
+\note{This project is about a kind of sociotechnical system where algorithmic predictions route attention or provide information to influence consequential human decisions
+ that affect other people} 
+\end{frame}
 
-\e{High stakes, legally complicated:} Should a judge grant bail to a defendant? Should a job applicant get an interview?  Should an applicant get a lease? 
 
-\e{Lower stakes:} Online moderation, where fairness impacts who has voice in communities and whose views are represented in important knowledge bases, but not individual life courses or systematic oppression. 
+% \begin{frame}
+%   \frametitle{Simplifying a debate: Will algorithms help or hurt fairness?}
+
+% \larger
+% \larger
+%   \e{Taste-based discrimination:}  \\ \emph{``I don't like people that look like you.''}
+
+%   Algorithmic flagging can be \emph{biased}; \\ reproduce or encode problematic categories or ontologies;
+
+%   \pause \vspace{1em}
+
+%   \e{Statistical discrimination:} \\  \emph{``People that look like you are likely to cause problems.''}
+
+% \end{frame}
+
+% \begin{frame}
+% \larger \larger
+% \enspace 
+% \enspace
+% \enspace
+
+% Can algorithmic flagging help by better accounting for more information than human judges and thereby reduce statistical discrimination?
+
+% \end{frame}
+
+
+
+\begin{frame}\frametitle{High stakes, legally complicated algorithms}
+\larger
+\centering
+\includegraphics[width=0.35\textwidth]{figures/court.pdf}  \\ \pause
+\vspace{-2em}
+\includegraphics[width=0.35\textwidth]{figures/job_application.jpg} \hfill \pause
+\includegraphics[width=0.35\textwidth]{figures/house.png} \pause
+\note{Some applications are high stakes, legally complicated: Should a judge grant bail to a defendant? Should a job applicant get an interview?  Should an applicant get a lease? These applications might be difficult to study for practical and ethical reasons.  }
 
 \end{frame}
 
-\begin{frame}
-  \frametitle{Simplifying a debate: Will algorithms help or hurt fairness?}
+\begin{frame}\frametitle{Lower stakes applications in social media moderation}
 
-\larger
+\includegraphics[width=0.45\textwidth]{figures/wikipedia_logo.png}\hfill
+\includegraphics[width=0.45\textwidth]{figures/reddit_logo.png}
 
-  \e{Taste-based discrimination:}  \\ \emph{``I don't like people that look like you.''}
-
-  Algorithmic flagging can be \emph{biased}; \\ reproduce problematic ontologies; \\ reinforce taste-based discrimination.
-
-  \pause \vspace{1em}
-
-  \e{Statistical discrimination:} \\  \emph{``People that look like you are likely to cause problems.''}
-
-  Can algorithmic flagging help by better accounting for more information that human judges and thereby reduce statistical discrimination?  
+\note{Similar kinds of systems are used in different contexts with lower stakes. In online moderation, how people are treated by moderators impacts who has voice in communities, whose views are represented in important knowledge bases, and the ability of moderators to prevent misbehavior, but not individual life courses or systematic oppression.}
 
 \end{frame}
 
@@ -257,22 +285,6 @@ Algorithmic predictions that inform human \\ decisions (judgments) that affect a
   \sectionpage
 \end{frame}
 
-\begin{frame}\frametitle{Moderation and fairness}
-
-  \larger 
-\enspace
-
-  Moderators use \emph{social signals} like \emph{registration} \\ and \emph{experience} to find and \emph{sanction} misbehavior. 
-
-  \enspace
-
-  People displaying such signals might be \e{over-profiled} if moderators focus their attention on them but not on others engaged in similar behavior.
-
-\enspace
-
-  Moderator actions can be considered unfair if they are \e{controversial sanctions} (i.e. a third person objects to the initial sanction).
-
-\end{frame}
 
 
 \begin{frame}\frametitle{Recent changes filters on Wikipedia}
@@ -298,16 +310,40 @@ Algorithmic predictions that inform human \\ decisions (judgments) that affect a
 
 \raggedright
 
-Flags are triggered by arbitrary thresholds, so we can use a regression discontinuity to estimate the causal effects of being flagged on moderator actions?
+\note{Flags are triggered by arbitrary thresholds, so we can use a regression discontinuity to estimate the causal effects of being flagged on moderator actions?}
 
 \end{frame}
 
+
+\begin{frame}\frametitle{Moderation and fairness}
+
+  \larger 
+\enspace
+
+  Moderators use \emph{social signals} like \emph{registration} \\ and \emph{experience} to find and \emph{sanction} misbehavior. 
+
+  \enspace
+
+  People displaying such signals might be \e{over-profiled} if moderators focus their attention on them but not on others engaged in similar behavior.
+
+\enspace
+
+  Moderator actions can be considered unfair if they are \e{controversial sanctions} (i.e. violates a meta-norm or a third person objects to the initial sanction).
+
+  \note{When we think about how an algorithmic flagging system shapes fairness it's important to think about the baseline.  How are moderators making decisions without the algorithmic signals? How are they making them with the signals?
+
+    Social signals like registration status and experience are clues that an editor might be misbehaving.  The moderators might use these signals the way that car insurance companies use sex as a sign that certain types of people are more risky than others.  This can lead to over-profiling if they focus their attention and their sanctioning actions on people that display these signals instead of others that might be up to equally bad if not even worse behavior.
+
+
+    This might lead to unfairness in terms of disproportionate sanctioning or in terms of incorrect sanctioning in terms of meta-norms that tell moderators when they should issue sanctions
+  }
+  \end{frame}
 
 \begin{frame}\frametitle{Research questions}
 \vspace{7em}
 \larger
 
-  \e{RQ1:} How will flagging an action change the likelihood an action is sanctioned for over-profiled edtitors compared to others?
+  \e{RQ1:} How will flagging an action change the likelihood an action is sanctioned for over-profiled editors compared to others?
 
   \e{RQ2:} How will flagging an action by an over-profiled editor change the chances it receives a controversial sanction?
 
@@ -319,7 +355,7 @@ Flags are triggered by arbitrary thresholds, so we can use a regression disconti
 \vspace{7em}
 \larger
 
-  \e{RQ1:} How will flagging an action change the likelihood an action is sanctioned for over-profiled edtitors compared to others?
+  \e{RQ1:} How will flagging an action change the likelihood an action is sanctioned for over-profiled editors compared to others?
 
   \e{RQ2:} How will flagging an action by an over-profiled editor change the chances it receives a controversial sanction?
 
@@ -331,9 +367,10 @@ Flags are triggered by arbitrary thresholds, so we can use a regression disconti
 
 \larger
 
-  An algorithmic predictor triggers flags when prediction scores \\ cross an \emph{arbitrary threshold}.
+An algorithmic predictor triggers flags when prediction \\
+scores an \emph{arbitrary threshold}.
 
-  So we infer the causal effects of flagging on moderation by \\ comparing edits right above the threshold with and  \\ conditioning  on the scores
+  So we infer the causal effects of flagging on moderation by \\ comparing edits right above the threshold with and  \\ conditioning  on the scores.
 
 \begin{minipage}{0.45\textwidth}
 <<adoption.me.plot, echo=FALSE, fig.height=2.0, fig.width=3,out.width='\\textwidth',dev='pdf',cache=F>>=
@@ -345,8 +382,9 @@ print(p + ggtitle("") + theme(strip.text.x=element_blank()))
 \hfill
 \begin{minipage}{0.45\textwidth}
 By the way, we use Bayesian models fit with Rstanarm. 
-\end{minipage}
 
+\note{This lets us draw a robust comparison between edits that are flagged and edits that are not flagged}
+\end{minipage}
 
 \end{frame}
 
@@ -354,10 +392,11 @@ By the way, we use Bayesian models fit with Rstanarm.
 
 \larger
 
+
 \begin{itemize}
-\item Public data of Wikipedia edit history
-\item Historical prediction scores maintained by Wikimedia \\ (to be released)
-\item Thresholds (``maybe damaging'', ``likely damaging'', \\ ``very likely damaging'') reconstructed by loading old models and configuration files
+%\item Public data of Wikipedia edit history
+%\item Historical prediction scores maintained by Wikimedia \\ (to be released)
+\item Thresholds (\textcolor{maybebad}{maybe damaging}, \textcolor{likelybad}{likely damaging})\\ reconstructed by loading old models and configuration files
 \item Stratified sample with up to \Sexpr{length(adoption.check.included.wikis)} different language editions of Wikipedia.
 \end{itemize}
 
@@ -367,11 +406,11 @@ Unit of analysis: \emph{revision to an article}
 
 \item[overprofiling:] \emph{registration status} and \emph{redlink User pages}.
 \item[sanction:] a revision is undone by a second party.
-\item[\hspace{0.2em} controversial sanction:] a sanction is undone by a third party.
+\item[controversial sanction:] a sanction is undone by a third party.
 
 \end{description}
 
-%We didn't find overall effects on sanctioning at the highest (very likely damaging) threshold, so we exclude it.
+\note{We didn't find overall effects on sanctioning at the highest (very likely damaging) threshold, so we exclude it.}
 \end{frame}
 
 \section{Results}
@@ -480,28 +519,79 @@ grid.arrange(arrangeGrob(p.anon.mb,p.non.anon.mb,
 @ 
 \end{frame}
 
-\begin{frame}\frametitle{RQ1: Flagging and over-profiling: Registration status}
 
- \larger
+\begin{frame}\frametitle{RQ2: Flagging and fair sanctioning: Unregistered editors}
 
-We find quite large effects of flagging on sanctioning. 
+\larger 
 
-Unflagged actions by unregistered editors \\ are far more likely to be reverted. 
+Flagging decreases controversial sanctioning \\ for unregistered editors. 
 
-Once flagged, actions by registered and unregistered editors are reverted at relatively similar rates.
+<<me.plot.H2.anon, echo=FALSE, fig.height=2, out.width='100%', results='asis'>>=
+make.rdd.plot(mod.anon.controversial.me.data.df, mod.all.controversial.bins.df, used.thresholds=c("maybebad","likelybad"), digits=3) + xlab("Distance from threshold") + ylab("Prob. Controversial")
+@ 
 
-This is evidence that Wikipedia moderators overprofile based on registration status and that algorithmic flagging reduces this over-profiling. 
-
-% Being flagged at the ``maybe damaging'' increases the probability of sanctioning from  for unregistered contributors a change of between \Sexpr{round((anon.md.proto.above$linpred.lower - anon.md.proto.below$linpred.upper)*100,1)} and \Sexpr{round((anon.md.proto.above$linpred.upper - anon.md.proto.below$linpred.lower)*100,1)}
-% percentage points. 
-
-% For registered contributors the increase is \emph{larger:} from \Sexpr{format.percent(non.anon.md.proto.below$linpred,1)} to \Sexpr{format.percent(non.anon.md.proto.above$linpred,1)}, change of between \Sexpr{round((non.anon.md.proto.above$linpred.lower - non.anon.md.proto.below$linpred.upper)*100,1)} and \Sexpr{round((non.anon.md.proto.above$linpred.upper - non.anon.md.proto.below$linpred.lower)*100,1)} percentage points.  
-
-% Similarly, at the ``likely damaging'' threshold we see an increases in sanctioning probability from \Sexpr{format.percent(anon.ld.proto.below$linpred,1)} to \Sexpr{format.percent(anon.ld.proto.above$linpred,1)} for unregistered contributors a change of between \Sexpr{round((anon.ld.proto.above$linpred.lower - anon.ld.proto.below$linpred.upper)*100,1)} and \Sexpr{round((anon.ld.proto.above$linpred.upper - anon.ld.proto.below$linpred.lower)*100,1)}
-% percentage points. 
-
-% And for registered contributors the increase is \emph{larger:} from \Sexpr{format.percent(non.anon.ld.proto.below$linpred,1)} to \Sexpr{format.percent(non.anon.ld.proto.above$linpred,1)}, change of between \Sexpr{round((non.anon.ld.proto.above$linpred.lower - non.anon.ld.proto.below$linpred.upper)*100,1)} and \Sexpr{round((non.anon.ld.proto.above$linpred.upper - non.anon.ld.proto.below$linpred.lower)*100,1)} percentage points.  
 \end{frame}
+
+% \begin{frame}\frametitle{RQ1: Flagging and over-profiling: Registration status}
+
+%  \larger
+
+% We find quite large effects of flagging on sanctioning. 
+
+% Unflagged actions by unregistered editors \\ are far more likely to be reverted. 
+
+% Once flagged, actions by registered and unregistered editors are reverted at relatively similar rates.
+
+% This is evidence that Wikipedia moderators overprofile based on registration status and that algorithmic flagging reduces this over-profiling. 
+
+% % Being flagged at the ``maybe damaging'' increases the probability of sanctioning from  for unregistered contributors a change of between \Sexpr{round((anon.md.proto.above$linpred.lower - anon.md.proto.below$linpred.upper)*100,1)} and \Sexpr{round((anon.md.proto.above$linpred.upper - anon.md.proto.below$linpred.lower)*100,1)}
+% % percentage points. 
+
+% % For registered contributors the increase is \emph{larger:} from \Sexpr{format.percent(non.anon.md.proto.below$linpred,1)} to \Sexpr{format.percent(non.anon.md.proto.above$linpred,1)}, change of between \Sexpr{round((non.anon.md.proto.above$linpred.lower - non.anon.md.proto.below$linpred.upper)*100,1)} and \Sexpr{round((non.anon.md.proto.above$linpred.upper - non.anon.md.proto.below$linpred.lower)*100,1)} percentage points.  
+
+% % Similarly, at the ``likely damaging'' threshold we see an increases in sanctioning probability from \Sexpr{format.percent(anon.ld.proto.below$linpred,1)} to \Sexpr{format.percent(anon.ld.proto.above$linpred,1)} for unregistered contributors a change of between \Sexpr{round((anon.ld.proto.above$linpred.lower - anon.ld.proto.below$linpred.upper)*100,1)} and \Sexpr{round((anon.ld.proto.above$linpred.upper - anon.ld.proto.below$linpred.lower)*100,1)}
+% % percentage points. 
+
+% % And for registered contributors the increase is \emph{larger:} from \Sexpr{format.percent(non.anon.ld.proto.below$linpred,1)} to \Sexpr{format.percent(non.anon.ld.proto.above$linpred,1)}, change of between \Sexpr{round((non.anon.ld.proto.above$linpred.lower - non.anon.ld.proto.below$linpred.upper)*100,1)} and \Sexpr{round((non.anon.ld.proto.above$linpred.upper - non.anon.ld.proto.below$linpred.lower)*100,1)} percentage points.  
+% \end{frame}
+
+% \begin{frame}\frametitle{Flagging improves fairness for unregistered editors}
+
+% \begin{description}
+% \item[Reducing overprofiling:] Once flagged, they were sanctioned \\ at a similar rate to \emph{registered} editors. 
+% \item[Improve moderator decisions:] Flagging makes sanctions against unregistered editors more fair in terms of Wikipedian norms.  
+% \end{description}
+
+% \end{frame}
+
+
+% \begin{frame}\frametitle{Recent changes filters on Wikipedia}
+% \vspace{15em}
+%     \centering
+% \larger
+% \begin{tikzpicture}
+
+%   \node[anchor=west](flags) at (-7,2.7) {ORES Flags};
+% %  \node[anchor=west](pagetitle) at (-4.7,2.7) {Page titles};
+%   \node[anchor=west](userpagelink) at (-2.9,2.7) {Red user profile link};
+%   \node[anchor=west](unregistered) at (1.4,2.7) {Unregistered editor};
+
+
+%   \begin{scope}
+%   \node[anchor=south, inner sep=0] (image) at (0,0) {\includegraphics[width=\textwidth]{resources/rcfilters_example_2.png}};
+%   \draw [-stealth,ultra thick] (flags.220) -- ++(0,-0.4);
+% %  \draw [-stealth,ultra thick] (pagetitle.south) -- ++(0,-0.4);
+%   \draw [-stealth,ultra thick] (unregistered.200) -- (1.5,2);
+%   \draw [-stealth,ultra thick] (userpagelink.280) -- (0.2,1.6);
+% \end{scope}
+% \end{tikzpicture}
+
+% \raggedright
+
+% %Flags are triggered by arbitrary thresholds, so we can use a regression discontinuity to estimate the causal effects of being flagged on moderator actions?
+
+% \end{frame}
+
 
 \begin{frame}\frametitle{RQ1: Flagging and over-profiling: User pages}
 
@@ -573,32 +663,20 @@ grid.arrange(arrangeGrob(p.np.mb,p.p.mb,
 
 \end{frame}
 
-\begin{frame}\frametitle{RQ1: Flagging and over-profiling: User pages}
+% \begin{frame}\frametitle{RQ1: Flagging and over-profiling: User pages}
 
-\larger
+% \larger
 
-Actions by editors \emph{without} User pages are more sensitive \\ to flagging than are edits \emph{with} User pages at the \\ ``maybe damaging'' threshold.  
+% Actions by editors \emph{without} User pages are more sensitive \\ to flagging than are edits \emph{with} User pages at the \\ ``maybe damaging'' threshold.  
 
-%  There are few edits by editors with profile pages flagged at the ``likely damaging'' threshold.
+% %  There are few edits by editors with profile pages flagged at the ``likely damaging'' threshold.
 
-  This points to the opposite conclusion as when we looked at registration status: algorithmic flagging seems to amplify over-profiling of editors without User pages. 
+%   This points to the opposite conclusion as when we looked at registration status: algorithmic flagging seems to amplify over-profiling of editors without User pages. 
 
-\end{frame}
+% \end{frame}
 
 
-\begin{frame}\frametitle{RQ2: Flagging and fair sanctioning: Registration status}
-
-\larger 
-
-Flagging decreases controversial sanctioning \\ for unregistered editors. 
-
-<<me.plot.H2.anon, echo=FALSE, fig.height=2, out.width='100%', results='asis'>>=
-make.rdd.plot(mod.anon.controversial.me.data.df, mod.all.controversial.bins.df, used.thresholds=c("maybebad","likelybad"), digits=3) + xlab("Distance from threshold") + ylab("Prob. Controversial")
-@ 
-
-\end{frame}
-
-\begin{frame}\frametitle{RQ2: Flagging and fair sanctioning: User pages}
+\begin{frame}\frametitle{RQ2: Flagging and fair sanctioning: No User pages}
 
 \larger
 
@@ -609,37 +687,35 @@ make.rdd.plot(mod.no.user.page.controversial.me.data.df, mod.all.controversial.b
 @ 
 \end{frame}
 
-\begin{frame}\frametitle{Summary}
+\begin{frame}\frametitle{Conclusion}
 
 \larger
 
-How does being flagged by an algorithm affect fair treatment \\ of those who facing barriers to participation?
+  Perhaps editors without User pages are not over profiled, \\ or the algorithm is biased against them. \pause
 
-We use a regression discontinuity to estimate causal effects \\ of being flagged using data from Wikipedia. 
+  While our estimates of the effects of flagging are causal, \\ comparison between types of editors is not. \pause
 
-Flagging made things better for \emph{unregistered} editors in 2 senses:
-\begin{description}
-\item[Reducing overprofiling:] Once flagged, they were sanctioned at a more similar rate as \emph{registered} editors. 
-\item[Formal rationality:] Flagging makes sanctions against unregistered editors more fair in terms of Wikipedian norms.  
-\end{description}
+  This is about moderation on Wikipedia, but social and psychological processes might be similar in high stakes settings. \pause
 
-But we didn't find this for \emph{editors without User pages}.
-
-While algorithmic flagging can improve fariness for some classes of user, the general relationship seems complex and contingent. 
+  While algorithmic flagging can improve fariness for some classes of user, the general relationship seems complex and contingent. \pause
 
 \end{frame}
 
-\begin{frame}\frametitle{Final points}
-\larger
+\begin{frame}
 
-  While our estimates of the effects of flagging are causal, \\ comparison between types of editors is not. 
+  Thank you!
 
-  Perhaps editors without User pages are not over profiled, or the algorithm is biased against them.
+  \href{mailto:nathante@uw.edu}{nathante@uw.edu}
 
-  This is about moderation on Wikipedia, but social and psychological processes of social signals and statistical discrimination might be common in other higher stakes settings where algorithmic flagging shapes human decision making. 
+  \includegraphics[height=1.5em]{figures/Twitter_Logo_Blue.pdf} @groceryheist
+
+  Manuscript on Arxiv:  \url{https://arxiv.org/abs/2006.03121}
+
+  \url{https://teblunthuis.cc}
+
+  \url{https://communitydata.science}
 
 \end{frame}
-
 
 \appendix
 
