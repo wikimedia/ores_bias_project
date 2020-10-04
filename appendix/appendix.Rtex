@@ -18,6 +18,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage{wrapfig}
+\usepackage{subcaption}
 \usepackage{booktabs}
 <<init, echo=FALSE>>=
 library(knitr)
@@ -140,6 +141,22 @@ for(i in 1:length(models.draws.list)){
 % Show sample sizes by: wiki
 % Show sample sizes by: cutoff
 % Don't show weights
+
+\section{Data summary}
+
+\begin{table}[hp!]
+  \centering
+  \footnotesize
+  <<edits.editors.table,echo=F,results='asis'>>=
+  tab <- r4$summary.edits.and.editors
+  tab <- tab[,.(nearest.threshold,edit.type,editor.type,N,prop.threshold,prop.edit.type,prop.editor.type)]
+  setnames(tab,old=c('nearest.threshold','editor.type','edit.type','prop.threshold','prop.edit.type','prop.editor.type'),
+           new=c('Threshold','Editor type','Edit type','\\% at threshold','\\% edit types','\\% editor types'))
+  print(xtable(tab))
+@ 
+
+\end{table}
+  
 
 \section{Tables of sample sizes by wiki, model, and threshold}
 ~
@@ -531,6 +548,121 @@ We use the same priors for all of our models, which are the default priors in rs
 
 For every model coefficient, which are log-odds ratios. We use a normal distribution prior with mean $0$ and standard deviation $2.5$.  For model intercepts we use normal distribution priors with mean $0$ and standard deviation $10$.  These are relatively weak priors that are conservative in the sense that they gently nudge our estimates toward zero.
 
+\section{Analysis of model encoded bias}
+
+How do our main results depend on the biases encoded in the ORES models?
+It might be that the increase in fairness we observe for flagged unregistered editors depends on low levels of model encoded bias against anonymous editors.  That we observe an improvement in fairness for unregistered editors but not for editors without user pages might be explained if the models are biased in favor of unregistered editors compared to editors without user pages. 
+
+To investigate such alternative explanations we turn to an analysis of the biases encoded in the ORES models.
+It turns out that the ORES models are substantially biased against unregistered editors and are relatively less biased against editors without user pages. Therefore model encoded bias does not explain the results of our paper.  Rather we believe that the differences are attributable to the extent of over-profiling against unregistered editors by Wikipedia moderators. 
+
+There are many possible ways of defining fairness. We consider balance and calibration. A well-calibrated classifier predicts similarly accurate probabilities regardless of status. It is free to predict that over-profiled have a higher probability of making damaging edits compared to others. But if the ORES classifier systematically over-estimates this probability, then we would say that it is biased against over-profiled in terms of calibration.
+
+The second fairness criteria I consider is balance. As with calibration, a balanced classifier is free to associate over-profiled editors with a greater risk of making damaging edits. But instead of looking at the predicted probabilities, balance considers the kinds of errors the algorithm makes. A false-positive error occurs when the model predicts damage, but the edit was not truely damaging. Since having your edit labeled damaging is a bad thing, a model with a higher false-positive-rate (fpr) for over-profiled editors to others editors is biased in terms of false-positive balance. If ORES has this kind of bias then edits by over-profiled editors will be more likely to be labeled as damaging when they are actually good edits compared to other editors.
+
+Similarly, a false-negative error occurs when the model predicted that the edit was good, but the edit was actually damaging. Similarly, a model with a lower false-negative-rate (fnr) is based in terms of false-negative balance. If ORES has this kind of bias then edits by over-profiled editors will be less likely to be labeled as good when they are actually good compared to other editors.
+
+It turns out that, while both of these notions of classifier fairness might seem reasonable or intuitive, that it isn't possible in practice to have them both (unless your model is a perfect predictor or the status is irrelavent) \citep{kleinberg_inherent_2016}.  Because we analyze multiple operating points, calibration is a simpler diagnostic, so we present that first, but our conclusions do not depend on which metric we look at.  All of the ORES models are considerably biased against unregistered editors.Many are also biased against editors without user pages, but the degree of bias with respect to User page status is generally much less that for registration status.  
+
+ORES is trained using a mixture of human-labeled edits and edits made by experienced editors that are assumed to be non-damaging.  We analyze the human-labeled edits and models that were used as of December 19th 2019. Since the models we analyze are under active developement, it is likely that the precise degrees of bias in the different models will vary over time. For each label in the dataset, we obtain the ores score that the model would have made if the edit had been made on December 19th 2020.  We then compute calibration, false positive balance, and false negative balance with 95\% confidence intervals derived from standard errors given the available sample of labels.   
+
+
+
+
+\begin{figure}
+
+<<up.model.calibration,echo=F,results='asis',message=F>>=,
+setwd("../appendix")
+r <- readRDS("evaluate_encoded_bias.RDS")
+attach(r)
+df <- as.data.table(user_page_bias_rates)
+df2 <- as.data.table(anon_bias_rates)
+df2 <- df2[group=='anon',group:="Unregistered"]
+df2 <- df2[group=='other',group:="Registered"]
+df <- df[group=='no_user_page', group:="No User page"]
+df <- df[group=='user_page', group:="User page"]
+df <- rbind(df,df2)
+df <- df[group!='other']
+df <- df[,group := factor(group,levels=c("Registered","Unregistered","User page", "No User page"))]
+df <- df[!(wiki %in% c('data','esbooks','esquote'))]
+p <- ggplot(df,aes(x=wiki,y=dmg_miscalibration_mean,ymax=dmg_miscalibration_upper,ymin=dmg_miscalibration_lower,color=group)) + geom_pointrange()
+p <- p + ylab(parse(text="P_[model](damaging)-P(damaging)"))
+p <- p + xlab("Wiki")
+p <- p + guides(color=guide_legend(""))
+p
+@ 
+\caption{Miscalibration by User page and registration status}
+\end{figure}
+
+\begin{figure}
+<<up.model.bias.fpr,echo=F,results='asis',message=F>>=
+setwd("../appendix")
+r <- readRDS("evaluate_encoded_bias.RDS")
+attach(r)
+df <- as.data.table(fp_rates_damaging_user_pages_user_pages)
+df2 <- as.data.table(fp_rates_damaging_anons_anons)
+df2 <- df2[group=='anon',group:="Unregistered"]
+df2 <- df2[group=='other',group:="Registered"]
+df <- rbind(df,df2)
+df <- df[group=='no_user_page', group:="No User page"]
+df <- df[group=='user_page', group:="User page"]
+df <- df[group!='other']
+df <- df[,group := factor(group,levels=c("Registered","Unregistered","User Page", "No User page"))]
+df <- df[!(wiki %in% c('data','esbooks','esquote'))]
+df <- df[(variable %in% c('May have problems','Likely have problems','Very likely have problems'))]
+df <- df[variable == "May have problems",variable := "Maybe damaging"]
+df <- df[variable == "Likely have problems",variable := "Likely damaging"]
+df <- df[variable == "Very likely have problems",variable := "Very likely damaging"]
+
+p <- ggplot(df[group!='other'], aes(x=wiki,y=mean,ymax=upper,ymin=lower,color=group)) + geom_pointrange()
+#p <- p + ggtitle("False Positive Rates By User Page Status")
+p <- p + facet_wrap(.~variable,scales='free_y',ncol=1)
+p <- p + xlab("Wiki")
+p <- p + ylab("False positive rate (Damage predicted, but actually good)")
+p <- p + guides(color=guide_legend(""))
+p
+@ 
+\caption{False Positive Rates By User Page Status}
+\end{figure}
+
+\begin{figure}
+<<up.model.bias.fnr,echo=F,results='asis',message=F>>=
+setwd("../appendix")
+r <- readRDS("evaluate_encoded_bias.RDS")
+attach(r)
+
+df <- as.data.table(fn_rates_damaging_user_pages_user_pages)
+df2 <- as.data.table(fn_rates_damaging_anons_anons)
+df2 <- df2[group=='anon',group:="Unregistered"]
+df2 <- df2[group=='other',group:="Registered"]
+df <- rbind(df,df2)
+df <- df[group=='no_user_page', group:="No User page"]
+df <- df[group=='user_page', group:="User page"]
+df <- df[group!='other']
+df <- df[,group := factor(group,levels=c("Registered","Unregistered","User Page", "No User page"))]
+df <- df[!(wiki %in% c('data','esbooks','esquote'))]
+df <- df[variable == "fn_dmg_maybe",variable := "Maybe damaging"]
+df <- df[variable == "fn_dmg_likely",variable := "Likely damaging"]
+df <- df[variable == "fn_dmg_very_likely",variable := "Very likely damaging"]
+df <- df[variable == "May have problems",variable := "Maybe damaging"]
+df <- df[variable == "Likely have problems",variable := "Likely damaging"]
+df <- df[variable == "Very likely have problems",variable := "Very likely damaging"]
+
+df <- df[(variable %in% c('Maybe damaging','Likely damaging','Very likely damaging'))]
+
+p <- ggplot(df[group!='other'], aes(x=wiki,y=mean,ymax=upper,ymin=lower,color=group)) + geom_pointrange()
+#p <- p + ggtitle("False Positive Rates By User Page Status")
+p <- p + facet_wrap(.~variable,scales='free_y',ncol=1)
+p <- p + xlab("Wiki")
+p <- p + ylab("False negative rate (Good edit predicted, but actually damaging)")
+p <- p + guides(color=guide_legend(""))
+p
+@ 
+\caption{False Negative Rates By User Page Status}
+\end{figure}
+
+
+
 % ## row.tau.anon <- make.overall.regtab.row(h1.tau.anon, 'tau_sum_anon_reverted', '$\\sum{\\tau_j^{\\mathrm{IP}}}$')
 
 % ## row.tau.non.anon <- make.overall.regtab.row(h1.tau.non.anon, 'tau_sum_non_anon_reverted', '$\\sum{\\tau_j^\\mathrm{not~IP}}$')
@@ -539,10 +671,6 @@ For every model coefficient, which are log-odds ratios. We use a normal distribu
 
 % ## table.data <- rbind(table.anon, table.non.anon, row.tau.anon, row.tau.non.anon, row.diff)
 % , table.non.anon)
-
-
-
-
 
 
 
@@ -874,6 +1002,8 @@ For every model coefficient, which are log-odds ratios. We use a normal distribu
 
 % \setcounter{biburlnumpenalty}{9001}
 % \printbibliography[title = {References}, heading=secbib]
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{OresAudit.bib}
 \end{document}
 
 % LOCAL_WORDS: decile
