@@ -1,4 +1,7 @@
-library(logistf)
+library(rstanarm)
+#xlibrary(lme4)
+library(parallel)
+library(future)
 library(ggplot2)
 library(gridExtra)
 library(grid)
@@ -6,82 +9,77 @@ library(data.table)
 source("helper.R")
 source("ob_util.R")
 source("RemembR/R/RemembeR.R")
-library(rstanarm)
-library(parallel)
-library(future)
+print("loaded libraries")
+
 partial <- purrr::partial
 
 ## setup.cluster <- function(nodes, jobs.per.node){
 
-
-mcaffinity(1:detectCores()) ## required and explained below 
+parallel::mcaffinity(1:detectCores()) ## required and explained below 
 options(mc.cores = parallel::detectCores())
 theme_set(theme_bw())
 
-start.cluster <- function(nodes, jobs.per.node){
+start.cluster <- function(jobs.per.node, nodes=NULL){
+
+if(is.null(nodes)){
+    nodes <- system2("scontrol", "show hostnames", stdout=TRUE)
+} 
+
 workers <- unlist(lapply(nodes, partial(rep, times=jobs.per.node)))
 ## # the MPI cluster is better in theory. 
 ##     cl <- future::makeClusterPSOCK(workers=workers)
 
 ##     return(cl)
 ## }
-
-plan(cluster, workers=workers)
+if(length(unique(workers)) > 1)
+    plan(cluster, workers=workers)
+else
+    plan(multiprocess, workers=length(workers))
 }
 
 library(promises)
 overwrite = FALSE
 
 build.rdd.dataset <- function(cutoffs=NULL){
-    df <- load.rdd.ds(cutoffs=cutoffs)
-    df <- add.rescored.revisions(df)
+    df <- load.rdd.ds()
     df <- transform.threshold.variables(df)
-    rcfilters.dates <- df[(has.ores==T) & (has.rcfilters==T) & (has.rcfilters.watchlist==T), .(date=min(date)),by=wiki.db]
-    df <- df[,":="(post.cutoff.fact = as.factor(pre.cutoff == FALSE),
-               wiki.db = as.factor(wiki.db),
-               revision.is.identity.reverted.bin=revision.is.identity.reverted=="TRUE")]
-    df.cutoff <- df[rcfilters.dates, on=.(wiki.db,date)]
-    return(df.cutoff)
+
+    remember(df[!(is.na(prob.damaging)) & !(is.na(d.nearest.threshold)), .N, by=.(wiki.db, anon.new.established)], 'missing.thresholds.scores.table')
+
+    df <- df[!(is.na(prob.damaging)) & !(is.na(d.nearest.threshold))]
+    return(df)
 }
 
-if(!(exists("df.cutoff"))){
-    df.cutoff <- build.rdd.dataset()
-    df.pre <- df.cutoff[pre.cutoff==T]
-    df.post <- df.cutoff[pre.cutoff==F]
-}
-
-gen.synthetic.data <- function(wiki, df.cutoff){
+gen.synthetic.data <- function(wiki, df.cutoff, dv, n=100, prob = 0.03, placebo.shift=0){
 
     syn.cutoffs <- first(df.cutoff[wiki.db==wiki,.(wiki.db,
-                                                   damaging.maybebad.min,
-                                                   damaging.likelybad.min,
-                                                   damaging.verylikelybad.min,
-                                                   damaging.likelygood.max,
-                                                   revision.is.identity.reverted=NA
+                                                   damaging.maybebad.min.value,
+                                                   damaging.likelybad.min.value,
+                                                   damaging.verylikelybad.min.value
                                                        )])
 
-    syndata <- data.table(prob.damaging = 0:10000/10000)
-
-    syndata[, ":="(has.rcfilters.watchlist=FALSE, wiki.db=wiki)]
-
-    syndata2 <- copy(syndata)
-
-    syndata2[,has.rcfilters.watchlist:=TRUE]
-
-    syndata <- rbindlist(list(syndata,syndata2))
     
-    syndata <- syndata[syn.cutoffs, on=.(wiki.db)]
 
-    syndata <- transform.threshold.variables(syndata)
+    syn.cutoffs[[dv]] <- NA
 
-    syndata$revision.is.identity.reverted = NULL
-    syndata <- syndata[,":="(has.rcfilters.watchlist = as.factor(has.rcfilters.watchlist),
-                             post.cutoff = has.rcfilters.watchlist,
-                             post.cutoff.fact = as.factor(has.rcfilters.watchlist))]
+    thresholds = unlist(lapply(unique(df.cutoff$nearest.threshold), function(t) rep(t, n)))
+
+    syndata <- data.table(d.nearest.threshold = rep(seq(-prob,prob,length.out=n),),
+                          nearest.threshold=thresholds,
+                          damaging.maybebad.min.value=rep(syn.cutoffs$damaging.maybebad.min.value,n),
+                          damaging.likelybad.min.value=rep(syn.cutoffs$damaging.likelybad.min.value,n),
+                          damaging.verylikelybad.min.value=rep(syn.cutoffs$damaging.verylikelybad.min.value,n),
+                          wiki.db = rep(syn.cutoffs$wiki.db,n))
+
+    syndata[nearest.threshold=='maybebad',threshold:=damaging.maybebad.min.value]
+    syndata[nearest.threshold=='likelybad',threshold:=damaging.likelybad.min.value]
+    syndata[nearest.threshold=='verylikelybad',threshold:=damaging.verylikelybad.min.value]
+    syndata[,d.abs.nearest.threshold := abs(d.nearest.threshold)]
+    syndata[,prob.damaging:=threshold+d.nearest.threshold]
+    syndata[,gt.nearest.threshold:=d.nearest.threshold>0]
 
     return(syndata)
 }
-
 do.model <- function(stancall, fit.loo=FALSE, fit.waic=TRUE, output=NULL, overwrite=TRUE, capture.output=FALSE){
     work <- function(QR=TRUE, fit.loo,fit.waic){
         result <- stancall(QR=QR)

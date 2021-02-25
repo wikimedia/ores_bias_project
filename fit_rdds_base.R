@@ -12,14 +12,24 @@ if(! exists("overwrite"))
     overwrite <- TRUE
 
 source("rdd_defaults.R")
+if(!exists("sample.filename")){
+    print('using default sample')
+    sample.filename<-"cutoff_revisions_sample.csv"
+}
 
-df  <- build.rdd.dbds()
-revert.df <- df[revision.is.identity.reverted == TRUE]
+if(!exists("strata.counts.filename")){
+    print('using default weights')
+    strata.counts.filename <- "threshold_strata_counts_sample.csv"
+}
+
+df  <- build.rdd.dbds(filename <- sample.filename,
+                      strata_counts <- strata.counts.filename)
+
+revert.df <- df[reverted.in.48h == TRUE]
 #we moved to a bigger dataset so increase p
 remember(p,'bandwidth')
 
-
-min.obs.per.wiki.threshold <- 10
+min.obs.per.wiki.threshold <- 3
 df <- df[,within.neighborhood := d.abs.nearest.threshold <= p]
 df <- df[(within.neighborhood==T)]
 #df <- df[wiki.db %in% c('eswiki','frwiki','fiwiki','enwiki')]
@@ -51,14 +61,25 @@ check.adoption <- function(wiki){
 }
 
 
-prepare.model  <- function(dta, name, form, do.remember=TRUE){
+prepare.model  <- function(dta, name, form, do.remember=TRUE, drop.verylikelybad=FALSE){
+
+    if(drop.verylikelybad==TRUE){
+        n.thresholds <- 2
+        dta <- dta[nearest.threshold != 'verylikelybad']
+    } else {        
+        n.thresholds <- length(unique(dta$nearest.threshold))
+    }
+
+    outcome <- all.vars(form)[1] 
     dta <- dta[!is.na(nearest.threshold)]
+    # don't include nas in calculating weights
+    dta <- dta[!is.na(dta[[outcome]])]
     obs.per.wiki.threshold <- dta[,.(.N),by=.(wiki.db, nearest.threshold)]
     obs.per.wiki.threshold <- obs.per.wiki.threshold[N >= min.obs.per.wiki.threshold]
     thresholds.per.wiki <- obs.per.wiki.threshold[,.(.N), by=.(wiki.db)]
 
-    included.wikis <- thresholds.per.wiki[N==3]$wiki.db
-    excluded.wikis <- thresholds.per.wiki[N!=3]$wiki.db
+    included.wikis <- thresholds.per.wiki[N==n.thresholds]$wiki.db
+    excluded.wikis <- thresholds.per.wiki[N!=n.thresholds]$wiki.db
 ## excluded.wikis <- c()
 ##     ## drop wikis with less than 100 observations
 ##     for(wiki in unique(dta$wiki.db)){
@@ -94,11 +115,22 @@ prepare.model  <- function(dta, name, form, do.remember=TRUE){
     #rescale weight so it sums to N
     strata <- unique(dta[,.(strata, count, obs.count=.N),by=.(strata)])
     dta <- dta[,c("count","fraction"):=NULL]
-    strata <- strata[, N := sum(count)]
+    multi.threshold <- FALSE
+    if(length(unique(strata$nearest.threshold)) > 1){
+        strata <- strata[, N := sum(count),by=.(nearest.threshold)]
+        multi.threshold <- TRUE
+    } else {
+        strata <- strata[, N := sum(count)]
+    }
     # fraction is the probability an observation 
     strata <- strata[,pop.fraction:= count/N]
     dta <- dta[strata, on=.(strata)]
-    total.obs <- nrow(dta)
+
+    if(multi.threshold){
+        total.obs <- dta[,.(N),by=.(nearest.threshold)]
+    } else {
+        total.obs <- nrow(dta)
+    }
     ## weights should be (prop of population in strata) / (fraction of observations in strata)
     
     dta <- dta[, obs.fraction := .N/total.obs, by=.(strata)]
@@ -107,11 +139,11 @@ prepare.model  <- function(dta, name, form, do.remember=TRUE){
     return(dta)
 } 
 
-fit.model  <- function(dta, name, form, do.remember=TRUE){
+fit.model  <- function(dta, name, form, do.remember=TRUE, drop.verylikelybad = FALSE){
 #    mcaffinity(1:detectCores()) ## required and explained below 
     options(mc.cores = parallel::detectCores())
 
-    dta  <- prepare.model(dta,name,form, do.remember)
+    dta  <- prepare.model(dta,name,form, do.remember, drop.verylikelybad = drop.verylikelybad)
     dta  <- data.frame(dta)
 
     assign("dta",dta,envir=globalenv())
@@ -127,7 +159,7 @@ fit.model  <- function(dta, name, form, do.remember=TRUE){
                     QR=QR
                     )
 
-    saveRDS(mod, file.path("/gscratch/comdata/users/nathante/ores_bias_project/models", paste(name,"stanmod","RDS", sep='.')))
+    saveRDS(mod, file.path("/gscratch/comdata/users/nathante/ores_bias_project/sample_models", paste(name,"stanmod","RDS", sep='.')))
     return(mod)
 } 
 
