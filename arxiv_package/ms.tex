@@ -1,0 +1,693 @@
+\documentclass[format=acmsmall, natbib=true,  screen=true]{acmart}
+\pdfoutput=1
+\usepackage[]{acmcopyright}
+\usepackage[]{graphicx}
+\usepackage[]{color}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+
+
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+
+\setcopyright{rightsretained}
+\copyrightyear{2020}
+\acmYear{2020}
+\acmDOI{}
+
+%% These commands are for a PROCEEDINGS abstract or paper.
+%%\acmConference[CSCW '20]{CSCW '20: Conference on Computer-Supported Cooperative Work and Social Computing}{October 17--21, 2020}{Minneapolis, MN}
+%\acmBooktitle{Test} % Don't know why this is throwing an error
+\acmPrice{}
+\acmISBN{}
+
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage{amsmath, amsthm} %, amssymb}
+
+% add bibliographic stuff 
+\usepackage[american]{babel}
+\def\citepos#1{\citeauthor{#1}'s \cite{#1}}
+\def\citespos#1{\citeauthor{#1}' \cite{#1}}
+
+\hyphenation{social-psy-cho-lo-gi-cal}
+%\newcommand{\oressource}{oresarchaeologist}
+\newcommand{\TODO}[1]{{\color{red} TODO: #1}}
+\newcommand{\todo}[1]{\TODO{#1}}
+\newcommand{\oressource}{\oresdatabase}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+\newcommand{\mywidth}{.6\columnwidth}
+
+
+
+\title[The effects of algorithmic flagging on fairness]{The effects of algorithmic flagging on fairness: quasi-experimental evidence from Wikipedia}
+
+\author{Nathan TeBlunthuis}
+\orcid{0000-0002-3333-5013}
+\affiliation{%
+  \institution{University of Washington}
+\streetaddress{Box 353740}
+\city{Seattle}
+\state{Washington}
+\postcode{98195}
+}
+\affiliation{Wikimedia Foundation}
+\email{nathante@uw.edu}
+
+\author{Benjamin Mako Hill}
+\orcid{0000-0001-8588-7429}
+\affiliation{%
+  \institution{University of Washington}
+}
+\email{makohill@uw.edu}
+
+\author{Aaron Halfaker}
+\orcid{0000-0001-8907-6367}
+\affiliation{%
+  \institution{Wikimedia Foundation}
+}
+\email{ahalfaker@wikimedia.org}
+
+\renewcommand{\shortauthors}{TeBlunthuis et al.}
+
+
+\begin{abstract}
+
+Online community moderators often rely on social signals like whether or not a user has an account or a profile page as clues that users are likely to cause problems. Reliance on these clues may lead to ``over-profiling'' bias when moderators focus on these signals but overlook misbehavior by others. We propose that algorithmic flagging systems deployed to improve efficiency of moderation work can also make moderation actions more fair to these users by reducing reliance on social signals and making norm violations by everyone else more visible. We analyze moderator behavior in Wikipedia as mediated by a system called RCFilters that displays social signals and algorithmic flags and to estimate the causal effect of being flagged on moderator actions.  We show that algorithmically flagged edits are reverted more often, especially edits by established editors with positive social signals, and that flagging decreases the likelihood that moderation actions will be undone. Our results suggest that algorithmic flagging systems can lead to increased fairness but that the relationship is complex and contingent.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10003120.10003130.10003131</concept_id>
+<concept_desc>Human-centered computing~Collaborative and social computing theory, concepts and paradigms</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003120.10003130.10003131.10003234</concept_id>
+<concept_desc>Human-centered computing~Social content sharing</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003120.10003130.10003131.10003570</concept_id>
+<concept_desc>Human-centered computing~Computer supported cooperative work</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Human-centered computing~Collaborative and social computing theory, concepts and paradigms}
+\ccsdesc[500]{Human-centered computing~Social content sharing}
+\ccsdesc[500]{Human-centered computing~Computer supported cooperative work}
+
+\keywords{sociotechnical systems; moderation; AI; machine learning; causal inference; peer production; Wikipedia; online communities; community norms; fairness;}
+
+\maketitle
+
+\section{Introduction}
+
+
+Online community moderators are responsible for reviewing torrents of user generated content for spam, vandalism, attacks, and other violations of community norms and rules.  In many large online communities, a small number of moderators---often volunteers---will be responsible for reviewing thousands or millions of actions and taking steps to stop and mitigate problematic behavior \cite{gillespie_custodians_2018}. To help focus their attention within this deluge, moderators typically rely on social signals \cite{donath_social_2014} that indicate that a user's contributions are made in good faith and of high quality \citep{kraut_building_2012}. Common signals include visible reputation, experience, and registration status \cite{broughton_wikipedia_2008, kraut_building_2012}. 
+For example, because new users are often more likely to engage in bad behavior, moderators might scrutinize contributions from newcomers more closely \citep{kraut_building_2012,potthast_automatic_2008}.
+However, directing limited moderation attention based on social signals can introduce unfairness through ``over-profiling'' that occurs when moderators focus their attention on users with signals associated with bad behavior while ignoring others engaged in similar or worse behavior \cite{de_laat_profiling_2016}. 
+For this reason, and because relying on social signals can still place enormous demands on limited moderator resources, online communities are increasingly adopting algorithmic flagging systems to direct moderators toward problematic actions \cite{chandrasekharan_crossmod:_2019, halfaker_ores:_2019}.
+
+
+
+Although the consequences are very different, these systems share salient commonalities with algorithmic flagging systems used in employment, college admissions, and criminal justice. All of these systems use predictions of whether an outcome will occur to flag certain individuals as more or less likely sources of problems and leave final decisions to a human judge.
+The use of these systems when people's lives are at stake has rightfully attracted critique on the basis of how algorithms engage in misrepresentation and discrimination \cite{campolo_ai_2017, oneil_weapons_2018,barocas_fairness_2019}. 
+
+On the other hand, advocates of algorithmic prediction in criminal justice argue that algorithms---even those that are measurably biased in their outcomes---might still be less discriminatory than decisions made by biased human judges alone \cite{kleinberg_human_2018, stevenson_assessing_2017}. 
+
+Can algorithmic flagging systems reduce reliance on social signals and lead to more fair outcomes? We seek to answer this question through a field evaluation of an algorithmic flagging system called RCFilters that was deployed on 23 different Wikipedia language editions from January 2019 to March 2020.  RCFilters flags contributions identified as likely to be damaging by the ORES machine learning system \citep{halfaker_ores:_2019}. These flags are shown alongside existing social signals of quality. We take advantage of a set of arbitrary thresholds built into RCFilters to conduct a quasi-experimental analysis that estimates the causal effect of algorithmic flagging on moderation decisions and that seeks to measure whether algorithmic flags lead to better or worse outcomes for users who are likely to be over-scrutinized \textit{ex ante}.
+Our results suggest that algorithmic flagging can lead to more fair outcomes but that this effect may depend on specifics of the social signals in question.
+
+Our paper makes several contributions.
+First, our work answers calls to analyze the impacts of algorithms \textit{in situ} \cite{selbst_fairness_2019, stevenson_assessing_2017, zhu_value-sensitive_2018} by offering an empirical evaluation of an algorithmic flagging system in an important social computing context. 
+Second, our analysis contributes to an ongoing debate over \emph{when} and \emph{how} algorithms might lead to more or less fair outcomes for individuals subject to profiling by human decision makers.
+Third, our work offers a methodological contribution by presenting a novel quasi-experimental approach that can act as a template for future non-interventionist studies of causal effects of algorithmic decision support systems. 
+Finally, our work contributes to social computing system design by suggesting improvements to algorithmic flagging and filtering systems. 
+
+\section{Background}
+
+
+\subsection{Moderation in Online Communities} 
+
+Contemporary online communities are flooded with harassment, spam, misinformation, disinformation, and hate. Users of social media systems frequently and flagrantly violate community and platforms rules, various laws, and norms of decency and decorum. Even users acting in good faith can do damage by taking conversations off-topic, undermining the stated purpose of communities, and lowering the quality of discourse or the knowledge goods being produced. Protecting online communities from unwanted activity are content moderators---many of them volunteers---that \citet{gillespie_custodians_2018} has described as ``custodians of the Internet.''
+Moderation work typically involves three tasks: reviewing content or activity, mitigating damage caused by problematic behavior, and sanctioning users in various ways \citep{gillespie_custodians_2018, seering_moderator_2019, jiang_moderation_2019, kiene_technological_2019}.
+
+\citet{grimmelmann_virtues_2015} defines moderation as ``governance mechanisms that structure participation in a community to facilitate cooperation and prevent abuse.'' 
+Discussions of content moderation often focus on individuals occupying formal roles as moderators with special rights and responsibilities. For example, many of the moderators in \citepos{gillespie_custodians_2018} account are professional moderators working for major platforms like like Facebook and Twitter. Many moderators, and nearly all in platforms like Reddit and Discord \citep{matias_going_2016, jiang_moderation_2019, kiene_technological_2019}, work as volunteers but occupy similar positions of formal authority and responsibility.
+That said, the work of moderation is often distributed across regular community members \cite{lampe_slashdot_2004, kiene_surviving_2016}. In Wikipedia, for example, the bulk of moderation activity as defined by \citeauthor{grimmelmann_virtues_2015} occurs as normal users review, vet, and undo the work of others to mitigate damage and sanction users they believe have behaved badly \citep{piskorski_testing_2017}.
+
+\subsubsection{Sanctions}
+
+Sanctioning involves enforcing norms in ways that attempt to discourage future non-normative misbehavior. It is a core part of moderation work because it encourages compliance with norms by communicating that rules will be enforced \cite{jhaver_did_2019, srinivasan_content_2019}. Although it also serves to mitigate damage, removing content is a common form of sanctioning because it communicates that an action was inappropriate \citep{piskorski_testing_2017}. \citet{halfaker_dont_2011} shows that removing content is an effective sanction and results in higher quality subsequent contributions by the reverted contributor in Wikipedia. Similarly, \citet{srinivasan_content_2019} found that people whose comments were removed from Reddit were less likely to violate norms in the future.
+
+
+Although the goal of most sanctioning is to steer participants toward more productive types of behavior, the effect is often simply to deter participation. This can be particularly problematic with well-meaning newcomers who often violate norms because they have not yet learned the ropes \cite{adler_content-driven_2007, halfaker_dont_2011, halfaker_rise_2013}.
+
+
+Sanctioned newcomers are less likely to continue participating, especially in the absence of clear explanations from moderators \cite{jhaver_did_2019, kraut_regulating_2012, potthast_automatic_2008, halfaker_rise_2013, teblunthuis_revisiting_2018}.
+On Wikipedia and similar communities, high rates of sanctioning can help explain declines in participation and may be an obstacle to building a community that includes diverse participants \cite{halfaker_rise_2013, teblunthuis_revisiting_2018, lam_wp:clubhouse?:_2011}. 
+
+
+\subsubsection{Meta-norms}
+
+
+No moderation system is perfect, and moderators inevitably make mistakes and apply sanctions in ways that are arbitrary and unfair. This is particularly difficult to avoid in distributed moderation models used on sites like Slashdot or Wikipedia where moderation carried out by large and diverse groups of untrained and loosely coordinated users.
+Sanctions can be particularly demotivating to newcomers when contributors feel that sanctions are unfair and incorrect \citep{srinivasan_content_2019, jhaver_did_2019, gillespie_custodians_2018}.
+As a result, steps that make sanctions more fair might ameliorate the negative effects of moderator sanctions on community growth.
+
+One way to improve fairness and accountability in moderation is through governance structures that enforce accountability \citep{frey_this_2019}.
+Toward this end, Slashdot famously created tools for ``meta-moderation'' that allowed all users to evaluate the decisions of moderators \cite{lampe_slashdot_2004}. Users whose moderation decisions were controversial or at odds with the opinions of other Slashdot members would be not given moderation privileges again.
+Although formal systems for meta-moderation remain rare, there exist many common behaviors that serve a similar social function by taking action against controversial sanctions \citep{crawford_what_2016}.    
+Of particular relevance are ``meta-norms'' which prescribe when and how one should issue sanctions against violations of first-order norms \cite{horne_enforcement_2001}.  \citet{reagle_be_2010} documents the formalization of meta-norms on Wikipedia and \citet{piskorski_testing_2017} show how Wikipedia users engage in meta-norm maintenance by undoing sanctions in ways that effectively sanction the originally sanctioning user.
+
+\subsubsection{Flagging and Algorithmic Triage}
+
+Moderators can face incredible challenges in scaling their work to handle what can become an enormous mass of content and user activity in large online communities \citep{gillespie_custodians_2018, kiene_technological_2019,seering_moderator_2019,seering_shaping_2017}. In interviews conducted by \citet{kiene_technological_2019}, small teams of volunteer moderators tasked with maintaining order in large communities described their work managing tends of thousands of users engaging simultaneously as akin to ``running a small city.'' 
+Some platforms deal with scale by employing more paid moderators. However, the work involved can be exploitative, difficult, traumatizing, and expensive \cite{roberts_commercial_2016}. Volunteer moderator teams may also attempt to recruit additional volunteers to deal with growth but frequently find it difficult to identify, train, and integrate new members \citep{kiene_surviving_2016}. On average, volunteer leadership teams become less likely to add new members as their communities grow \citep{shaw_laboratories_2014}. 
+
+For these reasons and others, it is often impossible for communities to scale moderation resources such that human moderators can review all activity.
+As a result, many moderation systems implement flagging so a wider group of users can report content for review by moderators \cite{grimmelmann_virtues_2015}.
+If users reliably flag problematic behavior, flagging can mitigate issues of scale because moderators can use flags to focus their attention on behavior that is likely problematic.
+Of course, flagging is far from a perfect solution. 
+From the perspective of a flagged user, flagging can seem arbitrary and opaque \cite{crawford_what_2016}.  
+From a moderator perspective, flagging is flawed because disgruntled users can coordinate to use flagging systems to overwhelm moderators and target opposing viewpoints \cite{crawford_what_2016}. 
+Finally, in that traditional flagging systems continue to rely on volunteer labor, they often fail to fully address issues of scale leaving many bad actions unflagged, unreviewed, and unsanctioned. 
+
+To address this final limitation, communities have turned to algorithmic flagging systems that use computer programs to automatically mark content for review by human moderators \citep{kiene_technological_2019, kiene_who_2020,seering_shaping_2017}. Although some of these systems rely on keywords, regular expressions, or heuristics, the more advanced and flexible versions of these systems use predictions from machine learning models. These systems are seen as promising answers to the problem of moderation at scale because they can easily be used to review an enormous volume of behavior, they may be less vulnerable to strategic flagging, and they may be more reliable than human reviewers.
+
+Algorithmic flagging systems can be thought of as human-in-the-loop versions of similar computational systems that engage in full automating moderation activity. For example, many digital platforms use the PhotoDNA system to automatically identify and remove child pornography \cite{gillespie_custodians_2018}. Similarly, Wikipedia's ClueBot NG uses a machine learning predictor to automatically remove vandalism \cite{geiger_when_2013}. Although they play a critical role in reducing moderation workloads, fully automated systems are uncertain enough in most of their assessments that they are typically only considered useful in defending against the most clear-cut examples of misbehavior \cite{gillespie_custodians_2018}.
+
+Some machine learning systems designed to classify bad behavior are used as a form of algorithmic triage. The most egregious examples of bad behavior might be dealt with automatically by an automatic systems while many other possible or likely norm-violations are flagged for review and action by human moderators.
+For example, Reddit allows moderators to define a system of rules based on regular expressions to automatically remove or flag content for further review \cite{jhaver_human-machine_2019}. Algorithmic flagging systems based on machine learning occupy the vanguard of online activity regulation and numerous examples have been described in recent scholarship. 
+\citet{chandrasekharan_crossmod:_2019} describes a system for Reddit communities to share information and collaborate on automatic flagging that accounts for differences between rules of different communities.
+\citet{wulczyn_ex_2017} presents a system for classifying harassing behavior on Wikipedia. Finally, \citet{halfaker_ores:_2019} developed the Objective Revision Evaluation Service (ORES) system to predict quality of contributions and content on Wikipedia.
+
+\subsection{Will algorithmic flagging decrease discrimination of over-profiled users?}
+
+One of the most important debates in contemporary technology policy is the degree to which the introduction of algorithms into socially consequential decision-making leads to more or less fair outcomes \citep{chouldechova_fair_2017, kleinberg_human_2018, oneil_weapons_2018, selbst_fairness_2019}. Much of this debate focuses on arguments about whether algorithms will amplify or entrench discrimination. 
+Discrimination is deferential treatment of individuals based on membership in a group. Economists of discrimination distinguish between taste-based and statistical discrimination \citep{becker_economics_1957, bertrand_field_2016, phelps_statistical_1972}.  Taste-based discrimination is driven by preferences for members of one group and includes both ideologically-driven racism and implicit bias.  Statistical discrimination occurs when social signals---visible and socially salient characteristics, such as group memberships---are instrumental in driving decisions. Statistical discrimination can also lead to unequal outcomes for certain groups.
+
+Although most discussion of statistical discrimination focus on high-stakes contexts like banking, labor markets, and criminal justice, moderation in online communities is also ripe for statistical discrimination.
+For example, Wikipedia's \textit{Missing Manual} advises would-be vandal fighters on Wikipedia to ``consider the source'' when ``estimating the likelihood that an edit is vandalism'' \cite{broughton_wikipedia_2008}.
+Because newcomers are more likely to violate rules, moderators may rely on social signals 
+associated with being new to find bad behavior or to decide if an ambiguous contribution was made in bad faith.
+Social signals of newness in online communities include formal reputation systems like karma on Reddit and Slashdot, badges on StackExchange, or many other more subtle signals \cite{grimmelmann_virtues_2015, lampe_role_2012, merchant_signals_2019}
+In any case, increased scrutiny and skepticism can translate into an an increased likelihood of sanction, simply for being new.  
+Statistical discrimination emerges because moderators are more likely to scrutinize and sanction new contributors who have legitimate reasons for contributing. 
+
+
+Ethical philosophers have objected to the way social signals are used in online moderation activity. Dutch philosopher Paul de Laat adopts the concept of ``profiling'' from legal scholar Frederick Schauer to argue against the use---and even the public display of---social signals like registration status and experience levels in the user interfaces used for moderation. de Laat objects to the display of these signals because they are prone to ``over-use'' \cite{de_laat_use_2015, de_laat_profiling_2016}. It is important to note that discriminating by attributes like newness does not raise the same legal or constitutional concerns as discrimination against protected classes such as race or religion.  Online communities establish their own norms and may choose to protect or target certain attributes based on a specific community's values. 
+For example, while discussing Wikipedia, de Laat argues that this type of ``over-use'' is unethical, immoral and inconsistent with the community's founding principles of transparency and equality. Drawing on de Laat, we refer to individuals with social signals that elicit undue scrutiny as ``over-profiled.''
+
+Although an important debate continues over the use of algorithmic predictions in domains like criminal sentencing, proponents of algorithms argue that they could reduce discrimination and inequality \cite{kleinberg_human_2018, stevenson_assessing_2017}. Algorithms can reproduce statistical discrimination, but they might be less biased than the alternative: human decisions that would presumably rely heavily, if perhaps subconsciously, on salient social signals like race. Critics suggest that algorithms simply obscure this discrimination behind complex mathematical models that are difficult to understand, interrogate, or challenge.
+
+Although this debate is difficult to resolve in the case of criminal justice, algorithmic flagging in online community moderation provides a setting with lower stakes and more detailed data. Although the social signals and contexts are substantially different, similar social and psychological processes may be in play.
+If we apply arguments proposing that algorithms can reduce discrimination to community moderation, we would conclude that algorithmic triage systems would reduce the impact of discrimination among over-profiled individuals by making misbehavior by all kinds of users visible to community moderators. If algorithmic flagging reduces over-profiling bias then it will have a smaller effect on over-profiled users than on others. If algorithms simply reproduce discrimination, we would find no such difference. 
+
+This leads us to our first research question: 
+\textit{\textbf{[RQ1]}  How will flagging an action change the likelihood an action is sanctioned for over-profiled editors compared to others?}
+
+\subsection{Will algorithmic flagging increase fairness?}
+
+
+A system might discriminate by sanctioning one group more than others but still be justifiable if all sanctions were fair.
+But what does it means for sanctioning to be fair? The subject of fairness in algorithmic systems is a major subject of debate in computing and AI. There are many different approaches to conceptualizing fairness and no algorithmic predictor can satisfy them all \citep{barocas_fairness_2019,caraban_23_2019,kleinberg_inherent_2016,  mitchell_prediction-based_2018,yin_understanding_2019,wallach_big_2019}. 
+
+While such approaches focus on discrimination built into machine learning programs, we seek a concept of fairness that reflects the standards of relevant communities of practice.  We find one in the concept of ``meta-norms'' from social psychology and James Coleman's sociological conception of norm maintenance. Drawing from these sources, we define unfair sanctions as those that a community is unwilling to let stand---i.e., sanctions that are themselves the subject of sanction \citep{coleman_social_1988, horne_enforcement_2001, piskorski_testing_2017}. 
+For example, a norm in Wikipedia governs right and wrong ways of editing wiki pages. Sanctions of first-order norm violations are governed by meta-norms about what sorts of contributions merit sanction. Following \citet{piskorski_testing_2017}, we describe a sanction as \emph{controversial}---i.e., in likely violation of a meta-norm---if it in turn is sanctioned by a third community member.
+Relying on this definition of fairness, our second research question asks how algorithmic flagging shapes the fairness of sanctioning in terms of such sanctions for meta-norm violations: \textit{\textbf{[RQ2]} How will flagging an action change the chances it receives a controversial sanction?}
+
+Influential theoretical frameworks in social computing seem to predict competing answers to this second question. 
+First, dual process models of behavioral economics suggest that people will tend to rely on ``salient signals'' for rapid decision making in conditions of uncertainty and imperfect information \citep{bordalo_salience_2012, kleinberg_human_2018, tversky_judgment_1974}.  When human moderators choose behavior to review or sanction using using social signals associated with over-profiled users these attributes serve as salient signals but remain far from perfect signals of quality.
+Algorithmic flags provide an additional salient signal but are also far from perfect \cite{halfaker_ores:_2019}.  Indeed, algorithmic flagging systems are typically designed to minimize the risk of missing bad behavior by surfacing large numbers of false positives (i.e., non-problematic behavior) and relying on human moderators to make final decisions.
+Of course, if human moderators use algorithmic flags as salient signals, they may reproduce algorithms' false predictions. In this case, controversial sanctions will increase.
+
+A second perspective suggests that algorithmic flags can increase fairness.
+Many online communities have formalized rules, norms, and meta-norms and act as highly institutionalized and rationalized organizations \cite{butler_dont_2008, piskorski_testing_2017, weber_economy_1978}. \citet{kreiss_limits_2011} argue that increasing formalization and rationalization in online communities can lead to more fair outcomes.
+Through this lens, an algorithmic flagging system can reflect a shift away from idiosyncratic individual decision-making and toward standardization, rationalization, and governance that is more in-line with community meta-norms.
+In this way, an algorithmic tool can be a ``carrier of formal rationality''  \cite{lindebaum_insights_2019} that can decrease the volume of controversial sanctions.
+
+
+Finally, we seek to combine our two previous research questions to ask whether algorithmic flagging systems will be more or less fair in their effects on the sanctioning of over-profiled users relative to others. We ask: \textit{\textbf{[RQ3]} Within the set of sanctioned actions, how will the effect of flagging an action on controversial sanctions depend on whether contributors are over-profiled?}
+                  
+Once again, influential theoretical frameworks in social computing research seem to point in opposite directions.  Under dual-process psychological models, both social signals and algorithmic flags might kinds of signals might cue moderators to issue sanctions and might substitute for one another. In this case, we would hypothesize that flagging would have a more positive effect on controversial sanctions among under-profiled contributors, who had previously been relatively ignored, than it does among the over-profiled individuals, who were always scrutinized.
+On the other hand, if the larger effect of algorithmic flagging is helping moderators comply with meta-norms, it simply will not matter whether contributors are over-profiled.
+
+\section{Empirical Setting}
+\label{sec:empirical}
+
+\begin{figure}[t]
+  \centering
+\begin{tikzpicture}
+
+
+  \node[anchor=west](flags) at (-7,2.7) {ORES Flags};
+  \node[anchor=west](userpagelink) at (-1.7,2.7) {User profile link};
+  \node[anchor=west](unregistered) at (1.4,2.7) {Unregistered editor};
+
+
+  \begin{scope}
+  \node[anchor=south, inner sep=0] (image) at (0,0) {\includegraphics[width=\textwidth]{resources/rcfilters_example_2.png}};
+  \draw [-stealth,ultra thick] (flags.220) -- ++(0,-0.4);
+  \draw [-stealth,ultra thick] (unregistered.200) -- (1.5,2);
+  \draw [-stealth,ultra thick] (userpagelink.280) -- (0.2,1.6);
+\end{scope}
+\end{tikzpicture}
+
+  \caption[Screenshot of edit metadata shown in RCFilters.]{Screenshot of Wikipedia edit metadata on Special:RecentChanges with RCFilters enabled.  Highlighted edits with a colored circle to the left side of other metadata are flagged by ORES.  Different circle and highlight colors (white, yellow, orange, and red in the figure) correspond to different levels of confidence that the edit is damaging. Users can configure which colors are shown.  Visible social signals include registration status (i.e. whether a user name or an IP address is shown) and whether an editor's user page and user talk page exist.  RCFilters does not specifically flag edits by new accounts, but does support filtering changes by newcomers.}
+  \label{fig:rcfilters}
+\end{figure}
+
+
+We seek to answer our three research questions through a field evaluation of an algorithmic flagging system called RCFilters that was deployed on  23 different Wikipedia language editions between January 2019 and March 2020. RCFilters stands for ``Recent Changes filters.'' The term ``Recent Changes'' refers to a page on Wikipedia that allows viewers to see the the most recent changes made to the site.\footnote{For example, the Recent Changes page for English Wikipedia is available here: \url{https://en.wikipedia.org/wiki/Special:RecentChanges}} As shown in Figure \ref{fig:rcfilters}, RCFilters adds a set of flags represented as colored dots on the left side of the list of recent contributions. Social signals are also visible including registration status and whether a user has created a profile page.  Although dense with information about recent edits and hyperlinks, the page is immediately understandable to Wikipedia moderators. When deployed, the RCFilters interface appears both on ``Recent Changes'' as well as on  ``watchlists''---a special version of ``Recent Changes'' that shows only edits to the subset of pages that a user has elected to follow. RCFilters must be enabled by each user on their Wikipedia user preferences page.
+
+Algorithmic flagging in the RCFilters system is powered by the ORES edit quality models trained to predict whether edits are labeled ``damaging'' or ``not damaging.'' The models are gradient boosted decision trees trained on a mixture of human labeled Wikipedia edits and edits made by established editors that are assumed to be ``not damaging.''  It is important to note that ORES models do not merely reproduce profiling patterns typical of moderation on Wikipedia.  The interface for labeling training data obscures social signals from the volunteer Wikipedians doing labeling work and its models are predictive of damage from users that are not anonymous or newcomers. More information on the design and implementation of ORES can be found in \citet{halfaker_ores:_2019}. 
+
+\section{Methods}
+
+
+Our analysis is based around a regression discontinuity design (RDD) that seeks to estimate causal effects of flagging by RCFilters on moderator behavior in Wikipedia \cite{imbens_regression_2008, jacob_practical_2012, lee_regression_2010}. Common in empirical economics, RDDs are quasi-experimental in that they resemble a randomized control trial for data points in the neighborhood of an arbitrary cutoff \cite{jacob_practical_2012, lee_regression_2010}. 
+RDDs model how an outcome depends on this cutoff and a continuous ``forcing variable.'' The idea behind an RDD is that observations immediately below and above the cutoff will be equal in expectation after adjusting for any underlying (i.e., ``secular'') trend. For example, RDDs used in econometrics might estimate the effect of passing a test by comparing the outcomes of people who barely passed and failed. 
+One benefit of an RDD over a field experiments based on A/B tests is that it can provide ecological validity and support causal claims without subjecting users to intervention without consent \citep{lane_big_2015, jouhki_facebooks_2016}. 
+Although they are still rare in social computing research, RDDs have been used in recent publications in social computing \citep{narayan_all_2019, hill_hidden_2020}.
+
+Our forcing variable is scores from the ORES machine learning system and our cut-off variables are a set of arbitrarily chosen operating points used by RCFilters. Our outcomes are constructed by creating two variables that indicate whether a revision's author is over-profiled as well as variables that indicates whether each revision was reverted or subject to a controversial revert. We discuss each in turn before introducing our analytic approach.
+
+\subsection{Data and Measures}
+
+We build our dataset from two publicly available tables of Wikimedia history published by the Wikimedia Foundation (WMF).\footnote{\url{https://wikitech.wikimedia.org/wiki/Analytics/Data\_Lake/Edits/Mediawiki\_history}; \url{https://dumps.wikimedia.org/other/mediawiki\_history/readme.html}}
+Although Wikipedia is published and collaborated on in many languages, the vast majority of knowledge about collaboration on Wikipedia is derived from studies of English Wikipedia \cite{hecht_tower_2010, hara_cross-cultural_2010}.  To support generalizability, we analyze data from  23 language editions of Wikipedia where edit quality flags are displayed in the RCFilters interface.
+To ensure that we have variation in our outcomes, we exclude wikis with less than 3 edits above and below each threshold (see §\ref{sec:thresholds}) from each sub-analysis.
+For all of our analyses, our unit of analysis is the \emph{revision}. Revisions correspond to a single edit to a page by a participant on Wikipedia.  Since we care about how algorithmic flagging and social signals are used by human moderators, we exclude revisions by bots.
+Following guidance for RDDs \citep{lee_regression_2010}, we include only revisions very near to RCFilters thresholds, with ORES scores within 0.03 of the thresholds. 
+
+
+
+To manage the total size of our dataset, we analyze a sample that we construct by stratifying along a number of dimensions: Wikipedia language edition; user registration status (§\ref{sec:signal}); whether the editor has a user page or not (§\ref{sec:signal}); whether an edit was reverted in 2 hours, 48 hours, or 30 days; whether the edit was flagged by RCFilters (§\ref{sec:thresholds}); and whether the revert was controversial (§\ref{sec:controversial}).
+We then sample 5000 edits from within unique combinations of the variables. If there are less than  5000 edits in a given strata, we include all of them.
+We adjust for this stratification using sample weights throughout our analysis.
+Because RCFilters was introduced to different wikis at different times,
+we sample edits during the period immediately following the introduction of ORES but weight our sample according to the number of edits to each wiki over the entire study period. 
+The number of observations sampled at each threshold and from each Wiki for each model are available in the supplementary material. 
+
+
+\subsubsection{ORES scores and RCfilter thresholds}
+\label{sec:thresholds}
+
+
+The continuous forcing variable used in our RDD analysis is a score from the ORES algorithm described in §\ref{sec:empirical}. Scores range from 0 to 1 and reflect the predicted probability that a revision is damaging. Because the ORES system has been under continual development over time, we obtain ORES scores created at the times revisions were made from a log maintained by the WMF.
+The treatments in our analysis are whether edits to Wikipedia are flagged by RCFilters. These flags are applied if, and only if, a score from ORES exceeds a threshold.
+This use of thresholds at arbitrary operating points is a feature of most algorithmic flagging systems.
+The intuition behind our RDD is that---after adjusting for small differences in quality associated with marginally higher or lower scores---edits with ORES scores immediately above and below an arbitrary threshold will be similarly likely to receive both first-order and controversial sanctions. As a result, any discontinuous change in reverts at a one of the threshold's used by RCFilters can be attributed to the flag.
+
+RCFilters uses multiple thresholds corresponding to green, yellow, orange, and red flags. By default only orange and red flags are shown, but users can configure which colors to display. Green flags and filters are to help Wikipedia editors find good edits. 
+Our analysis considers only red, orange, and yellow flags which correspond to thresholds making different trade-offs between precision (the proportion of flagged edits that are truly damaging) and recall (the proportion of truly damaging edits that are flagged). The red flag is labeled ``very likely damaging and corresponds to a high precision threshold. Orange flags corresponds to a ``likely damaging'' label with greater recall but less precision. Edits with a yellow flag are ``maybe damaging'' with a high recall but lower precision.  
+RCFilters's thresholds are truly arbitrary and have changed over time and across language editions in response to shifts in the precision and recall of ORES models and in response to community feedback.
+We were able to collect data on thresholds over time, fully trained ORES models, code to run the models on our servers, and the precise time that changes are deployed in the WMF server admin log. We combined these data to identify the thresholds that were active for each revision in our dataset.
+
+\subsubsection{Sanctions}
+
+
+Our outcome variable for answering RQ1 must capture sanctioning in Wikipedia. Following a large body of other social computing research, we measure sanctions as identity reverts \citep[e.g.,][]{halfaker_dont_2011, halfaker_rise_2013, teblunthuis_revisiting_2018, piskorski_testing_2017}. Identity reverts occur when a user undoes another user's edit by restoring a page to an earlier state and are measured by comparing hashes of page revisions \citep{halfaker_dont_2011}. 
+That said, identity reverts are an imperfect measure of sanctioning.  A type of vandalism called ``blanking'' removes all content on a page and therefore might be measured as identity reverting all prior edits to the page. It is also possible for an individual to ``self-revert'' by undoing their own edit. To help mitigate these issues, we only label revisions as reverted if they were undone within 48 hours and were not undone by self-reverts. We label revisions as not reverted otherwise.
+
+\subsubsection{Controversial sanctions}
+\label{sec:controversial}
+Our outcome variable for answering RQ2 and RQ3 measures controversial sanctions. We follow \citet{piskorski_testing_2017} by measuring controversial sanctions as identity reverts that are subsequently reverted by a third party.  Specifically, we label a sanction as controversial if the sanction is undone by a third editor who was not the original editor or the reverting editor.  Such interactions likely correspond to cases in which a third party observes the initial revert, disagrees with the initial sanction, and then acts to reverse the sanction.
+
+
+\subsubsection{Social signals}
+
+\label{sec:signal}
+Answering our RQ1 and RQ3 requires that we identify under- and over-profiled individuals in our empirical setting. Drawing from research and documentation for Wikipedia moderators, we identify two such measures shown in the RCFilters interface shown in Figure \ref{fig:rcfilters}. 
+Our first measures is whether an editor was logged into an account. Unregistered editors act on Wikipedia without logging in and Registered contributors are those that edit with accounts. Because they are identified by their IP address rather a chosen username, unregistered editors are also referred to as ``IP editors'' or ``anons.'' Unregistered editors are associated with misbehavior and have long had a controversial status on Wikipedia \cite{mcdonald_privacy_2019}. Geiger and Ribes describe how tools for moderators highlight unregistered editors \cite{geiger_work_2010}.
+de Laat argues that unregistered users on Wikipedia are over-profiled in that they are at higher risk to have their contributions rejected unfairly \citep{de_laat_use_2015, de_laat_profiling_2016}.
+
+
+Second, the RCFilters interface indicates whether the editor has created a User page. User pages are Wikipedia's version of profile pages. Not having a User page is a strong social signal of newness because most committed users will create a User page early into their experience in Wikipedia \cite{ayers_how_2008}. The presence or absence of pages in Wikipedia is indicated with a subtle user interface clue: links to pages that do not exist are rendered in red while links to pages that exist are blue. For example, Figure \ref{fig:rcfilters} shows the user ``Mashlova'' whose name is shown in red and would be identified as a newcomer.
+de Laat cites the absence of a User page as a second example of an indicator of vandalism that will result in over-profiling \cite{de_laat_profiling_2016}. 
+We measure whether a user's User page exists at the time of a given contribution by matching the titles of User pages against the editor's user name and checking if the creation of the User page was prior to the edit in question.  
+
+
+\section{Analytic plan}
+\label{sec:analytic}
+ 
+Our analysis consists of 9 Bayesian logistic regression models in two parallel analyses. 
+The first analysis treats our dichotomous measure of whether edits are reverted as an outcome. This begins with an ``adoption check'' (§\ref{sec:adoption}) that describes the causal effects of flagging on reverts in general. The adoption check is prerequisite to answering our research questions. The rest of the first analysis (§\ref{sec:results-rq1}) answers RQ1 by comparing the effect of RCFilters on edits by over-profiled users to its effect on other editors. 
+Our second analysis is very similar but uses controversial reverts as the outcome, and analyzes only reverted edits to model the probability a revert is controversial. It begins by  answering RQ2 (§\ref{sec:results-rq2}) in an analysis similar to the adoption check but with controversial sanctions as an outcome and with a dataset limited to over-profiled users. The rest of the second analysis (§\ref{sec:results-rq2}) answers RQ3 and is similar to RQ1 but with controversial reverts as the outcome in place of reverts.
+
+Following \citet{litschig_impact_2013}'s use of RDD models with multiple discontinuities, our models incorporate all three RCFilters thresholds.  Our goal is to estimate $\tau_j$ which is the causal effect of being flagged at level $j$, where $j \in \{1,2,3\}$ corresponding to labels of ``maybe damaging'', ``likely damaging'' and ``very likely damaging.'' For each cutoff on each wiki, we select revisions whose ORES scores is within a $+/-0.03$ window of the cutoff.  Following established approaches to RDD, we fit ``kink'' models that allow for a change in slope at the discontinuity \cite{lee_regression_2010, litschig_impact_2013}. 
+
+
+We use Bayesian inference to estimate our models for two reasons.  First, virtually all edits above the ``very damaging'' level are reverted in some of the wikis we analyze.  The presence of near-perfect ``separation'' creates estimation problems for classical numerical approaches \cite{allison_convergence_2004}. Preferred solutions to this problem in non-Bayesian frameworks include penalized likelihood methods that introduce bias.  Our Bayesian approach uses weakly-informative priors that are conservative but avoid the problem of separation as a result. 
+The second reason we use Bayesian inference is that it makes it easy to compare estimates across models. 
+Prior work at CSCW by \citet{gan_gender_2018} uses a similar rationale for adopting Bayesian logistic regression.
+In Bayesian analysis, fitted models take the form of posterior distributions constituting a probability distribution of model coefficients conditional on our model, data, and priors.  We consider a hypothesis supported if it is consistent with at least 95\% of posterior draws. In other words, we accept a given hypothesis if our parameter estimate has the predicted sign and the 95\% credible interval does not contain zero. This is the Bayesian analog to testing a hypothesis with $\alpha=0.05$.
+We fit our models using the rstanarm package (version 2.19.3) and the default priors which are provided for reference in the supplementary material. 
+
+
+\section{Adoption Check}
+\label{sec:adoption}
+
+\begin{figure}[t]
+  \centering
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=\textwidth]{figures/knitr-adoption_me_plot-1} 
+
+\end{knitrout}
+\caption{Marginal effects plot showing model predicted relationship between ORES score and the probability that an edit will be reverted around the cutoffs for all contributors with 95\% credible intervals}
+\label{fig:adoption.me}
+\end{figure}
+
+Before presenting results from hypothesis tests associated with our research questions, we first establish that RCFilters was adopted by Wikipedia moderators and that it had an effect on sanctioning behavior. This establishes a baseline necessary to answer RQ1 about the differential effects of RCFilters between and over-profiled users and others. This is important because null effects in RQ1 might simply reflect that the system was not used. A successful adoption check rules out this possibility and sets up a credible null hypothesis test for RQ1.
+To demonstrate that RCFilters flags are being used by Wikipedia moderators,
+we test the hypothesis that flagging increases the probability that an edit is reverted.  If Wikipedia moderators are using flags in RCFilters to review potentially damaging edits, our estimates for $\tau_j$---as described in §\ref{sec:analytic}---should be positive.
+
+
+We find strong evidence that RCFilters was adopted and impacted sanctioning. This evidence is visualized in Figure \ref{fig:adoption.me}, a marginal effects plot that visualizes our models' predicted likelihood of reverts across different ORES scores in the neighborhood of the thresholds. In each such plot, the $x$-axis shows the distance from the threshold such that discontinuities at 0 represent the effect of being flagged. The plots show modeled values for the English language edition of Wikipedia but are representative of relationships across all wikis.\footnote{Because intercepts are the only part of our model that depend on Wikis, slopes and the discontinuities caused by algorithmic flagging represent our inference over all our data.}
+Figure \ref{fig:adoption.me} shows discontinuous increases in the likelihood of reversion at the ``maybe damaging'', and ``likely damaging'' thresholds in the left and center panels. 
+We find the greatest effect at the ``maybe damaging'' threshold  ($\tau_1 = 1.23$ $[1.19;\allowbreak 1.28]$).\footnote{All $\tau$ parameter estimates are reported as log-odds ratios. The bracket notation indicates the 95\% credible interval.  In other words, the most likely value of the parameter is $1.23$, but there is a 95\% probability that the parameter lies in the interval $[1.19;\allowbreak 1.28]$.}
+We do not see a discontinuous increase at the ``very likely damaging'' threshold shown in the right-most panel  ($\tau_3 = -0.01$,  $[-0.1;\allowbreak 0.09]$). 
+
+
+The impacts of the ``maybe damaging'' and ``likely damaging'' flags on the likelihood of sanctioning are enormous. Figure \ref{fig:adoption.me} shows that likelihood of a revert for an edit just below the ``maybe damaging'' threshold is between 5.5\% and 5.8\% indicating that reverts of unflagged edits are relatively rare. Being flagged 
+with the ``maybe damaging'' flag causes a dramatic increase in the reversion probability to between 16.8\% and 17.7\% for edits just above the threshold.  
+The effect of algorithmic flags at the ``likely damaging'' level is even more stark. We estimate that edits just below the ``likely damaging'' threshold are  likely to be reverted between 24.3\% and 25.8\% of the time while otherwise similar edits just above the threshold are reverted between 46.1\% and 48.7\% of the time.
+
+We believe that we do not observe any increase in the likelihood of sanctioning at the ``very likely damaging'' level because actions flagged as ``very likely damaging''  are also flagged as ``likely damaging'' in the RCFilters' default configuration.
+As a result, the marginal impact of being flagged as ``very likely damaging'' on visibility is likely very small.
+Moreover, edits flagged as ``very likely damaging'' are often so egregious that they will be reverted by bots before a human moderator can review them.
+
+\section{Results}
+\subsection{RQ1: Effect of flagging on sanctioning}
+\label{sec:results-rq1}
+
+
+
+
+Our first research question (RQ1), seeks to understand how the increase in sanctioning caused by flagging 
+affects discrimination against over-profiled users. If algorithmic flagging reduces over-profiling, as some computer scientists have argued \citep{kleinberg_human_2018}, the effect of flagging will be more scrutiny on users who are more likely to be given a pass. If algorithms simply reproduce discrimination, we will find no difference.
+Results for hypothesis tests answering this question are shown in Figure \ref{fig:h1.regplot} which visualizes the point estimates and credible intervals for differences in the causal effects of flagging on reverts between unregistered and registered contributors and between contributors with and without User pages. Values greater than 0 indicate that our estimated effect for the other users is greater than that for the over-profiled group. 
+
+
+In support of the idea that algorithmic flagging can reduce over-profiling bias, we find that the effect of flagging on reverts of registered editors is greater than the effect for unregistered editors at the ``maybe damaging'' threshold ($\tau^{\mathrm{Unreg}}_1 - \tau^{\mathrm{Reg}}_1 = 0.8~[0.71;\allowbreak 0.89]$) and at the ``likely damaging'' threshold ($\tau^{\mathrm{Unreg}}_2 - \tau^{\mathrm{Reg}}_2 = 0.78~[0.58;\allowbreak 0.97]$).
+For an action by an unregistered contributor near to the ``maybe damaging'' threshold, being flagged increases the odds of being reverted by a factor of between 1.45 and 1.6 times. This is significantly greater than the increase of
+3.16 and 3.68 
+ for registered contributors. 
+
+Figure \ref{fig:h1.me} lets us interpret our models in terms of the probability of revert for actions on English Wikipedia.  These plots make it possible to visually compare the effects of being flagged between over-profiled and under-profiled editors at a given threshold because the $y$-axes in each row span an identical range. The top-left panel shows how our models' linear predictions of how the probability of sanctioning for unregistered contributors  at the ``maybe damaging'' threshold jumps between 4.8 and 6.7
+percentage points, from 13.5\% to 19.2\% on average. For registered editors, shown in the top-right of Figure \ref{fig:h1.me}, we estimate a jump of between 9.1 and 10.3 percentage points, from  4.6\% to 14.3\% on average. This is between
+ 3.3 and 4.6 percentage points greater than the jump for unregistered editors.
+For unflagged edits that ORES scores near the ``maybe damaging'' threshold, an unflagged unregistered contributor has about the same odds of being sanctioned as a flagged registered contributor.   
+
+
+\begin{figure}
+\centering
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=0.7\linewidth]{figures/knitr-regplot_H1_anon-1} 
+
+\end{knitrout}
+\caption{Results for RQ1 showing point estimates and credible intervals for differences in the causal effect of flagging on sanctioning between over-profiled contributors and others.  A value greater than 0 indicates that our estimates of the effect for under-profiled contributors is greater than that for over-profiled contributors.
+}
+\label{fig:h1.regplot}
+\end{figure}                                                          
+
+The bottom row of Figure \ref{fig:h1.me} shows that the change in sanctioning probability at the ``likely damaging'' threshold is
+between 9.5 and 15.2 percentage
+points greater for registered editors than for unregistered editors. 
+For unregistered contributors, shown in the bottom-left of Figure \ref{fig:h1.me}, being flagged as ``likely damaging'' increases the probability of reverting between  15  and 18.6 percentage points, from 33.5\% to 50.2\% on average. 
+But for registered editors, shown in the bottom-right of Figure \ref{fig:h1.me}, we detect an even bigger jump of between 23.7  and 34.6 percentage points, from 15.5\% to 44.5\% on average.
+For actions that ORES scores near the ``likely damaging'' threshold, unflagged actions by unregistered editors are far more likely to be reverted. Once flagged, actions by registered and unregistered editors are reverted at relatively similar rates.
+
+\begin{figure}[b]
+ \centering
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=0.75\textwidth]{figures/knitr-h1_unreg_me_plot-1} 
+
+\end{knitrout}
+  \caption{Results for RQ1 comparing unregistered and registered contributors are displayed in a marginal effects plot showing model predicted relationship between ORES score and reverts around the thresholds that trigger flags. \label{fig:h1.me}}
+\end{figure}
+
+
+These results provide strong evidence of flagging leveling the playing field between registered and unregistered contributors. Our results suggest that actions by unregistered contributors that fall just above the cutoffs are much more likely to be reverted due to RCFilters---but the gap between actions by registered and unregistered contributors is much smaller when RCFilters has flagged an edit. 
+In this way, our analysis suggests algorithmic flagging can reduce over-profiling bias.
+
+\begin{figure}[b]
+ \centering
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=0.75\textwidth]{figures/knitr-h1_userpage_me_plot-1} 
+
+\end{knitrout}
+  \caption{Results for RQ1 comparing contributors with and without User pages.
+  Each panel shows a marginal effects plot of the modeled relationship between ORES score and reverts around the thresholds that trigger flags.  \label{fig:h1.me.up}}
+\end{figure}
+
+Surprisingly, our results for our second measure of over-profiling in Wikipedia suggest a dynamic that is opposite in sign to the differences we observe between registered and unregistered users at the 
+``maybe bad'' threshold ($\tau^{\mathrm{NoUP}}_1 - \tau^{\mathrm{UP}}_1 = -0.68~[-0.95;\allowbreak -0.41]$).  At the ``likely bad'' threshold ($\tau^{\mathrm{NoUP}}_2 - \tau^{\mathrm{UP}}_2 = -0.05~[-1.61;\allowbreak 1.39]$) we do not detect a difference in effect size between contributors with and without User pages. 
+At the ``maybe damaging'' threshold, we find that flagging increases the odds that an editor without a User page is reverted   between 3.47 and 4.06 times. This is significantly more than the increase of 
+between 1.47 and 2.46 times 
+ for registered contributors. 
+
+As above, we interpret these odds ratios using marginal effects plots, this time shown in Figure \ref{fig:h1.me.up}.   The top-left plot in the figure shows our models' linear predictions of the probability of reverting for contributors without User pages near to the ``maybe damaging''  threshold.  For these editors, being flagged as ``maybe damaging'' increases the chances of sanctioning by 11.4 and 13.8
+percentage points, from 5.6\% to 18.1\% on average. 
+In the top-right of Figure \ref{fig:h1.me.up}, we see a jump of between 2.2 and 4.8 percentage points, from  4\% to 7.4\% on average for editors that have created User pages. This is between
+ 9.7 and 8.4 percentage points less than the jump for contributors without User pages.
+
+
+
+\subsection{RQ2: Effect of flagging on controversial sanctioning}
+\label{sec:results-rq2}
+
+
+Consistent with the idea that algorithmic flagging can support fairness, we find that having an ORES score cross the ``maybe damaging'' or ``likely damaging'' threshold decreases the chances that a revert will be controversial for unregistered editors.
+These results are visualized in Figure \ref{fig:h2.regplot}. The overall effect hides some variation between the magnitude of the effects across our two thresholds. We have less confidence in the effect at the ``maybe damaging'' threshold because our 95\% credible interval includes zero ($\tau^{\mathrm{Unreg}}_{1}=-0.07;\allowbreak \mathrm{CI}=[-0.16;\allowbreak 0.02]$). 
+
+\begin{figure}
+  \centering
+\begin{subfigure}[t]{\textwidth}
+  \centering
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=0.7\linewidth]{figures/knitr-regplot_controversial_anon-1} 
+
+\end{knitrout}
+\caption{Parameter estimates and 95\% credible intervals for the effects of flagging on  whether reverts are controversial for unregistered editors.  \label{fig:h2.regplot}}
+\end{subfigure}
+~
+\begin{subfigure}[b]{\textwidth}
+\centering  
+
+\includegraphics[width=1\linewidth]{figures/knitr-me_plot_H2_anon-1} 
+
+\caption[RQ2. me plot]{Marginal effects plots for models predicting whether a revert is controversial, for unregistered editors. \label{fig:h2.me}}
+\end{subfigure}
+\caption[RQ2. plot]{Results for RQ2: flagging causes a small but detectable decrease in the likelihood that an action by an unregistered contributor receives a controversial sanction.}
+\end{figure}
+
+\begin{figure}
+  \centering
+\begin{subfigure}[t]{\textwidth}
+  \centering
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
+\includegraphics[width=0.7\linewidth]{figures/knitr-regplot_controversial_no_user_page-1} 
+
+\end{knitrout}
+\caption{Parameter estimates and 95\% credible intervals for effects of flagging on whether reverts are controversial for editors without User pages.}
+\label{fig:h2.regplot}
+\end{subfigure}
+~
+\begin{subfigure}[b]{\textwidth}
+\centering  
+
+\includegraphics[width=\textwidth]{figures/knitr-me_plot_H2_no_user_page-1} 
+
+\caption[RQ2. me plot]{Marginal effects plots for models predicting whether a revert is controversial, for contributors without User pages.}
+\label{fig:h2.me}
+\end{subfigure}
+\caption{Results for RQ2 comparing contributors with User pages to those without show no detectable effect of flagging on controversial sanctioning.}
+\end{figure}
+
+We estimate that being flagged at the ``maybe damaging'' level results in change in the odds that a sanction is controversial by a factor between 0.85 and 1.02.  Figure \ref{fig:h2.me} shows the modeled relationship between ORES scores and the probability of a controversial sanction in the neighborhood of the thresholds for English Wikipedia.  On the left plot we see that being flagged changes unregistered contributor's likelihood of a controversial revert from a possible increase of 
+0.38 percentage points to a possible decrease of
+ 0.69 percentage points, a change from 
+3.74\% to 
+3.5\%
+on average. 
+
+
+We have more confidence in the effect at the ``likely damaging'' threshold ($\tau^{\mathrm{Unreg}}_{2}=-0.09;\mathrm{CI}=[-0.16;\allowbreak -0.03]$), where the odds that a revert is controversial are between 0.85 and 0.97 times smaller. On the right side of \ref{fig:h2.me} we that being flagged decreases the probability that a sanction to an action by an unregistered editor is controversial by between 0.01  and
+0.55 percentage points, a change from 
+from 
+3.08\% to 
+2.81\%
+on average. 
+
+
+By summing our posteriors for both threshold parameters, we find algorithmic flagging has a negative effect across both thresholds overall ($\tau^{\mathrm{Unreg}}_{1} + \tau^{\mathrm{Unreg}}_{2}=-0.16$; $\mathrm{CI}=[-0.27;\allowbreak -0.05]$). 
+ 
+However, we did not detect an effect of flagging at the ``maybe damaging'' level when the reverted editor lacks a User page ($\tau^{\mathrm{NoUP}}_{1}=0.01;\mathrm{CI}=[-0.07;\allowbreak 0.08]$) or at the ``likely damaging'' level ($\tau^{\mathrm{NoUP}}_{1}=-0.01;\mathrm{CI}=[-0.15;\allowbreak 0.14]$). We address the inconsistencies between our results for unregistered editors and editors without User pages in our discussion (§\ref{sec:discussion}).
+
+
+\subsection{RQ3: Social signals and effects of flagging on controversial sanctioning }
+\label{sec:results-rq3}
+
+In RQ3 we ask if changes in controversial sanctioning caused by flagging depend on whether users are over-profiled. To answer this question, we largely replicate the analysis conducted for RQ1 with the dependent variable used in RQ2. Results shown in Figure \ref{fig:h3.reg.plot}, provide weak evidence that a decrease in controversial sanctioning at the ``maybe damaging'' threshold may be greater for 
+registered than for unregistered contributors ($\tau^{\mathrm{Reg}}_1 - \tau^{\mathrm{Unreg}}_1 = 0.04$ $[-0.06;\allowbreak 0.14]$). The same seems true at the ``likely damaging'' threshold ($\tau^{\mathrm{NoUP}}_2 - \tau^{\mathrm{UP}}_2 = -0.07$ $[-0.05;\allowbreak 0.2]$). 
+However, our evidence weakly suggests that the effect for contributors with user profiles is greater than those for without
+($\tau^{\mathrm{UP}}_1 - \tau^{\mathrm{NoUP}}_1 = 0.05$ $[-0.08;\allowbreak 0.17]$), but the opposite seems true at the ``likely damaging'' threshold ($\tau^{\mathrm{UP}}_2 - \tau^{\mathrm{NoUP}}_2 = -0.26$ $[-0.79;\allowbreak 0.26]$).  None of these estimates nor their sums are statistically significant at the 95\% level.  
+
+
+\begin{figure}[t]
+\centering
+
+\includegraphics[width=0.7\linewidth]{figures/knitr-regplot_H3_anon-1} 
+
+\caption{Results for RQ3 showing the difference in our parameter estimates between over-profiled editors and others. Lines show 95\% credible intervals. Values greater than 0 would indicate that the effect for under-profiled editors is greater than that for over-profiled editors.}
+\label{fig:h3.reg.plot}
+\end{figure}                                                                                      
+
+\section{Threats to Validity}
+
+Our results are subject to a range of threats to validity that pertain to our ability to make causal claims, rule out alternative explanations, and establish the generalizability of our findings. First, there are several threats to our ability to draw causal inference that are common to RDDs.
+Formally, RDDs model an outcome $Y$ as a function of a continuous ``forcing variable'' $Z$, other covariates, and a cutoff $c$ such that $Z>c$ determines treatment assignment.  In principle, treatment assignment conditional on $Z$ is ``as good as random'' under two assumptions: (1) that agents have at most limited control over $Z>c$ and (2) that the relationship between $Y$ and $Z$ is smooth \cite{lee_regression_2010}.
+While the assumptions required for causal inference are fundamentally unverifiable, we believe that our RDD provides relatively strong evidence of causal relationships between flagging and sanctioning.
+
+Our treatment, being flagged in RCFilters, is an ideal candidate for an RDD from the perspective of assumption (1) because editors are unlikely to have much control over the scores that their edits receive.  While attempts to evade sanction by specially crafting edits to evade algorithmic detection are hypothetically possible, the authors of ORES and RCFilters believe they are unrealistic and very unlikely to be wide-spread.
+Assumption (2) would be violated if any unobserved treatments affect our outcomes at discrete levels of ORES scores. This is certainly possible because ORES makes scores available via a public API. Indeed, we are aware of bots that automatically revert edits triggered by the ``very damaging'' threshold on some of the Wikipedia language editions in our sample. To mitigate this threat, we exclude reverts by bots and at the ``very likely damaging'' threshold.  
+Although we identified one anti-vandalism tool---a system called Huggle discussed in §\ref{sec:discussion}---that collects ORES damaging scores, it uses ORES scores as one feature in its own algorithmic model and by default presents predictions from this model to users as a list of edits sorted in order of likelihood of vandalism. Given these facts, we believe it is unlikely that Huggle users will drive discontinuities in the relationship between ORES scores and our outcomes. 
+
+
+Our study design is also limited in that we cannot present causal evidence of the impact of social signals. Although RCFilters's algorithmic flags are distributed in a quasi-experimental way, over-profiled status is not.
+There are a range of possible systematic differences between over-profiled users and others that might be driving our results for RQ1 and RQ3.
+For example, if damaging edits by contributors who are unregistered or lack User pages are more difficult for ORES to detect, that might drive our findings of a decrease in over-profiling for RQ1. 
+Although we believe that this particular threat is unlikely because it would require that over-profiled contributors be systematically more sophisticated than others---something our experience with ORES suggests is unlikely---we cannot rule out either the specific threat or a range of other possibilities. 
+A promising direction for future work might involve experiments or quasi-experiments that are able to jointly vary social signals and algorithmic flagging.
+
+Additionally, system designers will likely want to know how overall rates of sanctioning and controversial sanctions change before and after a system like RCFilters is launched. Our analysis cannot answer this question directly.
+In preliminary work, we attempted to draw a statistical comparison between Wikipedia governance before and after the introduction of ORES scoring but high temporal variation in sanctioning behaviors made this type of aggregate change difficult to measure. Future studies should organize with communities to carry out planned and principled field experiments to study the causal effects of introducing such systems in online communities using the model being pioneered by \citet{matias_civilservant_2018}. 
+
+Finally, a set of largely unanswerable threats involves questions of generalizability across our measures and empirical contexts.
+While our theories of interactions between algorithmic flags and social signals is general, and although we study RCFilters across 23 distinct communities and cultures, we study a single moderator tool on one platform.
+We can not claim that our findings generalize beyond the specific pool of communities that we study. 
+We can not claim that our setting is representative of other Wikipedia communities that did not launch RCFilters.
+Clearly, we also can not claim that our settings is representative of moderation in online communities in general. 
+Like most other empirical studies in social computing, we must sadly leave these questions for further research.
+
+\section{Discussion}
+\label{sec:discussion}
+
+
+In broadest strokes, our work provides excellent news for advocates of algorithmic flagging in social computing systems. Our work provides some evidence that supports the idea that algorithmic flagging can reduce discrimination in the form of over-profiling bias and that it can increase fairness. Our adoption check (§\ref{sec:adoption}) provides strong evidence that RCFilters drives behavior and our answers to RQ1 (§\ref{sec:results-rq1}) suggests that flagging seems to level the playing field. Flagged actions by unregistered and registered contributors are reverted at similar rates, but unflagged edits of comparable quality by registered editors are reverted relatively infrequently.
+More good news comes in the form of our answer to RQ2 (§\ref{sec:results-rq2}) that suggests that flagging is associated with a decrease in controversial sanctions among some over-profiled users and provides evidence that algorithmic flagging systems can help moderators more accurately issue sanctions. 
+
+When it comes the details however, the picture that emerges from our results is much more contingent and mixed. Our analysis used two different measures of over-profiling in Wikipedia but the pattern of our results diverged substantially between the two. The optimistic story about the effects of algorithmic flagging on over-profiled users only describes our results for unregistered Wikipedia users. Our evidence on over-profiled users without User pages is much weaker and points, in part, in the direction of algorithmic flagging increasing discrimination. Why do these results diverge? What do these divergent results mean for theory?
+
+One possible explanation is that users without User pages are, quite simply, not particularly over-profiled. Of the two social signals we consider, registration status attracts far more attention from academics and community members in discussions of Wikipedia vandalism \citep[e.g.,][]{hill_hidden_2020}.
+Our analysis for RQ2, where we did not detect a change in controversial sanctions at the ``maybe damaging'' threshold for editors without user pages, is consistent with the notion that contributors without user pages may not be over-profiled. 
+However, this can not explain why the effect for editors without profile pages was larger than for editors with them. It is plausible that our mixed results are evidence that algorithmic flags will substitute for some social signals used in profiling while reinforcing others. 
+A better understanding of which signals drive sanctioning misbehavior can help explain if and when algorithmic triage systems can increase fairness.
+
+Our results suggest that algorithmic flags \textit{can} substitute for social signals and reduce discrimination. Our results also suggest that they might also reinforce social signals and make discrimination worse or  introduce dnew forms of discrimination through encoded bias. For example, our result might be explained if ORES is somehow biased against contributors without User pages such that their flagged edits are truly less damaging than flagged edits by contributors who do have profile pages. Then flagged edits by both kinds of users might be inspected by moderators at similar rates, but sanctioned differently.  Unfortunately, outcomes resulting from myriad factors acting at once
+are likely deeply contingent on details of sociotechnical arrangements and difficult to know \textit{ex ante}.
+
+Although RQ2 suggests that algorithmic flagging can increase fairness for over-profiled contributors, our null results for RQ3 mean that we could not detect a difference in this effect between over-profiled editors and others.  These results are also puzzling.  A null effect for RQ3 was suggested by a theoretical framework proposing that cues or salient signals such as flagging are less important than meta-norms and useful information when it comes to controversial sanctioning.  Yet uncertainty in our models is quite high and parameter values that would be consistent with either a positive or negative average effect remain plausible. This points to methodological limitations in our use of controversial reverts as a measure of fairness. Ultimately, controversial reverts are just too rare---especially for registered contributors with User pages---for us to be confident in our estimates. 
+New approaches to measuring normative and meta-normative compliance in online communities may reflect a promising area for future work.
+
+
+Our work has a number of important implications for designers of algorithmic flagging systems and sociotechnical systems.
+Scholars of human-computer interaction, science and technology studies, and the law, have all called for analysis of algorithmic fairness to move beyond biases inherent in algorithms to consider the systemic and downstream effects of algorithms in use \cite{selbst_fairness_2019, stevenson_assessing_2017, zhu_value-sensitive_2018}. We provide one answer to this call by showing one way that designers and managers of online communities might evaluate the way that algorithmic systems may influence community members' actions.
+
+While quality control is an important function in open production communities like Wikipedia, supporting newcomers and encouraging contribution is also essential \cite{halfaker_rise_2013, morgan_tea_2013}.  
+Past work has shown that increased quality control efforts correspond to a decrease in newcomer engagement and have hypothesized that one mechanism is increased scrutiny of newcomers \cite{halfaker_rise_2013, teblunthuis_revisiting_2018}.  Similarly, while blocking anonymous edits led to a decrease in reverted edits, it also led to a decrease in positive contributions \cite{hill_hidden_2020}.  While it may be intuitive to think about edits that get sanctioned as obvious vandalism, many of the edits flagged by the ``maybe bad'' threshold are authored by well-meaning newcomers and anonymous editors \cite{halfaker_rise_2013}.  There's a potentially high cost to sanctioning these low quality but well intentioned contributions. We believe that our results point to the benefit of tracking changes in the rate of sanctions to sensitive groups of community members in order to assure that such well-meaning contributors aren't being driven away.
+
+There are also lessons to learned from the impressive degree with which RCFilters shapes behavior. Designers should think about whether using thresholds to trigger flagging in moderation interfaces is a fair practice.  While thresholds allowed us to explore the effects of flagging on sanctioning behavior, this arbitrary flagging of actions applied by RCFilters brought disproportionate attention to contributions just above the thresholds compared to contributions just below.  Our results show that this leads to sanctioning behavior that is disproportionate and, like the thresholds, arbitrary.
+
+What types of designs might support quality control support models that scrutinize contributions in proportion to the likelihood that the contributions deserves to be sanctioned? We see some inspiration in Huggle, a counter-vandalism tool for Wikipedia which sorts actions by the likelihood that they are damaging.\footnote{See discussion in \cite{halfaker_snuggle:_2014}} Huggle users are encouraged to review the highest likelihood edits first and only move onto lower likelihood edits once those reviews are complete.  Such a user experience might increase efficiency and fairness by better concentrating moderator attention wherever it can have the greatest benefits.
+
+
+\section{Conclusion}
+
+As algorithmic flagging becomes more integrated into online community moderation, it is important to understand its effects and consequences on discrimination and fairness. 
+We use a regression discontinuity analysis of the RCFilters used to find and sanction misbehavior by volunteers on Wikipedia to consider how the use of algorithmic flagging and social signals interact.
+We find that by drawing moderator attention to misbehavior by registered participants, algorithmic flagging can reduce over-profiling.
+We also find that algorithmic flagging can support fairness by decreasing controversial sanctions of unregistered contributors.   
+On the other hand, our results suggest that the same system may have much less effect, and might even increase discrimination, for other types of over-profiled users.
+
+Critics of machine learning trace how algorithms can encode discriminatory patterns in human behavior.  Such questions are pertinent to the use of machine predictions in decision making in high-stakes settings like employment, education, and criminal justice. Our work uses data from a lower-stakes context to show that when tools for predictive governance are introduced into a sociotechnical system, their effects may be difficult to anticipate.  
+
+While our analysis of over-profiling based on registration status supports a rosy account of algorithmic flagging, our analysis of over-profiling based on User pages
+suggests that the interaction between algorithmic flagging and social signals is more complex and contingent. 
+Our work suggests a need for future work that describes the kinds of social signals that are used in practice and explains how different types of information may be used alongside algorithmic flags. Finally, we present a methodological approach that we hope future studies of algorithmic tools in real-world sociotechnical systems might build upon to establish the causal effects of algorithmic systems without experimental interventions.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{ms.bib}
+
+
+\end{document}
+
+

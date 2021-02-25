@@ -1,4 +1,3 @@
-
 \documentclass[format=acmsmall, natbib=true, review=true, screen=true]{acmart}
 \citestyle{acmauthoryear}
 
@@ -19,6 +18,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage{wrapfig}
+\usepackage{subcaption}
 \usepackage{booktabs}
 <<init, echo=FALSE>>=
 library(knitr)
@@ -28,8 +28,10 @@ knit_hooks$set(document = function(x) {
 })
 opts_chunk$set(fig.path="figures/knitr-")
 
-overwrite <- TRUE
+overwrite <- FALSE
+setwd("../paper/")
 source("resources/preamble.R")
+setwd("../appendix")
 @
 \usepackage{subcaption}
 % \usepackage[T1]{fontenc}
@@ -95,7 +97,7 @@ source("resources/preamble.R")
 \newcommand{\oressource}{\oresdatabase}
 \begin{document}
 
-\setlength{\parskip}{4.5pt}
+%\setlength{\parskip}{4.5pt}
 % LATEX NOTE: Ideal linespacing is usually said to be between 120-140% the
 % typeface size. So, for 12pt (default in this document, we're looking for
 % somewhere between a 14.4-17.4pt \baselineskip.  Single; 1.5 lines; and Double
@@ -103,8 +105,8 @@ source("resources/preamble.R")
 
 % \baselineskip 16pt
 
-\title{Supplementary Material for: Algorithmic flagging does not replace identity-based signals in online community moderation}
-\author{Nate TeBlunthuis}
+\title{Supplementary Material for: The effects of algorithmic flagging on fairness: Quasi-experimental evidence from Wikipedia}
+% \author{Nate TeBlunthuis}
 
 \date{\today}
 
@@ -118,8 +120,6 @@ source("resources/preamble.R")
 
 % Too much emphasis on criminal justice and claiming that as a major part of the contribution is creating extra work. Don't do that unless you really need it.
 
-\section{Introduction}
-
 % Paragraph motivating the question: What are we concerned about why does it matter?% What's the CSCW problem we're working on? It's a popular topic right now. 
 
 % I need to develop / focus my concepts of enforcement or monitoring work. Use ostrom?
@@ -129,66 +129,881 @@ source("resources/preamble.R")
 % broaden the focus beyond online communities to broader questions of algorithmic governance --- including the criminal justice system.
 % Bring back surveillence/visibility and profiling in the intro.
 % don't make it about online communities!
-
-\begin{table}[t]
-\begin{subtable}[t]{0.49\textwidth}
-\centering
-
-<<adoption.sample,echo=FALSE,results='asis'>>=
-df <- format.sample.stats(mod.adoption.N.by.wiki.cutoff)
-tab <- xtable(df,digits=0,label='tab:adoption.sample',align=c('r','r','r','r','r'))
-print(tab,hline.after=c(-1,0,nrow(tab)),size='footnotesize')
+<<make.sparklines, echo=F>>=
+# for now it seems like this only works if we do it here.
+for(i in 1:length(models.draws.list)){
+  draws <- models.draws.list[[i]]
+  name <- names(models.draws.list)[[i]]
+  make.sparklines(draws,name)
+}
 @ 
-\caption{Sample for adoption check models}
-\end{subtable}
-\begin{subtable}[t]{0.49\textwidth}
-\centering
-<<controversial.sample,echo=FALSE,results='asis'>>=
-df <- format.sample.stats(mod.all.controversial.N.by.wiki.cutoff)
-tab <- xtable(df,digits=0,label='tab:controversial.sample',align=c('r','r','r','r','r'))
-print(tab,hline.after=c(-1,0,nrow(tab)),size='footnotesize')
+
+% Show sample sizes by: wiki
+% Show sample sizes by: cutoff
+% Don't show weights
+
+\section{Data summary}
+
+\begin{table}[hp!]
+  \centering
+  \footnotesize
+  <<edits.editors.table,echo=F,results='asis'>>=
+  tab <- r4$summary.edits.and.editors
+  tab <- tab[,.(nearest.threshold,edit.type,editor.type,N,prop.threshold,prop.edit.type,prop.editor.type)]
+  setnames(tab,old=c('nearest.threshold','editor.type','edit.type','prop.threshold','prop.edit.type','prop.editor.type'),
+           new=c('Threshold','Editor type','Edit type','\\% at threshold','\\% edit types','\\% editor types'))
+  print(xtable(tab))
 @ 
-\caption{Sample for models testing H2.}
-\end{subtable}
-\begin{subtable}[t]{0.49\textwidth}
-<<anon.reverted.sample,echo=FALSE,results='asis'>>=
-df <- format.sample.stats(mod.anon.reverted.N.by.wiki.cutoff,
-                          "IP",
-                          mod.non.anon.reverted.N.by.wiki.cutoff,
-                          'not IP',
-                          mod.no.user.page.reverted.N.by.wiki.cutoff,
-                          'no u.p.',
-                          mod.user.page.reverted.N.by.wiki.cutoff,
-                          'user page')
-
-tab <- xtable(df,digits=0,label='tab:anon.reverted.sample',align=c('r','r','r','r','r','r'))
-print(tab,hline.after=c(-1,0,nrow(tab)),size='footnotesize')
-@
-\caption{Sample information for models testing H1.}
-\end{subtable}
-\begin{subtable}[t]{0.49\textwidth}
-<<anon.controversial.sample,echo=FALSE,results='asis'>>=
-df <- format.sample.stats(mod.anon.controversial.N.by.wiki.cutoff,
-                          "IP",
-                          mod.non.anon.controversial.N.by.wiki.cutoff,
-                          'not IP',
-                          mod.no.user.page.controversial.N.by.wiki.cutoff,
-                          'no u.p.',
-                          mod.user.page.controversial.N.by.wiki.cutoff,
-                          'u.p.'
-                          )
-
-tab <- xtable(df,digits=0,label='tab:anon.controversial.sample',align=c('r','r','r','r','r','r'))
-print(tab,hline.after=c(-1,0,nrow(tab)),size='footnotesize')
-@
-\caption{Sample information for models testing H3.}
-\end{subtable}
 
 \end{table}
+  
+
+\section{Tables of sample sizes by wiki, model, and threshold}
+~
+\subsection{Sample sizes for each model by wiki}
+~
+\begin{table}[hp!]
+\caption{Adoption check model}
+\centering
+<<adoption.sample,echo=FALSE,results='asis'>>=
+df <- mod.adoption.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:adoption.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@ 
+\end{table}
+\begin{table}
+\caption{Samples for RQ1}
+\begin{subtable}{0.49\textwidth}
+\caption{Unregistered; Reverted model}
+\centering
+<<anon.reverted.sample,echo=FALSE,results='asis'>>=
+df <- mod.anon.reverted.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:anon.reverted.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{Registered; Reverted model}
+\centering
+<<non.anon.reverted.sample,echo=FALSE,results='asis'>>=
+df <- mod.non.anon.reverted.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:non.anon.reverted.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{No user profile; Reverted model}
+\centering
+<<no.up.reverted.sample,echo=FALSE,results='asis'>>=
+df <- mod.no.user.page.reverted.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:no.up.reverted.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{User profile; Reverted model}
+\centering
+<<up.reverted.sample,echo=FALSE,results='asis'>>=
+df <- mod.user.page.reverted.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:up.reverted.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\end{table}
+\begin{table}
+\caption{Samples for RQ2 and RQ3}
+\begin{subtable}{0.49\textwidth}
+\caption{Unregistered; Controversial sanctioning model}
+\centering
+<<anon.controversial.sample,echo=FALSE,results='asis'>>=
+df <- mod.anon.controversial.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:anon.controversial.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{Registered; Controversial sanctioning model}
+\centering
+<<non.anon.controversial.sample,echo=FALSE,results='asis'>>=
+df <- mod.non.anon.controversial.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:non.anon.controversial.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{No user profile; Controversial sanctioning model}
+\centering
+<<no.up.controversial.sample,echo=FALSE,results='asis'>>=
+df <- mod.no.user.page.controversial.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:no.up.controversial.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{User profile; Controversial sanctioning model}
+\centering
+<<up.controversial.sample,echo=FALSE,results='asis'>>=
+df <- mod.user.page.controversial.N.by.wiki.cutoff[,.(N=sum(N)),by=.(wiki.db)]
+names(df) <- c("Wiki", "Total sample size"); df <- df[order(Wiki)]
+tab <- xtable(df,digits=0,label='tab:up.controversial.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\end{table}
+
+\clearpage
+
+\subsection{Sample sizes for each model by threshold}
+\begin{table}[h!]
+\caption{Adoption check model}
+\centering
+<<adoption.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.adoption.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df[Threshold=='verylikelybad',Threshold:='Very likely damaging']
+df[,Threshold:=factor(Threshold,levels=c("Maybe damaging","Likely damaging", "Very likely damaging"))]
+df <- df[order(Threshold)]
+tab <- xtable(df,digits=0,label='tab:adoption.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@ 
+\end{table}
+\begin{table}[h]
+\caption{Samples for RQ1}
+\begin{subtable}{0.49\textwidth}
+\caption{Unregistered; Reverted model}
+\centering
+<<anon.reverted.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.anon.reverted.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df <- df[Threshold!='verylikelybad']
+df <- df[order(-Threshold)]
+tab <- xtable(df,digits=0,label='tab:anon.reverted.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{Registered; Reverted model}
+\centering
+<<non.anon.reverted.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.non.anon.reverted.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df <- df[order(-Threshold)]
+df <- df[Threshold!='verylikelybad']
+tab <- xtable(df,digits=0,label='tab:non.anon.reverted.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{No user profile; Reverted model}
+\centering
+<<no.up.reverted.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.no.user.page.reverted.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df <- df[order(-Threshold)]
+df <- df[Threshold!='verylikelybad']
+tab <- xtable(df,digits=0,label='tab:no.up.reverted.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{User profile; Reverted model}
+\centering
+<<up.reverted.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.user.page.reverted.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df <- df[order(-Threshold)]
+df <- df[Threshold!='verylikelybad']
+
+tab <- xtable(df,digits=0,label='tab:up.reverted.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\end{table}
+\begin{table}[h]
+\caption{Samples for RQ2 and RQ3}
+\begin{subtable}{0.49\textwidth}
+\caption{Unregistered; Controversial sanctioning model}
+\centering
+<<anon.controversial.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.anon.controversial.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df <- df[order(-Threshold)]
+df <- df[Threshold!='verylikelybad']
+
+tab <- xtable(df,digits=0,label='tab:anon.controversial.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{Registered; Controversial sanctioning model}
+\centering
+<<non.anon.controversial.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.non.anon.controversial.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df <- df[order(-Threshold)]
+df <- df[Threshold!='verylikelybad']
+
+tab <- xtable(df,digits=0,label='tab:non.anon.controversial.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{No user profile; Controversial sanctioning model}
+\centering
+<<no.up.controversial.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.no.user.page.controversial.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df <- df[order(-Threshold)]
+df <- df[Threshold!='verylikelybad']
+tab <- xtable(df,digits=0,label='tab:no.up.controversial.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\begin{subtable}{0.49\textwidth}
+\caption{User profile; Controversial sanctioning model}
+\centering
+<<up.controversial.sample.2,echo=FALSE,results='asis'>>=
+df <- mod.user.page.controversial.N.by.wiki.cutoff[,.(N=sum(N)),by=.(nearest.threshold)]
+
+names(df) <- c("Threshold", "Total sample size")
+df[Threshold=='maybebad',Threshold:='Maybe damaging']
+df[Threshold=='likelybad',Threshold:='Likely damaging']
+df <- df[Threshold!='verylikelybad']
+df <- df[order(-Threshold)]
+tab <- xtable(df,digits=0,label='tab:up.controversial.sample.by.wiki',align=c('r','r','r'))
+print(tab,size='footnotesize')
+@
+\end{subtable}
+\end{table}
+
+\clearpage
+
+\section{Regression tables}
+~
+\begin{table}[h]
+  \centering
+\footnotesize
+  \caption{Adoption Check}
+<<regtab.adoption,echo=F,results='asis'>>=
+print(format.regtable(prep.regtable(mod.adoption.xtable,'mod_adoption')),booktabs=T,math.style.negative=T)
+@ 
+\end{table}
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Reverted model; Unregistered}
+<<regtable.H1.anon, echo=FALSE, results='asis'>>=
+cutoff.var.symbols <- cutoff.var.symbols[1:2]
+cutoff.var.names <- cutoff.var.names[1:2]
+xreg.anon <- prep.regtable(mod.anon.reverted.xtable, 'mod_anon_reverted')
+xreg.non.anon <- prep.regtable(mod.non.anon.reverted.xtable,'mod_non_anon_reverted')
+
+table.anon <- as.data.table(xreg.anon)
+
+table.anon <- table.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{IP}}$')]
+table.anon <- table.anon[order(Coefficient)]
+xtab <- format.regtable(table.anon)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)
+@
+\end{table}
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Reverted model; Unregistered}
+<<regtable.H1.non.anon,echo=F,results='asis'>>=
+xreg.non.anon <- prep.regtable(mod.non.anon.reverted.xtable,'mod_non_anon_reverted')
+table.non.anon <- as.data.table(xreg.non.anon)
+table.non.anon <- table.non.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{not~IP}}$')]
+table.non.anon <- table.non.anon[order(Coefficient)]
+xtab <- format.regtable(table.non.anon)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)
+@
+\end{table}
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Reverted model; No user page}
+<<regtable.H1.no.up, echo=FALSE, results='asis'>>=
+cutoff.var.symbols <- cutoff.var.symbols[1:2]
+cutoff.var.names <- cutoff.var.names[1:2]
+xreg.no.user.page <- prep.regtable(mod.no.user.page.reverted.xtable, 'mod_anon_reverted')
+
+
+table.no.user.page <- as.data.table(xreg.no.user.page)
+
+table.no.user.page <- table.no.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{IP}}$')]
+table.no.user.page <- table.no.user.page[order(Coefficient)]
+xtab <- format.regtable(table.no.user.page)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)
+@
+\end{table}
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Reverted model; User page}
+<<regtable.H1.up,echo=F,results='asis'>>=
+xreg.user.page <- prep.regtable(mod.user.page.reverted.xtable,'mod_non_anon_reverted')
+table.user.page <- as.data.table(xreg.user.page)
+table.user.page <- table.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{not~IP}}$')]
+table.user.page <- table.user.page[order(Coefficient)]
+xtab <- format.regtable(table.user.page)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)
+@
+\end{table}
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Controversial sanctioning model; Unregistered}
+<<regtable.anon.1, echo=FALSE, results='asis'>>=
+cutoff.var.symbols <- cutoff.var.symbols[1:2]
+cutoff.var.names <- cutoff.var.names[1:2]
+xreg.anon <- prep.regtable(mod.anon.controversial.xtable, 'mod_anon_controversial')
+
+table.anon <- as.data.table(xreg.anon)
+
+table.anon <- table.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{IP}}$')]
+table.anon <- table.anon[order(Coefficient)]
+xtab <- format.regtable(table.anon)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)
+@
+\end{table}
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Controversial sanctioning model; Unregistered}
+<<regtable.non.anon.2,echo=F,results='asis'>>=
+xreg.non.anon <- prep.regtable(mod.non.anon.controversial.xtable,'mod_non_anon_controversial')
+table.non.anon <- as.data.table(xreg.non.anon)
+table.non.anon <- table.non.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{not~IP}}$')]
+table.non.anon <- table.non.anon[order(Coefficient)]
+xtab <- format.regtable(table.non.anon)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)
+@
+\end{table}
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Controversial sanctioning model; No user page}
+<<regtable.H2.up, echo=FALSE, results='asis'>>=
+cutoff.var.symbols <- cutoff.var.symbols[1:2]
+cutoff.var.names <- cutoff.var.names[1:2]
+xreg.no.user.page <- prep.regtable(mod.no.user.page.controversial.xtable, 'mod_anon_controversial')
+
+
+table.no.user.page <- as.data.table(xreg.no.user.page)
+
+table.no.user.page <- table.no.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{IP}}$')]
+table.no.user.page <- table.no.user.page[order(Coefficient)]
+xtab <- format.regtable(table.no.user.page)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)
+@
+\end{table}
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Controversial sanctioning model; User page}
+<<regtable.H2.non.anon,echo=F,results='asis'>>=
+xreg.user.page <- prep.regtable(mod.user.page.controversial.xtable,'mod_non_anon_controversial')
+table.user.page <- as.data.table(xreg.user.page)
+table.user.page <- table.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{not~IP}}$')]
+table.user.page <- table.user.page[order(Coefficient)]
+xtab <- format.regtable(table.user.page)
+print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)
+@
+\end{table}
+\clearpage
+\section{Model Priors}
+
+We use the same priors for all of our models, which are the default priors in rstanarm version 2.19.3 for logistic regression.
+
+For every model coefficient, which are log-odds ratios. We use a normal distribution prior with mean $0$ and standard deviation $2.5$.  For model intercepts we use normal distribution priors with mean $0$ and standard deviation $10$.  These are relatively weak priors that are conservative in the sense that they gently nudge our estimates toward zero.
+
+\section{Analysis of model encoded bias}
+
+How do our main results depend on the biases encoded in the ORES models?
+It might be that the increase in fairness we observe for flagged unregistered editors depends on low levels of model encoded bias against anonymous editors.  That we observe an improvement in fairness for unregistered editors but not for editors without user pages might be explained if the models are biased in favor of unregistered editors compared to editors without user pages. 
+
+To investigate such alternative explanations we turn to an analysis of the biases encoded in the ORES models.
+It turns out that the ORES models are substantially biased against unregistered editors and are relatively less biased against editors without user pages. Therefore model encoded bias does not explain the results of our paper.  Rather we believe that the differences are attributable to the extent of over-profiling against unregistered editors by Wikipedia moderators. 
+
+There are many possible ways of defining fairness. We consider balance and calibration. A well-calibrated classifier predicts similarly accurate probabilities regardless of status. It is free to predict that over-profiled have a higher probability of making damaging edits compared to others. But if the ORES classifier systematically over-estimates this probability, then we would say that it is biased against over-profiled in terms of calibration.
+
+The second fairness criteria I consider is balance. As with calibration, a balanced classifier is free to associate over-profiled editors with a greater risk of making damaging edits. But instead of looking at the predicted probabilities, balance considers the kinds of errors the algorithm makes. A false-positive error occurs when the model predicts damage, but the edit was not truely damaging. Since having your edit labeled damaging is a bad thing, a model with a higher false-positive-rate (fpr) for over-profiled editors to others editors is biased in terms of false-positive balance. If ORES has this kind of bias then edits by over-profiled editors will be more likely to be labeled as damaging when they are actually good edits compared to other editors.
+
+Similarly, a false-negative error occurs when the model predicted that the edit was good, but the edit was actually damaging. Similarly, a model with a lower false-negative-rate (fnr) is based in terms of false-negative balance. If ORES has this kind of bias then edits by over-profiled editors will be less likely to be labeled as good when they are actually good compared to other editors.
+
+It turns out that, while both of these notions of classifier fairness might seem reasonable or intuitive, that it isn't possible in practice to have them both (unless your model is a perfect predictor or the status is irrelavent) \citep{kleinberg_inherent_2016}.  Because we analyze multiple operating points, calibration is a simpler diagnostic, so we present that first, but our conclusions do not depend on which metric we look at.  All of the ORES models are considerably biased against unregistered editors.Many are also biased against editors without user pages, but the degree of bias with respect to User page status is generally much less that for registration status.  
+
+ORES is trained using a mixture of human-labeled edits and edits made by experienced editors that are assumed to be non-damaging.  We analyze the human-labeled edits and models that were used as of December 19th 2019. Since the models we analyze are under active developement, it is likely that the precise degrees of bias in the different models will vary over time. For each label in the dataset, we obtain the ores score that the model would have made if the edit had been made on December 19th 2020.  We then compute calibration, false positive balance, and false negative balance with 95\% confidence intervals derived from standard errors given the available sample of labels.   
+
+
+
+
+\begin{figure}
+
+<<up.model.calibration,echo=F,results='asis',message=F>>=,
+setwd("../appendix")
+r <- readRDS("evaluate_encoded_bias.RDS")
+attach(r)
+df <- as.data.table(user_page_bias_rates)
+df2 <- as.data.table(anon_bias_rates)
+df2 <- df2[group=='anon',group:="Unregistered"]
+df2 <- df2[group=='other',group:="Registered"]
+df <- df[group=='no_user_page', group:="No User page"]
+df <- df[group=='user_page', group:="User page"]
+df <- rbind(df,df2)
+df <- df[group!='other']
+df <- df[,group := factor(group,levels=c("Registered","Unregistered","User page", "No User page"))]
+df <- df[!(wiki %in% c('data','esbooks','esquote'))]
+p <- ggplot(df,aes(x=wiki,y=dmg_miscalibration_mean,ymax=dmg_miscalibration_upper,ymin=dmg_miscalibration_lower,color=group)) + geom_pointrange()
+p <- p + ylab(parse(text="P_[model](damaging)-P(damaging)"))
+p <- p + xlab("Wiki")
+p <- p + guides(color=guide_legend(""))
+p
+@ 
+\caption{Miscalibration by User page and registration status}
+\end{figure}
+
+\begin{figure}
+<<up.model.bias.fpr,echo=F,results='asis',message=F>>=
+setwd("../appendix")
+r <- readRDS("evaluate_encoded_bias.RDS")
+attach(r)
+df <- as.data.table(fp_rates_damaging_user_pages_user_pages)
+df2 <- as.data.table(fp_rates_damaging_anons_anons)
+df2 <- df2[group=='anon',group:="Unregistered"]
+df2 <- df2[group=='other',group:="Registered"]
+df <- rbind(df,df2)
+df <- df[group=='no_user_page', group:="No User page"]
+df <- df[group=='user_page', group:="User page"]
+df <- df[group!='other']
+df <- df[,group := factor(group,levels=c("Registered","Unregistered","User Page", "No User page"))]
+df <- df[!(wiki %in% c('data','esbooks','esquote'))]
+df <- df[(variable %in% c('May have problems','Likely have problems','Very likely have problems'))]
+df <- df[variable == "May have problems",variable := "Maybe damaging"]
+df <- df[variable == "Likely have problems",variable := "Likely damaging"]
+df <- df[variable == "Very likely have problems",variable := "Very likely damaging"]
+
+p <- ggplot(df[group!='other'], aes(x=wiki,y=mean,ymax=upper,ymin=lower,color=group)) + geom_pointrange()
+#p <- p + ggtitle("False Positive Rates By User Page Status")
+p <- p + facet_wrap(.~variable,scales='free_y',ncol=1)
+p <- p + xlab("Wiki")
+p <- p + ylab("False positive rate (Damage predicted, but actually good)")
+p <- p + guides(color=guide_legend(""))
+p
+@ 
+\caption{False Positive Rates By User Page Status}
+\end{figure}
+
+\begin{figure}
+<<up.model.bias.fnr,echo=F,results='asis',message=F>>=
+setwd("../appendix")
+r <- readRDS("evaluate_encoded_bias.RDS")
+attach(r)
+
+df <- as.data.table(fn_rates_damaging_user_pages_user_pages)
+df2 <- as.data.table(fn_rates_damaging_anons_anons)
+df2 <- df2[group=='anon',group:="Unregistered"]
+df2 <- df2[group=='other',group:="Registered"]
+df <- rbind(df,df2)
+df <- df[group=='no_user_page', group:="No User page"]
+df <- df[group=='user_page', group:="User page"]
+df <- df[group!='other']
+df <- df[,group := factor(group,levels=c("Registered","Unregistered","User Page", "No User page"))]
+df <- df[!(wiki %in% c('data','esbooks','esquote'))]
+df <- df[variable == "fn_dmg_maybe",variable := "Maybe damaging"]
+df <- df[variable == "fn_dmg_likely",variable := "Likely damaging"]
+df <- df[variable == "fn_dmg_very_likely",variable := "Very likely damaging"]
+df <- df[variable == "May have problems",variable := "Maybe damaging"]
+df <- df[variable == "Likely have problems",variable := "Likely damaging"]
+df <- df[variable == "Very likely have problems",variable := "Very likely damaging"]
+
+df <- df[(variable %in% c('Maybe damaging','Likely damaging','Very likely damaging'))]
+
+p <- ggplot(df[group!='other'], aes(x=wiki,y=mean,ymax=upper,ymin=lower,color=group)) + geom_pointrange()
+#p <- p + ggtitle("False Positive Rates By User Page Status")
+p <- p + facet_wrap(.~variable,scales='free_y',ncol=1)
+p <- p + xlab("Wiki")
+p <- p + ylab("False negative rate (Good edit predicted, but actually damaging)")
+p <- p + guides(color=guide_legend(""))
+p
+@ 
+\caption{False Negative Rates By User Page Status}
+\end{figure}
+
+
+
+% ## row.tau.anon <- make.overall.regtab.row(h1.tau.anon, 'tau_sum_anon_reverted', '$\\sum{\\tau_j^{\\mathrm{IP}}}$')
+
+% ## row.tau.non.anon <- make.overall.regtab.row(h1.tau.non.anon, 'tau_sum_non_anon_reverted', '$\\sum{\\tau_j^\\mathrm{not~IP}}$')
+
+% ## row.diff <- make.overall.regtab.row(h1.tau.non.anon.sub.anon, 'tau_non_anon_sub_anon_reverted', '$\\ \\sum{\\tau_j^{\\mathrm{not~IP}}} - \\sum{\\tau_j^{\\mathrm{IP}}}$')
+
+% ## table.data <- rbind(table.anon, table.non.anon, row.tau.anon, row.tau.non.anon, row.diff)
+% , table.non.anon)
+
+
+
+% \begin{table}[t]
+%   \centering
+
+% <<regtable.H1.user.page, echo=FALSE, results='asis'>>=
+
+% xreg.no.user.page <- prep.regtable(mod.no.user.page.reverted.xtable, 'mod_no_user_page_reverted')
+
+% xreg.user.page <- prep.regtable(mod.user.page.reverted.xtable,'mod_user_page_reverted')
+
+% table.no.user.page <- as.data.table(xreg.no.user.page)
+
+% table.no.user.page <- table.no.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{no~user~page}}$')]
+% table.no.user.page <- table.no.user.page[order(Coefficient)]
+
+% table.user.page <- as.data.table(xreg.user.page)
+% table.user.page <- table.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{user~page}}$')]
+% table.user.page <- table.user.page[order(Coefficient)]
+
+
+% row.tau.no.user.page <- make.overall.regtab.row(h1.tau.no.user.page, 'tau_sum_no_user_page_reverted', '$\\sum{\\tau_j^{N.U.P.}}$')
+
+% row.tau.user.page <- make.overall.regtab.row(h1.tau.user.page, 'tau_sum_user_page_reverted', '$\\sum{\\tau_j^\\mathrm{U.P.}}$')
+
+% row.diff <- make.overall.regtab.row(h1.tau.user.page.sub.no.user.page, 'tau_no_user_page_sub_no_user_page', '$\\ \\sum{\\tau_j^{\\mathrm{U.P.}}} - \\sum{\\tau_j^{\\mathrm{N.U.P.}}}$')
+
+% table.data <- rbind(table.no.user.page, table.user.page, row.tau.no.user.page, row.tau.user.page, row.diff)
+% xtab <- format.regtable(table.data)
+
+% print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,6,8))
+% @ 
+% \caption{ Regression table for model estimating the effect of flagging on sanctioning comparing editors with and without user pages.}
+% \label{tab:up.revert}
+% \end{table}
+
+
+% \begin{table}[t]
+%   \centering
+% <<regression.H2, echo=FALSE, results='asis'>>=
+% xtab <- prep.regtable(mod.all.controversial.xtable, 'mod_all_controversial')
+% print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE)  
+  
+% @
+% \caption{ Regression table for model estimating the effect of flagging on controversial sanction.}
+% \label{tab:controversial}
+% \end{table}
+
+
+
+% \begin{table}[t]
+%   \centering
+% <<regression.H3.1, echo=FALSE, results='asis'>>=
+
+% xreg.anon <- prep.regtable(mod.anon.controversial.xtable, 'mod_anon_controversial')
+
+% xreg.non.anon <- prep.regtable(mod.non.anon.controversial.xtable,'mod_non_anon_controversial')
+
+% table.anon <- as.data.table(xreg.anon)
+% table.anon <- table.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{IP}}$')]
+% table.anon <- table.anon[order(Coefficient)]
+
+% table.non.anon <- as.data.table(xreg.non.anon)
+% table.non.anon <- table.non.anon[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{not~IP}}$')]
+
+% table.non.anon <- table.non.anon[order(Coefficient)]
+
+% row.tau.anon <- make.overall.regtab.row(h3.tau.anon, 'tau_sum_anon_controversial', '$\\sum{\\tau_j^{\\mathrm{IP}}} $')
+
+% row.tau.non.anon <- make.overall.regtab.row(h3.tau.non.anon, 'tau_sum_non_anon_controversial', '$\\sum{\\tau_j^\\mathrm{not~IP}} $')
+
+% row.diff <- make.overall.regtab.row(h3.tau.non.anon.sub.anon, 'tau_non_anon_sub_anon_contoversial', '$\\ \\sum{\\tau^{\\mathrm{not~IP}}} - \\sum{\\tau^{\\mathrm{IP}}}$')
+
+% table.data <- rbind(table.anon, table.non.anon, row.tau.anon, row.tau.non.anon, row.diff)
+% xtab <- format.regtable(table.data)
+
+% print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,6,8))
+% @
+% \caption{ Regression table for models estimating the effect of flagging on controversial sanction for IP editors and non-IP editors.}
+% \label{tab:H3}
+% \end{table}
+
+
+% \begin{table}[t]
+%   \centering
+% <<regression.H3.2, echo=FALSE, results='asis'>>=
+% xreg.no.user.page <- prep.regtable(mod.no.user.page.controversial.xtable, 'mod_no_user_page_controversial')
+
+% xreg.user.page <- prep.regtable(mod.user.page.controversial.xtable,'mod_user_page_controversial')
+
+% table.no.user.page <- as.data.table(xreg.no.user.page)
+% table.no.user.page <- table.no.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{no~user~page}}$')]
+% table.no.user.page <- table.no.user.page[order(Coefficient)]
+
+% table.user.page <- as.data.table(xreg.user.page)
+% table.user.page <- table.user.page[,Coefficient:=paste('$',gsub('\\$','',Coefficient),'^{\\mathrm{user~page}}$')]
+% table.user.page <- table.user.page[order(Coefficient)]
+
+% table.data <- rbind(table.anon, table.non.anon)
+% xtab <- format.regtable(table.data)
+
+% row.tau.no.user.page <- make.overall.regtab.row(h3.tau.no.user.page, 'tau_sum_no_user_page_reverted', '$\\sum{\\tau_j^{N.U.P.}}$')
+
+% row.tau.user.page <- make.overall.regtab.row(h3.tau.user.page, 'tau_sum_user_page_reverted', '$\\sum{\\tau_j^\\mathrm{U.P.}}$')
+
+% row.diff <- make.overall.regtab.row(h3.tau.user.page.sub.no.user.page, 'tau_no_user_page_sub_no_user_page', '$\\sum{\\tau^{\\mathrm{U.P.}}} - \\sum{\\tau^{\\mathrm{N.U.P.}}}$')
+
+% table.data <- rbind(table.no.user.page, table.user.page, row.tau.no.user.page, row.tau.user.page, row.diff)
+% xtab <- format.regtable(table.data)
+% print(xtab,sanitize.text.function=identity,include.rownames=FALSE,booktabs=TRUE,math.style.negative=TRUE,hline.after=c(-1,0,6,8))
+
+% @
+% \caption{ Regression table for model estimating the effect of flagging on controversial sanction for editors with user pages and without user pages.}
+% \label{tab:H3}
+% \end{table}
+
+% \section{Full Regression Plots including ``very likely damaging'' threshold}
+
+% % At the ``very likely damaging'' threshold we observe increase in the probability of reversion for IP-edits ($\overline{\tau_3^{\mathrm{IP}}} = \Sexpr{signif(mean(h1.tau.3.anon),2)}$, $95\%~\mathrm{CI}=\Sexpr{get.CI.str(h1.tau.3.anon)}$).
+
+% % \begin{figure}[h]
+% % \centering
+% % % I have so much data and these marginal posteriors are so normal that there isn't much point in showing the intervals
+% % % \begin{subfigure}[t]{0.49\textwidth}
+% % % \centering
+% % <<regplot.H1.anon,fig.height=3.3,out.width="100%",echo=FALSE,warning=F, message=F,results='asis'>>=
+% % p <- big_reg_plot2(h1.mcmc.data) + ggtitle("Effects of algorithmic flagging on sanctioning")
+
+% % print(p)
+% % @       
+% % \caption{Results for \textbf{H1} that flagging has a greater causal effect on reversion for editors that are not over-profiled than for editors that are. Points show posterior medians and lines show 95\% credible intervals for each parameter. Dashed lines represent inferences based on aggregations of model parameters.}
+% % \end{figure}                                                                                      
+% \begin{figure}[t]
+% \centering
+% % I have so much data and these marginal posteriors are so normal that there isn't much point in showing the intervals
+% % \begin{subfigure}[t]{0.49\textwidth}
+% % \centering
+% <<regplot.H1.anon,fig.height=3.3,out.width="100%",echo=FALSE,warning=F, message=F,results='asis',cache=F>>=
+
+% h1.mcmc.data <- data.table(h1.tau.1.non.anon,
+%                            h1.tau.1.anon,
+%                            h1.tau.1.non.anon.sub.anon,
+%                            h1.tau.2.non.anon,
+%                            h1.tau.2.anon,
+%                            h1.tau.2.non.anon.sub.anon,
+%                            h1.tau.non.anon,
+%                            h1.tau.anon,
+%                            h1.tau.non.anon.sub.anon,
+%                            h1.tau.1.user.page,
+%                            h1.tau.1.no.user.page,
+%                            h1.tau.1.user.page.sub.no.user.page,                           
+%                            h1.tau.2.user.page,
+%                            h1.tau.2.no.user.page,
+%                            h1.tau.2.user.page.sub.no.user.page,
+%                            h1.tau.user.page,
+%                            h1.tau.no.user.page,
+%                            h1.tau.user.page.sub.no.user.page)
+
+% p <- big_reg_plot2(h1.mcmc.data) + ggtitle("Effects of algorithmic flagging on sanctioning")
+
+% print(p)
+% @       
+% \caption{Results for \textbf{H1} that flagging has a greater causal effect on reversion for editors that are not over-profiled than for editors that are.  Concerning \textbf{H1a},  effects of flagging for Non IP editors are greater than for IP editors at both the ``maybe bad'' and the ``likely bad'' thresholds and the difference over both thresholds is also positive.  On the other hand, flagging increases sanctioning, but not more for editors with user pages than for editors without. 
+%   We place points over the X-axis corresponding to posterior means, which are the most likely parameter value. Lines show 95\% credible intervals for each parameter, indicating uncertainty in our inferences.  For each threshold, we also model parameters for each type of editor and then the difference between groups of editors below.  We also show overall effects obtained by summing posteriors over thresholds. We draw conclusions when the credible intervals do not contain 0, which is the Bayesian analog to testing a hypothesis with $p<0.05$. \label{fig:h1.regplot}}
+% \end{figure}                                                                                      
+
+
+% \begin{figure}[t]
+%   \centering
+% <<reverted.me.plot, echo=FALSE, fig.height=6,out.width='\\textwidth',cache=F>>=
+% make.comparison.me.plot(mod.anon.reverted.me.data.df,
+%                         mod.anon.reverted.bins.df,
+%                         'IP',
+%                         mod.non.anon.reverted.me.data.df,
+%                         mod.non.anon.reverted.bins.df,
+%                         'Not IP',
+%                         mod.no.user.page.reverted.me.data.df,
+%                         mod.no.user.page.reverted.bins.df,                        
+%                         "No user page",
+%                         mod.user.page.reverted.me.data.df, 
+%                         mod.user.page.reverted.bins.df, 
+%                         "User page",
+%                         digits=2
+%                         )
+
+% @ 
+%   \caption{Marginal effects plot showing model predicted relationship between ores score and reversion around the cutoffs for registered and IP editors.\label{fig:anon.reverted.me}}
+% \end{figure}
+
+
+
+% \subsection{\textbf{H2}: Effect of flagging on controversial sanctioning}
+
+% \begin{figure}[t]
+%   \centering
+% \begin{subfigure}[t]{0.6\textwidth}
+%   \centering
+% <<regplot.controversial, fig.height=1.5, fig.width=0.6*7, echo=FALSE, warning=F,message=F, error=F, result='asis'>>=
+% p <- my_mcmc_intervals(mod.all.controversial.draws, symbols=FALSE, tex=TRUE) + ggtitle("Effect of flagging on controversial sanctioning")
+% print(p)
+% @   
+% \caption{Plots of marginal posteriors for effects of flagging on whether sanctions are controversial.}
+% \end{subfigure}
+% ~
+% \begin{subfigure}[b]{\textwidth}
+% \centering  
+% <<me.plot.H2, echo=FALSE, fig.height=2.5, out.width='\\textwidth', results='asis'>>=
+% make.rdd.plot(mod.all.controversial.me.data.df, mod.all.controversial.bins.df, title="Prob. controversial, all reverts",digits=3)
+% @ 
+% \caption[H2. me plot]{Marginal effects plots for models predicting whether a revert is controversial, all editors. }
+% \label{fig:h2.me.plot}
+% \end{subfigure}
+% \end{figure}
+% \subsection{H3: Identity-based signals and effects of flagging on controversial sanctioning }
+% \begin{figure}
+% <<regplot.H3.anon,fig.height=3.3,out.width="100%",echo=FALSE,warning=F, message=F,results='asis'>>=
+
+% h3.tau.anon <- apply(matrix(c(h3.tau.1.anon,h3.tau.2.anon),ncol=3,byrow=FALSE),1,sum)
+% h3.tau.non.anon <- apply(matrix(c(h3.tau.1.non.anon,h3.tau.2.non.anon),ncol=3,byrow=FALSE),1,sum)
+% h3.tau.non.anon.sub.anon <- apply(matrix(c(h3.tau.non.anon, -1*h3.tau.anon),ncol=2,byrow=FALSE),1,sum)
+
+% h3.tau.anon <- apply(matrix(c(h3.tau.1.anon,h3.tau.2.anon),ncol=3,byrow=FALSE),1,sum)
+% h3.tau.non.anon <- apply(matrix(c(h3.tau.1.non.anon,h3.tau.2.non.anon),ncol=3,byrow=FALSE),1,sum)
+% h3.tau.non.anon.sub.anon <- apply(matrix(c(h3.tau.non.anon, -1*h3.tau.anon),ncol=2,byrow=FALSE),1,sum)
+
+% h3.tau.user.page <- apply(matrix(c(h3.tau.1.user.page,h3.tau.2.user.page),ncol=3,byrow=FALSE),1,sum)
+% h3.tau.no.user.page <- apply(matrix(c(h3.tau.1.no.user.page,h3.tau.2.no.user.page),ncol=3,byrow=FALSE),1,sum)
+% h3.tau.user.page.sub.no.user.page <- apply(matrix(c(h3.tau.user.page, -1*h3.tau.no.user.page),ncol=2,byrow=FALSE),1,sum)
+
+
+% h3.mcmc.data <- data.table(h3.tau.1.non.anon,
+%                            h3.tau.1.anon,
+%                            h3.tau.1.non.anon.sub.anon,
+%                            h3.tau.2.non.anon,
+%                            h3.tau.2.anon,
+%                            h3.tau.2.non.anon.sub.anon,
+%                            h3.tau.non.anon,
+%                            h3.tau.anon,
+%                            h3.tau.non.anon.sub.anon,
+%                            h3.tau.1.user.page,
+%                            h3.tau.1.no.user.page,
+%                            h3.tau.1.user.page.sub.no.user.page,                           
+%                            h3.tau.2.user.page,
+%                            h3.tau.2.no.user.page,
+%                            h3.tau.2.user.page.sub.no.user.page,
+%                            h3.tau.user.page,
+%                            h3.tau.no.user.page,
+%                            h3.tau.user.page.sub.no.user.page)
+
+% p <- big_reg_plot2(h3.mcmc.data) + ggtitle("Effects of algorithmic flagging on sanctioning")
+
+% print(p)
+% @       
+% \caption{Results for \textbf{H3} that flagging has a greater causal effect on controversial sanctioning for non-anonymous editors than for anonymous editors. Points show posterior medians and lines show 95\% credible intervals for each parameter. Dashed lines represent inferences based on aggregations of model parameters.}
+% \end{figure}                                                                                      
+
+
+% % \begin{figure}[h]
+% % \centering
+% % % I have so much data and these marginal posteriors are so normal that there isn't much point in showing the intervals
+% % % \begin{subfigure}[t]{0.49\textwidth}
+% % % \centering
+% % <<regplot.H3.anon,fig.height=3.3,out.width="100%",echo=FALSE,warning=F, message=F,results='asis'>>=
+% % p <- big_reg_plot2(h3.mcmc.data) + ggtitle("Effects of flagging on controversial sanctioning")
+
+% % print(p)
+% % ## # bayes plot seems too limited. I might be better off doing this myself. 
+% % ## h3.mcmc.data <- data.table(tau.1.non.anon,
+% % ##                            tau.1.anon,
+% % ##                            tau.2.non.anon,
+% % ##                            tau.2.anon,
+% % ##                            tau.3.non.anon,
+% % ##                            tau.3.anon,
+% % ##                            tau.non.anon,
+% % ##                            tau.anon,
+% % ##                            tau.non.anon.sub.anon)
+% % ## print(big_reg_plot(h3.mcmc.data,sup1='not~IP',sup2='IP',tex=TRUE))
+
+% % @       
+% % \caption{Results for \textbf{H3} that flagging has a greater causal effect on controversial sanctioning for non-anonymous editors than for anonymous editors. Points show posterior medians and lines show 95\% credible intervals for each parameter. Dashed lines represent inferences based on aggregations of model parameters.}
+% % \end{subfigure}
+% % ~
+% % \begin{subfigure}[t]{0.49\textwidth}
+% % \centering
+% % <<regplot.H3.up,fig.height=2.6,fig.width=2.6,out.width="100%",echo=FALSE,warning=F, message=F,results='asis',dev='tikz',cache=T>>=
+
+% % # bayes plot seems too limited. I might be better off doing this myself. 
+% % h3.mcmc.data <- data.table(tau.1.user.page,
+% %                            tau.1.no.user.page,
+% %                            tau.2.user.page,
+% %                            tau.2.no.user.page,
+% %                            tau.3.user.page,
+% %                            tau.3.no.user.page,
+% %                            tau.user.page,
+% %                            tau.no.user.page,
+% %                            tau.user.page.sub.no.user.page)
+
+% % print(big_reg_plot(h3.mcmc.data,sup1='u.p.',sup2='no~u.p.',tex=TRUE))
+% % @       
+% % \caption{Results for \textbf{H3b:} that flagging has a greater causal effect on controversial sanctioning for editors with user pages than for editors without user pages. Points show posterior medians and lines show 95\% credible intervals for each parameter. Dashed lines represent inferences based on aggregations of model parameters.}
+% % \end{subfigure}
+% %\end{figure}                                                                                      
+
+% \begin{figure}[b]
+%   \centering
+% <<controversial.me.comparison.plot, echo=FALSE, fig.height=6,  out.width='\\textwidth',cache=T>>=
+% make.comparison.me.plot(mod.anon.controversial.me.data.df,
+%                         mod.anon.controversial.bins.df,
+%                         'IP',
+%                         mod.non.anon.controversial.me.data.df,
+%                         mod.non.anon.controversial.bins.df,
+%                         'Not IP',
+%                         mod.no.user.page.controversial.me.data.df,
+%                         mod.no.user.page.controversial.bins.df,  
+%                         "No user page",
+%                         mod.user.page.controversial.me.data.df, 
+%                         mod.user.page.controversial.bins.df, 
+%                         "User page",
+%                         digits=3
+%                         )
+
+
+% @ 
+  
+%   \caption{Marginal effects plot for models predicting whether a revert is controversial}
+%   \label{fig:me.controversial.comp}
+% \end{figure}
 
 % \setcounter{biburlnumpenalty}{9001}
 % \printbibliography[title = {References}, heading=secbib]
-
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{OresAudit.bib}
 \end{document}
 
 % LOCAL_WORDS: decile

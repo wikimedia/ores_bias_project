@@ -1,7 +1,7 @@
 #!/usr/bin/make
 all: $(patsubst %.Rtex,%.pdf,$(wildcard *.Rtex)) 
 
-refs.bib:
+OresAudit.bib:
 	wget -r -q -O OresAudit.bib http://127.0.0.1:23119/better-bibtex/collection?/3/OresAudit.bibtex
 
 sync: sync.remember sync.figures
@@ -25,7 +25,7 @@ copy.to.dropbox:
 	cp *.RDS dropbox
 	cp figures/* dropbox/figures/
 
-%.tex: %.Rtex refs.bib
+%.tex: %.Rtex OresAudit.bib resources/* figures/*
 	Rscript -e "library(knitr); knit('$<')"
 
 
@@ -38,6 +38,9 @@ clean:
 	rm -f *.bbl
 	rm -f *.run.xml
 
+clean_cache:
+	rm -f figures/knitr-*
+
 viewpdf: all
 	evince *.pdf
 
@@ -46,5 +49,5 @@ spell:
 
 pdf: all
 
-.PHONY: clean all refs.bib copy.to.dropbox sync.remember sync.figures
+.PHONY: clean clean_cache all refs.bib copy.to.dropbox sync.remember sync.figures
 .PRECIOUS: %.tex

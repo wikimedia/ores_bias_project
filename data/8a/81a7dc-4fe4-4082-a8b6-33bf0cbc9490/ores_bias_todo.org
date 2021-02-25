@@ -1,0 +1,254 @@
+** DONE Make "punch-list"
+   SCHEDULED: <2020-01-28 Tue>
+** DONE look at Morey's paper on the fallacy of confidence intervals <- ** TODO Report the sample size by Wiki for each of our models.
+** TODO look again for citations suggesting "nudging" may lead to errors
+   SCHEDULED: <2020-05-11 Mon>
+** DONE is there an alternative to "identity based" as a category of signal like registration status. 
+   SCHEDULED: <2020-01-30 Thu>
+If we argue that "identity" matters because of in-group membership (i.e. being Wikipedian) then this may not be so important
+
+** TODO improve high level takeaways for designers / builders
+   SCHEDULED: <2020-02-10 Mon>
+
+** TODO improve citations to types of regulation / governance systems
+   SCHEDULED: <2020-01-31 Fri>
+
+** TODO use social identity theory to argue that measures like anonymity and having a user page constitute "identity based signals"
+
+** TODO reog background to introduce concepts in as intuitive and compact manner as possible
+   SCHEDULED: <2020-02-04 Tue>
+
+** TODO report summary statistics, dates RCfilters was introduced for each wiki. 
+   SCHEDULED: <2020-02-06 Thu>
+
+** TODO make perma.cc links
+   SCHEDULED: <2020-04-13 Mon>
+** TODO do placebo tests
+   SCHEDULED: <2020-02-04 Tue>
+** TODO consider other kinds of hypothesis tests based on adoption check.
+   SCHEDULED: <2020-02-05 Wed>
+e.g. if only "very likely bad" is significantly adopted, then we can just test our hypotheses by comparing coefficients at that threshold.
+
+** DONE Find another solution to the problem of low N in H2 and H3 
+   SCHEDULED: <2020-01-29 Wed>
+   - is there another measure we can use for controversial sanctioning?
+   - is there another measure we can use for has user page?
+   - maybe raising the 20k strata limit will help. 
+   - also double check for bugs. 
+
+** TODO rewrite abstract with better transition and results
+   SCHEDULED: <2020-02-03 Mon>
+
+** TODO proofread bibliography
+
+** DONE draft limitations section 
+   SCHEDULED: <2020-01-07 Tue>
+** DONE Knit remaining pieces of data in data section (date ranges, sample sizes)
+   SCHEDULED: <2020-01-29 Wed>
+** Write discussion and results sections
+   SCHEDULED: <2020-02-03 Mon>
+** DONE Why do "likely bad" flags have a negative effect?
+   SCHEDULED: <2020-01-29 Wed>
+** DONE Fix rounding of x axis in plots
+   SCHEDULED: <2020-01-29 Wed>
+** DONE Increase the sample size so we have more non-reverted edits around the very likely damaging threhsold.
+   SCHEDULED: <2020-01-28 Tue>
+
+   SCHEDULED: <2020-01-28 Tue>
+** DONE Re-run archaeologist until missingness rate is low, alternatively, debug the missing data issue. 
+   SCHEDULED: <2020-01-29 Wed>
+** DONE Use use the same date range for all wikis and exclude those without data for the entire range?
+   SCHEDULED: <2020-01-29 Wed>
+I don't think this matters very much. We're just trying to get the broadest sample possible.
+
+** DONE Ask Halfak if we can log the scores DB automatically since this lets us stratify by score which is more convenient.
+   SCHEDULED: <2020-01-29 Wed>
+
+
+
+** DONE Consider measuring warnings as sanctions.
+   SCHEDULED: <2019-12-28 Sat>
+** DONE cite Grimmelmann virtues of moderation for definition of moderation
+   SCHEDULED: <2020-01-06 Mon>
+** DONE cite nora's chi paper on anonymity
+   SCHEDULED: <2020-01-06 Mon>
+** DONE cite haiyi's work on algorithms.
+   SCHEDULED: <2020-01-29 Wed>
+** DONE cite any other CSCW about algorithms.
+   SCHEDULED: <2020-01-29 Wed>
+** TODO figure out my subjective / normative take on this. is this a good thing or a bad thing?
+
+** DONE Why would we show algorithmic flags and identity-based signals in the same interface?
+   SCHEDULED: <2020-01-29 Wed>
+** TODO think of a better term than "conservative" or "liberal" to describe strictness of moderation.
+** TODO build more intuition that moderation actions can be in error / controversial and why this is bad.
+   SCHEDULED: <2020-05-11 Mon>
+** TODO cite all the papers about the importance of studying Wikipedia in many languages. then we can cite the reading time paper maybe.
+   SCHEDULED: <2020-05-11 Mon>
+** TODO build argument that moderation is fast paced and stressful more to help with the above, it's as easy as citing Sarah Roberts and Seering more.
+   SCHEDULED: <2020-05-11 Mon>
+** TODO find someone to cite for salient signals in cscw
+** TODO Emphasize visibility  and monitoring as a useful concept for thinking about governance.  Visibility and salient signals are two different mechanisms that our two hypotheses try to tease apart.
+** DONE Define flagging.
+
+** TODO Make it clear what our results demonstrate directly and indirectly. 
+** DONE Email Bo Cowgill and ask for updates. I drafted an email in outlook. Send on Friday.
+** TODO Create table of strata sample sizes and weights for the appendix.
+** DONE Get scores from https://quarry.wmflabs.org/query/40712 if the missing data is bad.
+   SCHEDULED: <2020-01-08 Wed>
+** TODO add controversial revert varaiable to dataset.
+** DONE update data set with scores from quarry and reverted-reverts.
+   SCHEDULED: <2020-01-02 Thu>
+** DONE compare re-scored missingness to old missingness
+   SCHEDULED: <2020-01-02 Thu>
+** TODO run revscoring with feature injection (don't do it for now)
+** TODO robustness check in the local linear regression where we include wikis with the live site issue.
+** DONE simplify wiki_weeks generation
+   SCHEDULED: <2019-12-03 Tue>
+** DONE Check revscoring results and thresholds
+   SCHEDULED: <2019-12-03 Tue>
+** DONE Add scores to sample with the revert in 24 var
+   SCHEDULED: <2019-11-27 Wed>
+* DONE Try a less restricted time series model: see if a long-run spline and a short-run spline (or a lagged dv) are stationary according to the Breush-Godfrey test. (Do this after i'm done with other things I can do first while the stan models run)S
+  SCHEDULED: <2019-12-07 Sat>
+
+for week of year with fixed effects for month instead of fixed effects for week.
+** DONE [#B] Score huge sample
+   SCHEDULED: <2019-12-16 Mon>
+** DONE model selection for panel models of different spline degrees of freedom using LOO
+   SCHEDULED: <2019-11-23 Sat>
+** DONE rerun panel models (also using using p_reverted)
+   SCHEDULED: <2019-11-23 Sat>
+** DONE [#A] Collect thresholds for each deployment
+** TODO Use latest model for scoring when we are pre-cutoff
+** DONE convert to cscw template
+   SCHEDULED: <2019-12-31 Tue>
+** TODO fix missing data in revscoring (deleted revisions, zhwiki, this is fucking up the weights!)
+** DONE [#A] knit bias analysis
+   SCHEDULED: <2020-01-09 Thu>
+** DONE run bias analysis on static model version.
+   SCHEDULED: <2019-12-07 Sat>
+   This actually isn't that important and we probably don't have to do it unless reviewers ask. 
+   It's probably enough to keep it up to date with the new wikis. 
+   Also, it's a bit of a hassle.
+** DONE backup joal's wikidata snapshot (at least for the records that I use). 
+** DONE [#B] plot model proto wiki
+   SCHEDULED: <2020-01-09 Thu>
+** DONE [#B] create pooled bias analysis
+   SCHEDULED: <2019-12-11 Wed>
+** DONE integrate bias analysis with main repo
+** DONE label rdd reverts only if they are damaging
+   SCHEDULED: <2019-11-27 Wed>
+** TODO Run analysis using a makefile
+   SCHEDULED: <2020-02-10 Mon>
+** DONE create dependent variable p_reverted (prortion of anon/newcomer edits that reverted)
+** DONE [#B] RDD data points using data from multiple wikis (get the N big enough to convince mako :) ?)
+   SCHEDULED: <2019-11-21 Thu>
+** DONE Prep for CGSA meeting (reply to Salt's email)
+   SCHEDULED: <2019-11-20 Wed>
+** DONE [#A] run revscoring on new sample.
+   SCHEDULED: <2019-11-19 Tue>
+** DONE [#A] regenerate wikiweeks
+   SCHEDULED: <2019-11-19 Tue>
+** DONE make a new outline
+   SCHEDULED: <2019-11-15 Fri> DEADLINE: <2019-11-13 Wed>
+
+** DONE make it so I never have to run revscoring again
+   SCHEDULED: <2019-11-18 Mon>
+** DONE regenerate the commit cutoff db to include euwiki
+   SCHEDULED: <2019-11-16 Sat>
+** DONE [#A] Model anon and newcomers seperately. 
+** DONE Drop wikis without enough observations. 
+   SCHEDULED: <2019-11-18 Mon>
+** TODO [#A] Submit to CSCW
+   DEADLINE: <2020-06-01 Mon>
+** DONE [#A] Model with estimates for average wiki
+   SCHEDULED: <2019-11-18 Mon>
+   This is somewhat fraught. Seems like between wiki-heterogeneity makes it difficult to estiamte a pooling effect. 
+   So let's hold off on that and either present an average-edit model or seperate models for each wiki. But which?
+
+   What's the right way to do this? Have equal sized samples from each wiki and don't weight. 
+** DONE [#B] assign thresholds to edits! (there seems to be a bug in getting defaults
+   
+   SCHEDULED: <2019-11-27 Wed>
+** TODO Score pre-treatment edits using latest model versions (instead of earliest model versions)
+** WONT DO [#C] Model pooling estimates across thresholds
+   SCHEDULED: <2020-01-28 Tue>
+** TODO [#C] RDD: Plot density conditional on outcomes to test for control over assignment.
+   SCHEDULED: <2020-01-29 Wed>
+** DONE Compare models using LOO or LRT
+** DONE [#A] Investigate spikes in wiki-weeks data. 
+   SCHEDULED: <2019-11-22 Fri>
+   I didn't find a good explanation, but I noticed that I wasn't removing bots. Also we should model p.reverted instead of n.reverted. I'll try again later.
+** TODO [#C] Try fitting models using MLE
+   We don't need to do this since we'll want to compare estimates and so have a need for bayes.
+** TODO [#A] Fit time series models with splines for time and loo-based model selection.
+** DONE [#A] Visualize reversion rates in buckets. 
+   SCHEDULED: <2019-11-19 Tue>
+** DONE [#A] Debug newcomer panel data model.
+   SCHEDULED: <2019-11-21 Thu>
+   probably should be fitting binomial models predicting proportion reverted instead
+   it fits ok when we don't do QR decomposition. 
+** TODO make time-series plots with data and model predicted values. 
+** DONE [#A] (fit and interpret) time series models for new hypotheses
+   SCHEDULED: <2019-11-22 Fri> DEADLINE: <2019-11-23 Sat>
+** TODO Robustness checks with varying neighborhood sizes.
+** DONE Fit RDD models on newcomer and anonymous editors.
+   SCHEDULED: <2019-11-19 Tue>
+** DONE [#A] Run RDDs
+   SCHEDULED: <2020-01-30 Thu>
+** DONE Make pretty discontinuity plots for every wiki. 
+   SCHEDULED: <2019-11-13 Wed>
+** TODO [#C] Model with time to revert as outcome
+** DONE figure out best way to model multiple cutoffs (with missing data)
+   Maybe it's one cutoff per model but we exclude data on the other sides of the other cutoffs.
+   Or we don't. Mako might be helpful with that. 
+** DONE (preliminary) threshhold analysis.
+** DONE Fit model from litschig_impact_2013
+   SCHEDULED: <2019-11-11 Mon>
+** DONE Fit per-wiki models. 
+** DONE Why did we lose user ids?
+   SCHEDULED: <2019-11-03 Sun>
+** DONE [#A] Fit kink model to check that funny cutoffs aren't due to mispecification. 
+** DONE Make it so I never have to score edits again.
+   SCHEDULED: <2019-11-03 Sun>
+** DONE move to git-annex from git-lfs
+   SCHEDULED: <2019-11-03 Sun>
+** DONE rerun archaeologist on new sample
+   SCHEDULED: <2019-10-26 Sat>
+** DONE make plots for threshhold analysis. 
+** DONE fix error handling in archaeologist
+** DONE Make new sample
+   SCHEDULED: <2019-10-26 Sat>
+** DONE fix remaining bug in archaeologist.
+** DONE rebase from github to code.communitydata
+   SCHEDULED: <2019-10-18 Fri>
+** DONE get default cutoffs
+   SCHEDULED: <2019-10-30 Wed>
+** DONE Send halfak sample of edits around the threshold.
+   SCHEDULED: <2019-11-03 Sun>
+** DONE fix error handling in archaeologist
+** DONE Make new sample
+   SCHEDULED: <2019-11-05 Tue>
+** DONE rerun archaeologist on new sample
+   SCHEDULED: <2019-11-06 Wed>
+
+** DONE fix remaining bug in archaeologist.
+** DONE (preliminary) threshhold analysis.
+   SCHEDULED: <2019-10-30 Wed>
+** DONE make plots for threshhold analysis. 
+   SCHEDULED: <2019-10-30 Wed>
+** DONE see if they will install git-annex on the wmf machines.
+   SCHEDULED: <2019-11-04 Mon>
+   Git-annex isn't installed on wmf machines. So I need to ask about it.
+   SCHEDULED: <2019-11-03 Sun>
+** DONE rebase from github to code.communitydata
+   SCHEDULED: <2019-10-18 Fri>
+
+*** Future project
+- two different extreme assumptions could be: the same damage gets
+  reverted, it takes more work. 2. Stuff doesn't get reverted at all,
+  the cost of debiasing is more damage getting through.
+- 
+** DONE make code for making threshold ME plots
+   SCHEDULED: <2019-11-04 Mon>

@@ -16,7 +16,7 @@ options(xtable.floating = FALSE,
 options(tinytex.verbose = TRUE)
         
 base_size <- 12
-theme_set(theme_bw(base_size=base_size,base_line_size=base_size/22, base_rect_size=base_size/22))
+theme_set(theme_bw(base_size=base_size,base_line_size=base_size/18, base_rect_size=base_size/18))
 
 bold <- function(x) {paste('{\\textbf{',x,'}}', sep ='')}
 gray <- function(x) {paste('{\\textcolor{gray}{',x,'}}', sep ='')}
@@ -46,7 +46,7 @@ superscript_names <- function(superscript, symbols=TRUE, tex=FALSE){
     if(symbols == TRUE)
       base_labels = c(expression(tau[1]),expression(tau[2]),expression(tau[3]))
     else
-      base_labels = c("maybe bad", "likely bad", "very likely bad")
+      base_labels = c("Maybe bad", "Likely bad", "Very likely bad")
 
     if(!is.null(superscript)){
       labels = lapply(base_labels, function(l) bquote(.(l)^.(superscript)))
@@ -67,7 +67,7 @@ superscript_names <- function(superscript, symbols=TRUE, tex=FALSE){
         labels = c("maybe bad$^{}$","likely bad$^{}$","very likely bad$^{}$")
         labels = gsub("\\{\\}",paste0('{\\\\mathrm{',superscript,'}}'),labels)
       } else {
-        labels = c("maybe bad","likely bad", "very likely bad")
+        labels = c("Maybe bad","Likely bad", "Very likely bad")
       }
     }
   }
@@ -76,14 +76,22 @@ superscript_names <- function(superscript, symbols=TRUE, tex=FALSE){
 
 my_mcmc_intervals <- function(draws, superscript=NULL,symbols=TRUE, tex=FALSE){
   labels <- rev(superscript_names(superscript,symbols=symbols,tex=tex))
-  data <- mcmc_intervals_data(draws,
-                              pars=c(tau.1.name,tau.2.name,tau.3.name),
-                              prob_outer=0.95,
-                              point_est="mean")
 
-  p <- ggplot(data, aes(x=parameter,y=m,ymin=ll,ymax=hh)) + geom_pointrange(fatten=0.8)
-  p <- p + xlab("") + ylab("Marginal Posterior") + scale_x_discrete(labels=labels,limits=rev(levels(data$parameter)))
-  p <- p + theme_bw() + theme(legend.position="None", axis.text.y=element_text(color='black'),panel.grid.major=element_blank(), panel.grid.minor=element_blank())
+  data <- as.data.table(mcmc_intervals_data(draws,
+                              pars=c(tau.3.name,tau.2.name,tau.1.name),
+                              prob_outer=0.95,
+                              point_est="mean"))
+
+  data[,threshold:=labels]
+  p <- ggplot(data, aes(x=parameter,y=m,ymin=ll,ymax=hh,color=threshold)) + geom_pointrange()
+  p <- p + scale_color_manual(name="Threshold",
+                              values=c("Maybe bad"="#d7e519","Likely bad"="#db981c","Very likely bad"="#db3f1c","Over all thresholds"="grey10"),
+                              breaks=c("Maybe bad","Likely bad","Very likely bad", "Over all thresholds"))
+
+
+  p <- p + xlab("") + ylab("Marginal Posterior") + scale_x_discrete(breaks=c(),labels=c())
+
+  p <- p + theme_bw() + theme(legend.position='right', legend.box='vertical', axis.text.y=element_text(color='black'), axis.ticks.x=element_blank())
   p <- p + geom_hline(yintercept=0, color='gray10',linetype='dashed')
   p <- p + coord_flip()
   return(p)
@@ -97,21 +105,62 @@ my_mcmc_areas <- function(draws, superscript=NULL){
 }
 
 big_reg_plot2 <- function(mcmc.data, group1.pattern, group1.name, group2.name, tex=FALSE){
-  var.names <- names(mcmc.data)
-  mcmc.data <- as.data.table(mcmc_intervals_data(mcmc.data,prob_outer=0.95,point_est="median"))
-  mcmc.data[grepl('tau\\.1.*',parameter),threshold:='maybe bad']
-  mcmc.data[grepl('tau\\.2.*',parameter),threshold:='likely bad']
-  mcmc.data[grepl('tau\\.3.*',parameter),threshold:='very likely bad']
-  mcmc.data[grepl(group1.pattern,parameter),group:=group1.name]
+
+mcmc.data <- mcmc.data
+var.names <- names(mcmc.data)
+mcmc.data <- as.data.table(mcmc_intervals_data(mcmc.data,prob_outer=0.95,point_est="median"))
+
+mcmc.data[grepl("user.page",parameter),trait:="User page vs No User Page"]
+mcmc.data[grepl("anon",parameter),trait:="No IP vs IP"]
+mcmc.data[,parameter:=gsub("h\\d.","",parameter)]
+mcmc.data[grepl('tau\\.1.*',parameter),threshold:='Maybe bad']
+mcmc.data[grepl('tau\\.2.*',parameter),threshold:='Likely bad']
+mcmc.data[grepl('tau\\.3.*',parameter),threshold:='Very likely bad']
+mcmc.data[is.na(threshold), threshold:="Over all thresholds"]
+group1.parameters <- c("tau.1.non.anon","tau.2.non.anon","tau.3.non.anon", "tau.non.anon")
+group2.parameters <- c("tau.1.anon","tau.2.anon","tau.3.anon", "tau.anon")
+group3.parameters <- c("tau.1.non.anon.sub.anon","tau.2.non.anon.sub.anon","tau.3.non.anon.sub.anon","tau.non.anon.sub.anon")
+group4.parameters <- c("tau.1.user.page","tau.2.user.page","tau.3.user.page",'tau.user.page')
+group5.parameters <- c("tau.1.no.user.page","tau.2.no.user.page","tau.3.no.user.page",'tau.no.user.page')
+group6.parameters <- c("tau.1.user.page.sub.no.user.page","tau.2.user.page.sub.no.user.page","tau.3.user.page.sub.no.user.page","tau.user.page.sub.no.user.page")
+group1.name <- "Non IP"
+group2.name <- "IP"
+group3.name <- "Non IP $-$ IP"
+group4.name <- "User page"
+group5.name <- "No user page"
+group6.name <- "User page $-$ No user page"
+mcmc.data[parameter %in% group1.parameters ,group:=group1.name]
+mcmc.data[parameter %in% group2.parameters ,group:=group2.name]
+mcmc.data[parameter %in% group3.parameters ,group:=group3.name]
+mcmc.data[parameter %in% group4.parameters ,group:=group4.name]
+mcmc.data[parameter %in% group5.parameters ,group:=group5.name]
+mcmc.data[parameter %in% group6.parameters ,group:=group6.name]
+mcmc.data[,parameter := factor(parameter, levels=rev(unique(parameter)))]
+
+p <- ggplot(mcmc.data, aes(x=parameter,y=m,ymin=ll,ymax=hh,shape=group,color=threshold)) + geom_pointrange()
+
+p <- p + scale_shape_discrete(name="Effect",
+                              breaks=c('Non IP','IP','Non IP $-$ IP','User page','No user page','User page $-$ No user page'))
+p <- p + scale_color_manual(name="Threshold",
+                            values=c("Maybe bad"="#d7e519","Likely bad"="#db981c","Very likely bad"="#db3f1c","Over all thresholds"="grey10"),
+                            breaks=c("Maybe bad","Likely bad","Very likely bad", "Over all thresholds"))
+
+p <- p + xlab("") + scale_x_discrete(labels=c()) + ylab("Marginal Posterior") + coord_flip() 
+p <- p + theme(legend.position='right', legend.box='vertical', axis.ticks.y=element_blank())
+p <- p + guides(
+           shape = guide_legend(title.position="top",order=1,ncol=1),
+           color = guide_legend(title="Threshold", title.position="top", ncol=1,order=2))
+p <- p + geom_hline(yintercept=0,linetype='dashed',color='gray30') + facet_wrap(.~trait,scales='free')
+return(p)
 
 }
 
 big_reg_plot <- function(mcmc.data, sup1, sup2, tex=FALSE){
   var.names <- names(mcmc.data)
   mcmc.data <- as.data.table(mcmc_intervals_data(mcmc.data,prob_outer=0.95,point_est="median"))
-  mcmc.data[grepl('tau\\.1.*',parameter),threshold:='maybe bad']
-  mcmc.data[grepl('tau\\.2.*',parameter),threshold:='likely bad']
-  mcmc.data[grepl('tau\\.3.*',parameter),threshold:='very likely bad']
+  mcmc.data[grepl('h\\d.tau\\.1.*',parameter),threshold:='maybe bad']
+  mcmc.data[grepl('h\\d.tau\\.2.*',parameter),threshold:='likely bad']
+  mcmc.data[grepl('h\\d.tau\\.3.*',parameter),threshold:='very likely bad']
 
   mcmc.data[,color := c('orange','green','orange','green','orange','green','orange','green','blue')]
   mcmc.data[,linetype := c(rep('solid',6),'dotdash','dotdash','dashed')]
@@ -280,7 +329,7 @@ format.regtable <- function(table.data){
   return(xtab)
 }
 
-plot.threshold.cutoffs <- function(df, wiki,  partial.plot=NULL){
+plot.threshold.cutoffs <- function(df, wiki,  partial.plot=NULL, digits=3){
     if(is.null(partial.plot)){
         p <- ggplot()
     } else {
@@ -310,6 +359,7 @@ plot.threshold.cutoffs <- function(df, wiki,  partial.plot=NULL){
     p <- p + geom_segment(aes(x=0,xend=0,y=y,yend=yend),data=seg.df, linetype='solid', color='black')
     p <- p + scale_x_continuous(breaks = signif(c(min(df$d.nearest.threshold), 0, max(df$d.nearest.threshold)),2))
     p <- p + facet_wrap(. ~ nearest.threshold, scales="free") 
+    p <- p + scale_y_continuous(breaks=scales::breaks_pretty(4), labels= function(x) sprintf(paste0("%.",digits,"f"),x))
     p <- p + ggtitle(wiki) + xlab("Distance from threshold") + ylab("Prob. reverted")
     p <- p + theme(legend.position="none")
     return(p)
@@ -346,6 +396,20 @@ rename.thresholds <- function(df){
 ## me.data.df.4 <- mod.user.page.reverted.me.data.df
 ## bins.df.4 <- mod.user.page.reverted.bins.df
 ## label.4 <- "User page"
+## me.data.df.1 <- mod.anon.controversial.me.data.df
+## bins.df.1 <- mod.anon.controversial.bins.df
+## label.1 <- 'IP'
+## me.data.df.2 <- mod.non.anon.controversial.me.data.df
+## bins.df.2 <- mod.non.anon.controversial.bins.df
+## label.2 <- 'Not IP'
+## me.data.df.3 <- mod.no.user.page.controversial.me.data.df
+## bins.df.3 <- mod.no.user.page.controversial.bins.df
+## label.3 <- "No user page"
+## me.data.df.4 <- mod.user.page.controversial.me.data.df
+## bins.df.4 <- mod.user.page.controversial.bins.df
+## label.4 <- "User page"
+
+
 
 make.comparison.me.plot <- function(me.data.df.1,
                                     bins.df.1,
@@ -358,7 +422,9 @@ make.comparison.me.plot <- function(me.data.df.1,
                                     label.3,
                                     me.data.df.4,
                                     bins.df.4,
-                                    label.4){
+                                    label.4,
+                                    plot.data=FALSE,
+                                    digits=3){
 
     me.data.df.1 <- rename.thresholds(me.data.df.1)
     bins.df.1 <- rename.thresholds(bins.df.1)
@@ -377,6 +443,13 @@ make.comparison.me.plot <- function(me.data.df.1,
     me.data.df.3 <- me.data.df.3[,label:=label.3]
     me.data.df.4 <- me.data.df.4[,label:=label.4]
 
+
+  cols.to.use <- c("nearest.threshold", "d.nearest.threshold", "linpred.upper", "linpred.lower", "linpred",'label')
+
+  me.data.df.1 <- me.data.df.1[,cols.to.use,with=F]
+  me.data.df.2 <- me.data.df.2[,cols.to.use,with=F]
+  me.data.df.3 <- me.data.df.3[,cols.to.use,with=F]
+  me.data.df.4 <- me.data.df.4[,cols.to.use,with=F]
     me.data.df <- rbind(me.data.df.1, me.data.df.2, me.data.df.3, me.data.df.4)
     me.data.df <- me.data.df[,label := factor(label, c(label.1, label.2, label.3, label.4))]
 
@@ -422,8 +495,11 @@ make.comparison.me.plot <- function(me.data.df.1,
       me.data.df.t <- me.data.df[(nearest.threshold == threshold) & (label==label.t)]
       seg.df.t <- seg.df[(nearest.threshold == threshold) & (label==label.t)]
 
-      p <- ggplot() + geom_point(aes(x=bin.mid,y=prob.outcome), data=bins.df.t, alpha=0.7,size=0.7, color='grey30')
-      p <- p + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*se.outcome/sqrt(N),ymin=prob.outcome-1.96*se.outcome/sqrt(N)),data=bins.df.t, alpha=0.7, size=0.7, color='grey30')
+      p <- ggplot()
+      if(plot.data == TRUE){
+        p <- + geom_point(aes(x=bin.mid,y=prob.outcome), data=bins.df.t, alpha=0.7,size=0.7, color='grey30')
+        p <- p + geom_linerange(aes(x=bin.mid,ymax=prob.outcome+1.96*se.outcome/sqrt(N),ymin=prob.outcome-1.96*se.outcome/sqrt(N)),data=bins.df.t, alpha=0.7, size=0.7, color='grey30')
+      }
 
       p <- p + geom_ribbon(aes(ymax=linpred.upper,ymin=linpred.lower,d.nearest.threshold, group=pre.cutoff), alpha=0.5, data=me.data.df.t[pre.cutoff==FALSE], color='grey30', fill='grey30')
 
@@ -437,21 +513,29 @@ make.comparison.me.plot <- function(me.data.df.1,
       ## from <- ceiling(min(me.data.df.t$linpred.lower)*100)/100
       ## print(me.data.df.t)
 
-      p <- p + scale_y_continuous(breaks=seq(ceiling(min(me.data.df.t$linpred.lower)*100)/100, floor(max(me.data.df.t$linpred.upper)*100)/100,length.out=5))
+      my_labels <- function(x){sprintf(paste0("%.",digits,"f"),x)}
 
+      p <- p + scale_y_continuous(breaks=scales::breaks_pretty(n=4),labels=my_labels)
+      #seq(ceiling(min(me.data.df.t$linpred.lower)*100)/100, floor(max(me.data.df.t$linpred.upper)*100)/100,length.out=5))
+
+      # top row
       if( (i %% n.rows) == 0){
 #        p <- p + scale_x_continuous(breaks = round(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold))*100)/100, t.str, position='top')
-        p <- p + scale_x_continuous(breaks = c(-0.05,0,0.05), labels=c(-0.05,0,0.05),name=t.str,position='top')
-      } else {
+        p <- p + scale_x_continuous(name=t.str,position='top', labels=c()) + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+        p <- p + theme(plot.margin=margin(0,6,16,0))
+        # bottom row
+      } else if ((i %% n.rows) == 3){
         p <- p + scale_x_continuous(breaks = signif(c(min(me.data.df$d.nearest.threshold), 0, max(me.data.df$d.nearest.threshold)),2)) + theme(axis.title.x.top = element_blank()) 
-      }
-      if( (i %% n.rows) == 3){
+        p <- p + theme(plot.margin=margin(0,6,0,0))
+        # other rows
       } else {
-        p <- p + theme(axis.text.x = element_blank()) + theme(axis.title.x.bottom = element_blank())
+        p <- p + theme(axis.text.x = element_blank(), axis.ticks.x=element_blank()) + scale_x_continuous(labels=c())
+        p <- p + theme(plot.margin=margin(0,6,0,0))
       }
-#      p <- p + ggtitle(i)
+
       i <- i + 1
       
+
       plot.parts[[i]] <- p
     }
     first.col <- FALSE
@@ -460,27 +544,32 @@ make.comparison.me.plot <- function(me.data.df.1,
   y.labels <- lapply(levels(me.data.df$label), function(...) gsub("user page", "user \n page", ...))
 
   for(yl in y.labels){
-    yh <- 0.9 - (i == 12) * 0.1
+    yh <- 0.95 - (i == 12) * 0.15
     i <- i + 1
     plot.parts[[i]] <- textGrob(yl,
                                 just=c('left','top'),
-                                x=unit(0.15,'grobwidth',data = ggplotGrob(plot.parts[[length(plot.parts) - n.rows]])),
+                                x=unit(0.5,'grobwidth',data = ggplotGrob(plot.parts[[length(plot.parts) - n.rows]])),
                                 y=unit(yh,'npc'),
-                                gp=gpar(fontsize=11))
+                                gp=gpar(fontsize=12))
   }
 
-  p.main <- arrangeGrob(grobs = plot.parts, as.table = FALSE, ncol=4, widths=c(rep(1,3),0.5), heights=c(1.15,1,1,1.1))
+  p.main <- arrangeGrob(grobs = plot.parts, as.table = FALSE, ncol=4, widths=c(rep(1,3),0.5), heights=c(1.15,1.1,1.1,1.12))
 
-  return(grid.arrange(textGrob("Prob. reverted",rot=90,x=0.6), p.main,  textGrob(""), textGrob("Distance from threshold",x=0.455,y=0.7, just=c('bottom')), ncol=2, widths=c(0.02,1), heights=c(1,0.018)))
+  return(grid.arrange(textGrob("Prob. reverted",rot=90,x=0.6), p.main,  textGrob(""), textGrob("Distance from threshold",x=0.455,y=0.7, just=c('bottom')), ncol=2, widths=c(0.04,1.15), heights=c(1.15,0.02)))
 }
 
-make.rdd.plot <- function(me.data.df, bins.df, title){
+make.rdd.plot <- function(me.data.df, bins.df, plot.data=FALSE, title, digits=2){
+  me.data.df <- copy(me.data.df)
+  bins.df <- copy(bins.df)
     me.data.df <- rename.thresholds(me.data.df)
     bins.df <- rename.thresholds(bins.df)
 
+  if(plot.data == TRUE)
     p <- plot.bins(bins.df)
+  else
+    p <- ggplot()
 
-    p <-  plot.threshold.cutoffs(me.data.df, '', partial.plot = p)
+    p <-  plot.threshold.cutoffs(me.data.df, '', partial.plot = p, digits=digits)
 
     p <- p + ggtitle(title)
 
@@ -526,17 +615,17 @@ proto.reverted.CI.str <- function(proto.data,digits=2){
                 signif(proto.data$linpred.lower, digits=digits),
                 ",~",
                 signif(proto.data$linpred.upper, digits=digits),
-                ")$)"))
+                "))$"))
 }
 
 
-proto.reverted <- function(data.df, where='below', threshold='very likely bad'){
+proto.reverted <- function(data.df, where='below', threshold.name='very likely bad'){
   if (where=='below'){
-    x <- data.df[ (nearest.threshold==threshold) & (d.nearest.threshold < 0), .(max(d.nearest.threshold))]
+    x <- data.df[ (nearest.threshold==threshold.name) & (d.nearest.threshold < 0), .(max(d.nearest.threshold))]
   } else {
-    x <- data.df[ (nearest.threshold==threshold) & (d.nearest.threshold > 0), .(min(d.nearest.threshold))]
+    x <- data.df[ (nearest.threshold==threshold.name) & (d.nearest.threshold > 0), .(min(d.nearest.threshold))]
   }
-  r <- data.df[(nearest.threshold==threshold) & (d.nearest.threshold == x$V1),
+  r <- data.df[(nearest.threshold==threshold.name) & (d.nearest.threshold == x$V1),
                  .(linpred.lower,linpred.upper,linpred,d.nearest.threshold)]
   return(r)
 }
@@ -693,3 +782,117 @@ make.sparklines <- function(model.draws, name){
 ## p <- p + geom_hline(yintercept=0,color='gray30')
 ## p <- p + coord_flip()
 ## p
+h1.tau.1.non.anon <- mod.non.anon.reverted.draws[[tau.1.name]]
+h1.tau.2.non.anon <- mod.non.anon.reverted.draws[[tau.2.name]]
+h1.tau.3.non.anon <- mod.non.anon.reverted.draws[[tau.3.name]]
+
+h1.tau.1.anon <- mod.anon.reverted.draws[[tau.1.name]]
+h1.tau.2.anon <- mod.anon.reverted.draws[[tau.2.name]]
+h1.tau.3.anon <- mod.anon.reverted.draws[[tau.3.name]]
+
+h1.tau.anon <- apply(matrix(c(h1.tau.1.anon,h1.tau.2.anon,h1.tau.3.anon),ncol=3,byrow=FALSE),1,sum)
+h1.tau.non.anon <- apply(matrix(c(h1.tau.1.non.anon,h1.tau.2.non.anon,h1.tau.3.non.anon),ncol=3,byrow=FALSE),1,sum)
+
+h1.tau.non.anon.sub.anon <- apply(matrix(c(h1.tau.non.anon, -1*h1.tau.anon),ncol=2,byrow=FALSE),1,sum)
+
+h1.tau.1.user.page <- mod.user.page.reverted.draws[[tau.1.name]]
+h1.tau.2.user.page <- mod.user.page.reverted.draws[[tau.2.name]]
+h1.tau.3.user.page <- mod.user.page.reverted.draws[[tau.3.name]]
+
+h1.tau.1.no.user.page <- mod.no.user.page.reverted.draws[[tau.1.name]]
+h1.tau.2.no.user.page <- mod.no.user.page.reverted.draws[[tau.2.name]]
+h1.tau.3.no.user.page <- mod.no.user.page.reverted.draws[[tau.3.name]]
+
+h1.tau.user.page <- apply(matrix(c(h1.tau.1.user.page,h1.tau.2.user.page,h1.tau.3.user.page),ncol=3,byrow=FALSE),1,sum)
+h1.tau.no.user.page <- apply(matrix(c(h1.tau.1.no.user.page,h1.tau.2.no.user.page,h1.tau.3.no.user.page),ncol=3,byrow=FALSE),1,sum)
+h1.tau.user.page.sub.no.user.page <- apply(matrix(c(h1.tau.user.page, -1*h1.tau.no.user.page),ncol=2,byrow=FALSE),1,sum)
+
+h1.tau.1.non.anon.sub.anon <- h1.tau.1.non.anon - h1.tau.1.anon
+h1.tau.2.non.anon.sub.anon <- h1.tau.2.non.anon - h1.tau.2.anon
+h1.tau.3.non.anon.sub.anon <- h1.tau.3.non.anon - h1.tau.3.anon
+h1.tau.1.user.page.sub.no.user.page <- h1.tau.1.user.page - h1.tau.1.no.user.page
+h1.tau.2.user.page.sub.no.user.page <- h1.tau.2.user.page - h1.tau.2.no.user.page
+h1.tau.3.user.page.sub.no.user.page <- h1.tau.3.user.page - h1.tau.3.no.user.page
+
+h1.mcmc.data <- data.table(h1.tau.1.non.anon,
+                           h1.tau.1.anon,
+                           h1.tau.1.non.anon.sub.anon,
+                           h1.tau.2.non.anon,
+                           h1.tau.2.anon,
+                           h1.tau.2.non.anon.sub.anon,
+                           h1.tau.3.non.anon,
+                           h1.tau.3.anon,
+                           h1.tau.3.non.anon.sub.anon,
+                           h1.tau.non.anon,
+                           h1.tau.anon,
+                           h1.tau.non.anon.sub.anon,
+                           h1.tau.1.user.page,
+                           h1.tau.1.no.user.page,
+                           h1.tau.1.user.page.sub.no.user.page,                           
+                           h1.tau.2.user.page,
+                           h1.tau.2.no.user.page,
+                           h1.tau.2.user.page.sub.no.user.page,
+                           h1.tau.3.user.page,
+                           h1.tau.3.no.user.page,
+                           h1.tau.3.user.page.sub.no.user.page,
+                           h1.tau.user.page,
+                           h1.tau.no.user.page,
+                           h1.tau.user.page.sub.no.user.page)
+
+h3.tau.1.non.anon <- mod.non.anon.controversial.draws[[tau.1.name]]
+h3.tau.2.non.anon <- mod.non.anon.controversial.draws[[tau.2.name]]
+h3.tau.3.non.anon <- mod.non.anon.controversial.draws[[tau.3.name]]
+
+h3.tau.1.anon <- mod.anon.controversial.draws[[tau.1.name]]
+h3.tau.2.anon <- mod.anon.controversial.draws[[tau.2.name]]
+h3.tau.3.anon <- mod.anon.controversial.draws[[tau.3.name]]
+
+h3.tau.anon <- apply(matrix(c(h3.tau.1.anon,h3.tau.2.anon,h3.tau.3.anon),ncol=3,byrow=FALSE),1,sum)
+h3.tau.non.anon <- apply(matrix(c(h3.tau.1.non.anon,h3.tau.2.non.anon,h3.tau.3.non.anon),ncol=3,byrow=FALSE),1,sum)
+
+h3.tau.non.anon.sub.anon <- apply(matrix(c(h3.tau.non.anon, -1*h3.tau.anon),ncol=2,byrow=FALSE),1,sum)
+
+h3.tau.1.user.page <- mod.user.page.controversial.draws[[tau.1.name]]
+h3.tau.2.user.page <- mod.user.page.controversial.draws[[tau.2.name]]
+h3.tau.3.user.page <- mod.user.page.controversial.draws[[tau.3.name]]
+
+h3.tau.1.no.user.page <- mod.no.user.page.controversial.draws[[tau.1.name]]
+h3.tau.2.no.user.page <- mod.no.user.page.controversial.draws[[tau.2.name ]]
+h3.tau.3.no.user.page <- mod.no.user.page.controversial.draws[[tau.3.name]]
+
+h3.tau.no.user.page <- apply(matrix(c(h3.tau.1.no.user.page,h3.tau.2.no.user.page,h3.tau.3.no.user.page),ncol=3,byrow=FALSE),1,sum)
+h3.tau.user.page <- apply(matrix(c(h3.tau.1.user.page,h3.tau.2.user.page,h3.tau.3.user.page),ncol=3,byrow=FALSE),1,sum)
+
+h3.tau.user.page.sub.no.user.page <- apply(matrix(c(h3.tau.user.page, -1*h3.tau.no.user.page),ncol=2,byrow=FALSE),1,sum)
+h3.tau.1.non.anon.sub.anon <- h3.tau.1.non.anon - h3.tau.1.anon
+h3.tau.2.non.anon.sub.anon <- h3.tau.2.non.anon - h3.tau.2.anon
+h3.tau.3.non.anon.sub.anon <- h3.tau.3.non.anon - h3.tau.3.anon
+h3.tau.1.user.page.sub.no.user.page <- h3.tau.1.user.page - h3.tau.1.no.user.page
+h3.tau.2.user.page.sub.no.user.page <- h3.tau.2.user.page - h3.tau.2.no.user.page
+h3.tau.3.user.page.sub.no.user.page <- h3.tau.3.user.page - h3.tau.3.no.user.page
+
+h3.mcmc.data <- data.table(h3.tau.1.non.anon,
+                           h3.tau.1.anon,
+                           h3.tau.1.non.anon.sub.anon,
+                           h3.tau.2.non.anon,
+                           h3.tau.2.anon,
+                           h3.tau.2.non.anon.sub.anon,
+                           h3.tau.3.non.anon,
+                           h3.tau.3.anon,
+                           h3.tau.3.non.anon.sub.anon,
+                           h3.tau.non.anon,
+                           h3.tau.anon,
+                           h3.tau.non.anon.sub.anon,
+                           h3.tau.1.user.page,
+                           h3.tau.1.no.user.page,
+                           h3.tau.1.user.page.sub.no.user.page,                           
+                           h3.tau.2.user.page,
+                           h3.tau.2.no.user.page,
+                           h3.tau.2.user.page.sub.no.user.page,
+                           h3.tau.3.user.page,
+                           h3.tau.3.no.user.page,
+                           h3.tau.3.user.page.sub.no.user.page,
+                           h3.tau.user.page,
+                           h3.tau.no.user.page,
+                           h3.tau.user.page.sub.no.user.page)
+
